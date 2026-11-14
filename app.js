@@ -1080,6 +1080,7 @@
     } else {
       html += group('profile', '👤 My profile', esc(me.name) + ' · ' + (me.role === 'master' ? 'Headmaster' : 'teacher'), profile()) +
         '<p class="muted small" style="margin:0 0 1rem">Sections and students have their own pages: <a href="#/sections">🏫 Sections</a> · <a href="#/students">👥 Students</a>.</p>' +
+        group('demo', '👁 Student View', 'a demo student only you can see', studentViewHtml(me)) +
         (me.role === 'master' ? group('teachers', '🧑‍🏫 Teachers', 'add a teacher · ' + Staff.teachers.length + ' profile' + (Staff.teachers.length === 1 ? '' : 's') + ' · sections · students · reset · remove', teachersHtml()) + group('issues', '🐞 Reported problems', 'screenshots and messages from the Found a problem? button', '<div id="issuesList"><p class="muted small">Loading…</p></div>') + (Cloud.enabled ? group('security', '🔐 Security', 'unused sign-ins · change log · data upgrade', securityHtml()) : '') + group('drive', '☁️ Google Drive &amp; exports', '', driveHtml()) : '') +
         group('media', '🖼️ Media checklist', 'images and videos to add', mediaChecklistHtml()) +
         group('options', '🎛️ Class options', 'colouring breaks · welcome screen', '<h3>🎨 Colouring page learning breaks</h3>' +
@@ -1110,7 +1111,7 @@
       const v = await askPasswords('Change my password', '', [{ key: 'old', label: 'Current password' }, { key: 'pw', label: 'New password (at least ' + min + ' characters)', min }, { key: 'again', label: 'Type the new one once more' }]); if (!v) return;
       if (v.pw !== v.again) return alert('The two new passwords did not match. Nothing was changed.');
       try { await Cloud.changeMyPassword(v.old, v.pw); alert('Password changed.'); } catch (e) { alert(e.message); } });
-    if (staff) { bindTeachers(); bindDrive(); bindSecurity(); }
+    if (staff) { bindTeachers(); bindDrive(); bindSecurity(); bindStudentView(); }
   }
 
   /* ----- Sections (classes) ----- */
@@ -1330,6 +1331,54 @@
       (now.length ? '<div class="hist-list">' + now.map(row).join('') + '</div>' : '<p class="muted small">Not in an active section.</p>') +
       (past.length ? '<details class="other-courses" style="margin-top:0.5rem"><summary>📦 Past sections and teachers (' + past.length + ')</summary><div class="hist-list" style="margin-top:0.5rem">' + past.map(row).join('') + '</div></details>' : '') + '</div>';
   }
+  /* ----- Student View: a demo student that lives inside a staff account ----- */
+  function demoOwnerKey(me) { return me.role === 'master' ? 'master' : me.staffId; }
+  function demoOf(me) { return Students.demoFor(demoOwnerKey(me)); }
+  function studentViewHtml(me) {
+    const d = demoOf(me);
+    const intro = '<p class="muted small">A <strong>demo student</strong> that exists only inside your account: not on any roster, not in the Students list, the directory, the grids or anyone else\'s screen. Set its level, courses, accommodations, Modified program or Focus Plan exactly as you would for a real student, then <strong>open Student View</strong> to see The Academy as that student would — lessons, quizzes, games, grades, the desk. Everything the demo does is kept (its own progress and work), and nothing else is touched.</p>';
+    if (!d) return intro + '<div class="btn-row"><button class="btn" id="demoCreate">🧪 Create my demo student</button></div>';
+    return intro +
+      '<div class="plan-banner" style="display:flex;flex-wrap:wrap;gap:0.6rem 1rem;align-items:center;justify-content:space-between"><span><strong>' + esc(d.avatar) + ' ' + esc(d.name) + '</strong> · Level ' + esc(String(d.level)) + ' · ' + (Array.isArray(d.courses) ? d.courses.length + ' course' + (d.courses.length === 1 ? '' : 's') : 'all courses') + (Object.keys(d.track || {}).length ? ' · Modified program' : '') + '</span>' +
+      '<span class="btn-row"><button class="btn" id="demoEnter">👁 Open Student View</button><button class="btn ghost sm" id="demoReset" title="Wipe the demo student\'s progress and work (its settings stay)">↺ Reset its progress</button></span></div>' +
+      '<p class="muted small" style="margin:0.6rem 0 0.2rem">Set the demo student up below, as you would any student:</p>' +
+      '<div class="student-list">' + studentsPanelHtml('', d.id) + '</div>';
+  }
+  function bindStudentView() {
+    const me = Students.current; if (!me || !me.isStaff) return;
+    const c = app.querySelector('#demoCreate'); if (c) c.addEventListener('click', async () => { c.disabled = true; try { await createDemo(me); sessionStorage.setItem('learnhub.sg.demo', '1'); pageSettings(); } catch (e) { alert('Could not create the demo student: ' + (e.message || e)); c.disabled = false; } });
+    const e = app.querySelector('#demoEnter'); if (e) e.addEventListener('click', enterStudentView);
+    const r = app.querySelector('#demoReset'); if (r) r.addEventListener('click', () => { const d = demoOf(me); if (!d || !confirm('Reset the demo student\'s progress, work, awards and grades? Its settings (level, courses, plan) stay.')) return; Progress.resetFor ? Progress.resetFor(d.id) : (localStorage.removeItem('learnhub.progress.' + d.id), Cloud.onLocalRemove && Cloud.onLocalRemove('learnhub.progress.' + d.id)); pageSettings(); });
+    if (demoOf(me)) { bindStudentsPanel(); bindFocusPlan(false); bindLessonSearch(); const ps = app.querySelector('#planStudent'); if (ps) ps.addEventListener('change', () => { sessionStorage.setItem('learnhub.planStudent', ps.value); pageSettings(); }); }
+  }
+  /** Make the demo student: in the cloud first (a profile with no sign-in, owned by this staff member), then locally. */
+  async function createDemo(me) {
+    let d = demoOf(me); if (d) return d;
+    d = Students.ensureDemo(demoOwnerKey(me), Cloud.user ? Cloud.user.uid : me.staffId, me.name);
+    if (Cloud.enabled && Cloud.user) { try { await Cloud.createDemo(d); } catch (e) { Students.remove ? Students.remove(d.id) : (Students.data.list = Students.data.list.filter(x => x.id !== d.id), Students.save()); throw e; } }
+    return d;
+  }
+  /** Switch this session to the demo student. The staff sign-in stays; "Back to my desk" returns. */
+  async function enterStudentView() {
+    const me = Students.current; if (!me || !me.isStaff) return;
+    let d; try { d = await createDemo(me); } catch (e) { alert('Could not open Student View: ' + (e.message || e)); return; }
+    sessionStorage.setItem('learnhub.studentView', me.id);                              // who to come back to
+    Students.setCurrent(d.id); renderWho(); location.hash = '#/'; route();
+  }
+  function exitStudentView() {
+    const back = sessionStorage.getItem('learnhub.studentView'); sessionStorage.removeItem('learnhub.studentView');
+    const key = back || (Cloud.user ? (Cloud.role === 'master' ? 'staff:master' : 'staff:' + Cloud.user.uid) : null);
+    if (key && Students.byId(key)) Students.setCurrent(key);
+    renderWho(); sessionStorage.setItem('learnhub.openGroup', 'demo'); location.hash = '#/settings'; route();
+  }
+  function studentViewBanner() {
+    const old = document.getElementById('demoBanner'); if (old) old.remove();
+    const cur = Students.current; if (!cur || !cur.demo) return;
+    const d = document.createElement('div'); d.id = 'demoBanner'; d.className = 'demo-banner'; d.setAttribute('role', 'status');
+    d.innerHTML = '<span>👁 <strong>Student View</strong> — you are seeing The Academy as <strong>' + esc(cur.name) + '</strong>, your demo student. What the demo does is kept; nothing else is affected.</span><button class="btn sm" id="demoExit">↩ Back to my desk</button>';
+    app.insertBefore(d, app.firstChild);
+    d.querySelector('#demoExit').addEventListener('click', exitStudentView);
+  }
   /** Students page (staff): search, the section scope, and each student's full editor. */
   function pageStudents() {
     const me = Students.current; if (!me || !me.isStaff) { location.hash = '#/'; return; }
@@ -1361,10 +1410,10 @@
     const ids = new Set(); Sections.visible(staff.id, true).forEach(sec => (sec.students || []).forEach(id => ids.add(id)));
     return Students.list.filter(s => ids.has(s.id));
   }
-  function studentsPanelHtml(q) {
-    const open = sessionStorage.getItem('learnhub.studentOpen');
+  function studentsPanelHtml(q, onlyId) {
+    const open = onlyId ? onlyId : sessionStorage.getItem('learnhub.studentOpen');
     const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
-    const list = studentsInScope().filter(s => !words.length || words.every(w => (String(s.name) + ' ' + String(s.number || '')).toLowerCase().includes(w))).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    const list = (onlyId ? [Students.byId(onlyId)].filter(Boolean) : studentsInScope()).filter(s => !words.length || words.every(w => (String(s.name) + ' ' + String(s.number || '')).toLowerCase().includes(w))).sort((a, b) => String(a.name).localeCompare(String(b.name)));
     const cur = Sections.currentFor(Staff.current.id);
     const pool = Cloud.enabled && !Staff.isMaster ? (Students.directory || []) : Students.list;   // a teacher holds only their own students; the directory lists who else can be added
     const others = cur ? pool.filter(s => !(cur.students || []).includes(s.id)).sort((a, b) => String(a.name).localeCompare(String(b.name))) : [];
@@ -1381,7 +1430,7 @@
           (sugg.length ? '<span class="tag accent">💡 ' + sugg.length + '</span>' : '') + '<span class="muted">' + (isOpen ? '▾' : '▸') + '</span>' + (Cloud.enabled ? '<span class="small muted row-stamp">' + profileStamp(s) + '</span>' : '') + '</button>' +
           (isOpen ? '<div class="student-body">' +
             '<div class="save-bar"><span class="muted small" id="saveMsg-' + s.id + '">' + (Cloud.enabled ? 'Changes save automatically. Press Save to send them to the cloud right away.' : 'Changes save on this device as you make them.') + '</span><button class="btn sm" data-save-student="' + esc(s.id) + '">💾 Save changes</button></div>' +
-            (Cloud.enabled ? '<div class="plan-section"><div class="plan-label">🔑 Account</div><div class="course-line"><span>Student number <strong>' + esc(s.number || '—') + '</strong> · birthday <strong>' + esc(s.dob || '—') + '</strong> · ' + (s.pwCustom ? 'has a password of their own (not the birthday)' : 'password = birthday as DDMMYYYY' + (s.dob ? ' (<code>' + esc(Cloud.dobPassword(s.dob)) + '</code>)' : '')) + '</span><span class="btn-row"><input class="text-input" type="date" data-fix-dob="' + esc(s.id) + '" style="max-width:170px" title="Correct birthday"><button class="btn ghost sm" data-fix-dob-go="' + esc(s.id) + '">Fix birthday / reset password</button></span></div></div>' : '') +
+            (Cloud.enabled && !s.demo ? '<div class="plan-section"><div class="plan-label">🔑 Account</div><div class="course-line"><span>Student number <strong>' + esc(s.number || '—') + '</strong> · birthday <strong>' + esc(s.dob || '—') + '</strong> · ' + (s.pwCustom ? 'has a password of their own (not the birthday)' : 'password = birthday as DDMMYYYY' + (s.dob ? ' (<code>' + esc(Cloud.dobPassword(s.dob)) + '</code>)' : '')) + '</span><span class="btn-row"><input class="text-input" type="date" data-fix-dob="' + esc(s.id) + '" style="max-width:170px" title="Correct birthday"><button class="btn ghost sm" data-fix-dob-go="' + esc(s.id) + '">Fix birthday / reset password</button></span></div></div>' : '') +
             (sugg.length ? '<div class="plan-section"><div class="plan-label">💡 Suggested level changes (from test results)</div>' + sugg.map(([cid, g]) => { const c = findCourse(cid); return '<div class="suggestion"><span>' + (c ? c.icon + ' ' + esc(c.title) : esc(cid)) + ': <strong>Level ' + g.from + ' → Level ' + g.level + '</strong> <span class="muted small">(' + g.pct + '% on ' + esc(g.unit) + ', ' + new Date(g.at).toLocaleDateString() + ')</span></span><span class="btn-row"><button class="btn sm success" data-sugg-apply="' + esc(s.id) + '" data-c="' + esc(cid) + '" data-l="' + g.level + '">Apply</button><button class="btn sm ghost" data-sugg-dismiss="' + esc(s.id) + '" data-c="' + esc(cid) + '">Dismiss</button></span></div>'; }).join('') + '</div>' : '') +
             '<div class="plan-section"><div class="plan-label">Default achievement level</div><div class="level-cards compact">' + [1, 2, 3, 4].map(l => '<button class="level-card ' + (s.level === l ? 'on' : '') + '" data-set-level="' + esc(s.id) + '" data-l="' + l + '"><h3>Level ' + l + ' · ' + LEVEL_NAMES[l] + '</h3><p>' + LEVEL_DESC[l] + '</p></button>').join('') + '</div></div>' +
             '<div class="plan-section"><div class="plan-label">Courses and level per course</div><p class="muted small" style="margin:0 0 0.5rem">Tick the courses this student sees. "Default" uses the level above; pick a number to set a different level for that course only.</p>' +
@@ -1398,15 +1447,15 @@
             sw('', 'Complexity', 'Answer choices and word banks from one level down; no typed blanks.', (s.accommodations || {}).simplify, 'data-accom="simplify" data-s="' + esc(s.id) + '"') +
             sw('', 'Chunking', 'Matching shown three pairs at a time; word banks of at most three.', (s.accommodations || {}).chunk, 'data-accom="chunk" data-s="' + esc(s.id) + '"') + '</div>' +
             workHtml(s) + recordingsHtml(s) +
-            (cur ? '<div class="plan-section"><button class="btn ghost sm" data-unenrol="' + esc(s.id) + '" data-sec="' + esc(cur.id) + '">Remove from ' + esc(cur.name) + '</button></div>' : '') +
-            '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button><button class="btn ghost sm" data-delete="' + esc(s.id) + '">Remove student</button></div>' +
+ (cur && !s.demo ? '<div class="plan-section"><button class="btn ghost sm" data-unenrol="' + esc(s.id) + '" data-sec="' + esc(cur.id) + '">Remove from ' + esc(cur.name) + '</button></div>' : '') +
+            (s.demo ? '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button></div>' : '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button><button class="btn ghost sm" data-delete="' + esc(s.id) + '">Remove student</button></div>') +
           '</div>' : '') + '</div>';
       }).join('') + '</div>' +
-      (Cloud.enabled
+      (onlyId ? '' : (Cloud.enabled
         ? '<div class="plan-unit" style="margin-top:0.75rem"><div class="plan-label">＋ Add a new student' + (cur ? ' to ' + esc(cur.name) : '') + '</div><p class="muted small" style="margin:0 0 0.5rem">This creates the student\'s account. They sign in on any device with their student number and their birthday as the password (DDMMYYYY).</p><div class="search-row" style="grid-template-columns:1fr 1fr 1fr auto"><input class="text-input" id="teacherAddName" maxlength="30" placeholder="First name"><input class="text-input" id="teacherAddNumber" placeholder="Student number" inputmode="numeric"><input class="text-input" id="teacherAddDob" type="date" title="Birthday"><button class="btn secondary" id="teacherAdd">＋ Add student</button></div><p class="small muted" id="teacherAddMsg" style="margin:0.4rem 0 0"></p>' +
           (cur && others.length ? '<select class="text-input" id="enrolExisting" style="max-width:300px;margin-top:0.5rem"><option value="">Add an existing student…</option>' + others.map(o => '<option value="' + esc(o.id) + '">' + esc(o.avatar) + ' ' + esc(o.name) + (o.number ? ' · ' + esc(o.number) : '') + '</option>').join('') + '</select>' : '') + '</div>'
-        : '<div class="btn-row" style="margin-top:0.75rem"><input class="text-input" id="teacherAddName" maxlength="30" placeholder="Add a new student by first name" style="max-width:280px"><button class="btn secondary" id="teacherAdd">＋ Add student' + (cur ? ' to ' + esc(cur.name) : '') + '</button>') +
-      (!Cloud.enabled && cur && others.length ? '<select class="text-input" id="enrolExisting" style="max-width:260px"><option value="">Add an existing student…</option>' + others.map(o => '<option value="' + esc(o.id) + '">' + esc(o.avatar) + ' ' + esc(o.name) + '</option>').join('') + '</select>' : '') + (Cloud.enabled ? '' : '</div>');
+        : '<div class="btn-row" style="margin-top:0.75rem"><input class="text-input" id="teacherAddName" maxlength="30" placeholder="Add a new student by first name" style="max-width:280px"><button class="btn secondary" id="teacherAdd">＋ Add student' + (cur ? ' to ' + esc(cur.name) : '') + '</button>')) +
+      (!onlyId && !Cloud.enabled && cur && others.length ? '<select class="text-input" id="enrolExisting" style="max-width:260px"><option value="">Add an existing student…</option>' + others.map(o => '<option value="' + esc(o.id) + '">' + esc(o.avatar) + ' ' + esc(o.name) + '</option>').join('') + '</select>' : '') + (Cloud.enabled ? '' : '</div>');
   }
   function levelHistoryHtml(s) {
     const rows = [];
@@ -1652,7 +1701,7 @@
   function notFound() { app.innerHTML = '<div class="empty"><h2>Page not found</h2><a class="btn" href="#/">Back to courses</a></div>'; }
 
   /* ---------- router ---------- */
-  function route() { routeInner(); try { cloudNotice(); } catch (e) {} }
+  function route() { routeInner(); try { cloudNotice(); } catch (e) {} try { studentViewBanner(); } catch (e) { console.warn('banner', e); } }
   function routeInner() {
     const parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').map(decodeURIComponent);   // #/page/a/b?x=y
     window.scrollTo(0, 0);

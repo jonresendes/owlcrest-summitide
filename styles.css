@@ -1080,3 +1080,8 @@ body[data-contrast="high"] .desk-notes, body[data-contrast="inverted"] .desk-not
   .topbar .install-btn { font-size: 1rem; padding: 0.35rem 0.55rem; }
   .topbar .install-btn .install-label { display: none; }
 }
+
+/* ---- Student View (demo student) banner (v54) ---- */
+.demo-banner { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 1rem; padding: 0.7rem 1rem; border-radius: 12px; background: #fff4d6; border: 2px dashed #d9a21b; color: #4a3a10; font-size: 0.95rem; }
+.demo-banner .btn { flex: 0 0 auto; }
+body[data-page="desk"] .demo-banner { background: #fff8e6; }

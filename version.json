@@ -1,5 +1,5 @@
 {
- "version": "53",
+ "version": "54",
  "date": "2026-11-14",
- "notes": "Streamlined header on every screen: one row on desktop (Back · brand · menu · Install · name chip), two on a phone (brand row, menu row); the menu shrinks, shortens the desk label and scrolls under a fade instead of anything stacking. Also v50–v52: courses by curriculum area, chalkboard desks."
+ "notes": "Student View: every teacher and the Headmaster get a private demo student (Settings → Student View) to set up like a real student and then see The Academy as that student; its progress is kept, nothing else is touched."
 }

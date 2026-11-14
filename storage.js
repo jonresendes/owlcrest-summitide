@@ -139,7 +139,17 @@
   const Students = {
     data: load(KEY_STUDENTS, { list: [], current: null }),
     save() { const c = this.current; if (c && c.isStaff) this.saveStaff(c); save(KEY_STUDENTS, this.data); },
-    get list() { return this.data.list; },
+    /* the roster everyone works with — demo students (a staff member's private "Student View" profile) are left out */
+    get list() { return this.data.list.filter(s => !s.demo); },
+    get everyone() { return this.data.list; },
+    /** The demo student that belongs to this staff member (Firebase uid, or 'master'), if it exists. */
+    demoFor(ownerId) { return this.data.list.find(s => s.demo && s.demoOwner === ownerId) || null; },
+    /** Create the staff member's demo student (one per account). Not on any roster, not in any list or directory. */
+    ensureDemo(ownerId, ownerUid, ownerName) {
+      let d = this.demoFor(ownerId); if (d) return d;
+      d = this.add('Demo Student', { id: 'demo__' + (ownerUid || ownerId).replace(/[^A-Za-z0-9_-]/g, ''), demo: true, demoOwner: ownerId, teachers: ownerUid ? [ownerUid] : [], number: '', level: 2, courses: null, avatar: '🧪', colour: '#5f3dc4', note: 'Student View for ' + (ownerName || 'staff') });
+      return d;
+    },
     /** The signed-in profile: a student, or a teacher/master profile (id 'staff:<id>'). */
     get current() { return this.byId(this.data.current); },
     _staffCache: {},

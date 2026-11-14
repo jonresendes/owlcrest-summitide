@@ -109,6 +109,12 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Rules changed in v43** — paste `firestore.rules` into Firestore → Rules → Publish before uploading the app (see DEPLOY.md).
 
+## Student View — a demo student inside each staff account (v54)
+
+**Settings → 👁 Student View** (teachers and the Headmaster). *Create my demo student* makes a profile that exists only inside that account: `students/demo__<uid>` with `demo: true`, `demoOwner`, `teachers: [<uid>]`, written directly by the staff member's app (`Cloud.createDemo`; the create rule already allows a staff member to create a profile whose access list is just themselves). It has no sign-in, is never on a roster, and is left out of `Students.list` — so the Students page, the desk counts, the grids, the directory, *add an existing student* and every other list never show it (`Students.everyone` is the raw list; `Students.demoFor(owner)` finds the demo; the access-list reconciliation leaves demo records alone).
+
+The group shows the demo's row with the same editor as any student — level, courses and per-course levels, Modified program, accommodations, rewrites, Focus Plan — minus the account, roster and remove controls. **Open Student View** switches the session to the demo (`Students.setCurrent(demoId)`; the staff sign-in stays): the student desk, courses at the demo's level, quizzes, tests, games, work, grades and notes all behave as they would for a real student, under a dashed banner with **↩ Back to my desk**. Everything the demo does is saved under its own id (`progress/demo__<uid>__<course>`, which a teacher's app also subscribes to) and is there next time; *Reset its progress* wipes it. Staff menu items are hidden while in Student View; the staff pages bounce the demo like any student.
+
 ## The header (v53)
 
 One clean row on desktop: **← Back · brand · menu · Install · name chip**, never wrapping. The menu is the only part that gives way: when the row is tight (large text size, narrow window) `pwa.js` adds `.tight` — smaller menu text, the desk item shortens to *HM Desk* / *My Desk*, the role-badge text and "(teacher)" hide — and if that is still not enough the menu scrolls sideways under a soft fade at its edges, keeping the active item in view. On a phone (≤ 640 px) there are two rows: ← · brand · chip (avatar and badge only) · install icon, then the menu row, which scrolls. Nothing in the header ever stacks or runs off the edge.

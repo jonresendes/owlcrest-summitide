@@ -245,7 +245,7 @@
     catch (e) { if (e && e.code === 'not-found') return; throw e; }                    // removed meanwhile: do not bring it back
     const before = mine ? '' : J(card(prev));
     seenStudents[id] = Object.assign(next, stamp, { rev: (+prev.rev || 0) + 1 });
-    if (!mine && J(card(next)) !== before) db.collection('directory').doc(id).set(Object.assign(card(next), { updatedAt: now() })).catch(() => {});   // keep the staff directory card in step
+    if (!mine && !next.demo && J(card(next)) !== before) db.collection('directory').doc(id).set(Object.assign(card(next), { updatedAt: now() })).catch(() => {});   // keep the staff directory card in step
   }
   let knownSections = new Set();
   function removedSections(list) { const ids = new Set(list.map(s => s.id)); const gone = [...knownSections].filter(id => !ids.has(id)); knownSections = ids; return gone; }
@@ -390,6 +390,8 @@
     ((lsGet('learnhub.sections') || {}).list || []).forEach(sec => { if (sec.teacherId !== uid || !/^[\w-]{1,80}$/.test(sec.courseId || '')) return;
       (sec.students || []).forEach(sid => { if (mine.has(sid)) out.push('progress/' + sid + '__' + sec.courseId, 'grades/' + sid + '__' + sec.courseId); }); });
     mine.forEach(sid => out.push('focus/' + sid));
+    const demoId = 'demo__' + String(uid || '').replace(/[^A-Za-z0-9_-]/g, '');
+    if (mine.has(demoId)) ((window.LearnHub && LearnHub.courses) || []).forEach(c => out.push('progress/' + demoId + '__' + c.id, 'grades/' + demoId + '__' + c.id));
     return [...new Set(out)];
   }
   let docT = null;
@@ -538,6 +540,7 @@
     const want = {}; secs.forEach(sec => (sec.students || []).forEach(id => { want[id] = want[id] || new Set(); if (sec.teacherId) want[id].add(sec.teacherId); }));
     const staffIds = new Set(Object.keys(seenStaff)); (gone || []).forEach(g => staffIds.delete(g));
     for (const id of Object.keys(seenStudents)) {
+      if (seenStudents[id].demo) continue;                                               // a demo student stays with the staff member who owns it
       const cur = Array.isArray(seenStudents[id].teachers) ? seenStudents[id].teachers : [];
       const target = (want[id] ? [...want[id]] : cur).filter(t => staffIds.has(t)).sort();   // in no section: whoever added them keeps them
       if (sameSet(cur, target) && Array.isArray(seenStudents[id].teachers)) continue;
@@ -568,6 +571,13 @@
   }
   const rulesHint = e => /permission|insufficient/i.test((e && (e.code || '')) + ' ' + (e && e.message)) ? 'The cloud refused the change. Check that the v43 firestore.rules are published (Firebase → Firestore → Rules), then try again.' : describe(e);
   /** A teacher adds a student — or, signed out, a student signs themselves up when the school allows it. Returns the profile. */
+  /** The staff member's private demo student (Student View): a profile record with no sign-in, owned by its creator. */
+  Cloud.createDemo = async function (rec) {
+    if (!db || !Cloud.user || Cloud.role === 'student') throw new Error('Only staff can create a demo student.');
+    const full = clean(Object.assign({}, rec, { demo: true, teachers: [Cloud.user.uid], updatedAt: now(), updatedBy: whoAmI(), rev: 1 }));
+    await db.collection('students').doc(rec.id).set(full); seenStudents[rec.id] = full; log('demo student', rec.id, {});
+    return full;
+  };
   Cloud.createStudent = async ({ name, number, dob, level, courses }) => {
     number = String(number || '').trim(); if (!/^[A-Za-z0-9._-]{3,}$/.test(number)) throw new Error('Enter the student number (letters and digits only).');
     name = String(name || '').replace(/[<>]/g, '').trim().slice(0, 30); if (!name) throw new Error('Enter the first name.');
@@ -733,7 +743,7 @@
     for (const d of students.docs) { const st = d.data(); report.students++;
       const t = (want[d.id] ? [...want[d.id]] : (Array.isArray(st.teachers) ? st.teachers.filter(x => staffIds.has(x)) : [])).sort();
       if (!same(st.teachers, t)) { await d.ref.update({ teachers: t }); report.accessFixed++; }
-      await c('directory').doc(d.id).set(Object.assign(card(st), { updatedAt: now() })); }
+      if (!st.demo) await c('directory').doc(d.id).set(Object.assign(card(st), { updatedAt: now() })); }
     // 2. teacher grades move out of the record a student can write
     const progress = await c('progress').get();
     for (const d of progress.docs) { const p = d.data(), k = ownerOf(d.id); report.progress++; if (!k || !known.has(k.student)) continue;
