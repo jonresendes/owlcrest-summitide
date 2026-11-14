@@ -352,7 +352,16 @@
   function goHome() { if (location.hash === '#/' || location.hash === '') window.dispatchEvent(new HashChangeEvent('hashchange')); else location.hash = '#/'; }
 
   /** One desk tile: icon, title, a line of detail, and where it goes. */
-  function tile(href, icon, title, detail, extra) { return '<a class="card tile desk-fold" href="' + href + '"' + (extra || '') + '><span class="tile-icon">' + icon + '</span><span class="tile-text"><h2>' + title + '</h2><span class="muted small">' + detail + '</span></span></a>'; }
+  /* chalk-stroke icons for the staff desks' chalkboard tiles */
+  const CHALK = {
+    sections: '<path d="M6 42V20l18-12 18 12v22H6z"/><path d="M18 42V30h12v12"/><path d="M24 8v4"/>',
+    students: '<circle cx="17" cy="17" r="6"/><circle cx="33" cy="19" r="5"/><path d="M5 40c0-7 5-12 12-12s12 5 12 12"/><path d="M27 40c0-5 3-9 7-10 5 0 9 4 9 10"/>',
+    courses: '<path d="M8 10h14a4 4 0 0 1 4 4v26a4 4 0 0 0-4-4H8z"/><path d="M40 10H26a4 4 0 0 0-4 4v26a4 4 0 0 1 4-4h14z"/>',
+    grades: '<path d="M6 42h36"/><rect x="10" y="24" width="7" height="18"/><rect x="21" y="14" width="7" height="28"/><rect x="32" y="30" width="7" height="12"/>',
+    teachers: '<rect x="6" y="8" width="36" height="24" rx="2"/><path d="M14 40h20M24 32v8"/><path d="M14 20l6-6 6 6 8-8"/>'
+  };
+  const chalkIcon = k => '<svg class="chalk-ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CHALK[k] + '</svg>';
+  function tile(href, icon, title, detail, extra) { const chalk = /data-chalk/.test(extra || ''); return '<a class="card tile desk-fold' + (chalk ? ' chalk' : '') + '" href="' + href + '"' + (extra || '') + '><span class="tile-icon">' + icon + '</span><span class="tile-text"><h2>' + title + '</h2><span class="muted small">' + detail + '</span></span>' + (chalk ? '<span class="chalk-tray" aria-hidden="true"><i></i><i></i></span>' : '') + '</a>'; }
   function studentCourseCard(c, resume) { const s = Students.current; const sm = Badges.summary(c); const t = Students.trackFor(c.id); const pct = courseProgress(c);
     const units = unitsFor(c).map((un, i) => { const u = Progress.unit(c.id, un.id); const up = unitProgress(c, un); const ls = lessonsFor(un); const done = ls.filter(l => lessonStatus(c, un, l).complete).length;
       return '<a class="unit-line" href="#/course/' + c.id + '"><span class="tag">Unit ' + (c.units.indexOf(un) + 1) + '</span><span class="unit-line-title">' + esc(un.title) + '</span><span class="muted small">' + done + '/' + ls.length + ' lessons' + (u.testBest ? ' · test ' + u.testBest + '%' : '') + '</span><span class="progress mini"><span style="width:' + up + '%"></span></span></a>'; }).join('');
@@ -375,7 +384,7 @@
     const secs = mySections();
     const teachers = Array.from(new Set(secs.filter(x => !x.archived).map(teacherName).filter(Boolean)));
     const handedIn = (() => { let n = 0; mine.forEach(c => c.units.forEach(un => { const u = Progress.unit(c.id, un.id); Object.values(u.work || {}).forEach(w => Object.values(w).forEach(x => { if (x && x.done) n++; })); })); return n; })();
-    document.body.dataset.page = 'desk';
+    document.body.dataset.page = 'desk'; document.body.dataset.desk = 'student';
     app.innerHTML = '<div class="page-head"><div><h1>🎒 ' + esc(possessive(s.name)) + ' Desk</h1><p class="muted">Welcome back, ' + esc(s.name) + '! Your sections, your courses, and how you are doing.</p>' + (Cloud.enabled ? '<p class="muted small">' + profileStamp(s) + '</p>' : '') + '</div></div>' +
       (Focus.enabled && Object.keys(Focus.data.courses).length ? '<div class="plan-banner">🎯 <strong>Focus Plan is on.</strong> Courses with a plan show only the pieces chosen for you.</div>' : '') +
       '<div class="case-stats"><div class="stat"><div class="n">' + mine.length + '</div><div class="l">Active class' + (mine.length === 1 ? '' : 'es') + '</div></div><div class="stat"><div class="n">🏅 ' + awards + ' / ' + total + '</div><div class="l">Awards</div></div><div class="stat"><div class="n">' + (avg === null ? '–' : avg + '%') + '</div><div class="l">Average best test</div></div><div class="stat"><div class="n">' + arch.length + '</div><div class="l">Archived</div></div></div>' +
@@ -499,14 +508,14 @@
     const scope = studentsInScope();
     const sugg = scope.filter(x => Object.keys(x.suggestions || {}).length).length;
     const cur = Sections.currentFor(s.staffId);
-    document.body.dataset.page = 'desk';
+    document.body.dataset.page = 'desk'; document.body.dataset.desk = 'staff';
     app.innerHTML = '<div class="page-head"><div><h1>' + (s.role === 'master' ? '🦉 The Headmaster\'s Desk' : '🧑‍🏫 Teacher\'s Desk') + '</h1><p class="muted">Welcome, ' + esc(s.name) + ' · ' + (s.role === 'master' ? '<span class="tag hm-tag">👑 Headmaster</span>' : 'Teacher') + ' · ' + secs.length + ' active section' + (secs.length === 1 ? '' : 's') + ' · ' + scope.length + ' student' + (scope.length === 1 ? '' : 's') + '</p></div></div>' +
       '<div class="desk-tiles">' +
-      tile('#/sections', '🏫', 'Sections', secs.length + ' active' + (archived.length ? ' · ' + archived.length + ' archived' : '')) +
-      tile('#/students', '👥', 'Students', scope.length + (cur ? ' in ' + esc(cur.name) : s.role === 'master' ? ' in the school' : ' in your sections') + (sugg ? ' · 💡 ' + sugg : '')) +
-      tile('#/courses', '📚', 'Courses', allCourses().length + ' courses') +
-      tile('#/dashboard', '📊', 'Grades', cur ? esc(cur.name) : 'quizzes · assignments · tests') +
-      (s.role === 'master' ? tile('#/teachers', '🧑‍🏫', 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's')) : '') +
+      tile('#/sections', chalkIcon('sections'), 'Sections', secs.length + ' active' + (archived.length ? ' · ' + archived.length + ' archived' : ''), ' data-chalk') +
+      tile('#/students', chalkIcon('students'), 'Students', scope.length + (cur ? ' in ' + esc(cur.name) : s.role === 'master' ? ' in the school' : ' in your sections') + (sugg ? ' · ' + sugg + ' suggestion' + (sugg === 1 ? '' : 's') : ''), ' data-chalk') +
+      tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length + ' courses · ' + LH.groupByArea(allCourses()).length + ' area' + (LH.groupByArea(allCourses()).length === 1 ? '' : 's'), ' data-chalk') +
+      tile('#/dashboard', chalkIcon('grades'), 'Grades', cur ? esc(cur.name) : 'quizzes · assignments · tests', ' data-chalk') +
+      (s.role === 'master' ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's'), ' data-chalk') : '') +
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageTeacherHome);
   }
@@ -1646,7 +1655,7 @@
   function routeInner() {
     const parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').map(decodeURIComponent);   // #/page/a/b?x=y
     window.scrollTo(0, 0);
-    delete document.body.dataset.page;
+    delete document.body.dataset.page; delete document.body.dataset.desk;
     window.LH.stopSpeaking();   // leaving a page stops any reading
     renderWho();
     document.querySelectorAll('.topnav a').forEach(a => a.classList.remove('active'));
