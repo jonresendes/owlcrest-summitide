@@ -104,6 +104,7 @@
     el.innerHTML = s ? '<button class="who' + (hm ? ' who-master' : '') + '" type="button" id="whoBtn" title="' + (hm ? 'Signed in as the Headmaster (admin)' : 'Account') + '"><span class="who-avatar" style="background:' + esc(s.colour) + '">' + esc(s.avatar) + '</span><span class="who-name">' + esc(s.name) + (s.isStaff && !hm ? ' <span class="muted small">(teacher)</span>' : '') + '</span>' + (hm ? '<span class="role-badge" aria-label="Headmaster">👑<span class="role-badge-text"> Headmaster</span></span>' : '') + '<span class="who-switch">▾</span></button>' : '';
     setNavRoles();
     const b = el.querySelector('#whoBtn'); if (b) b.addEventListener('click', accountMenu);
+    if (window.fitTopbar) setTimeout(window.fitTopbar, 0);
   }
   /** Tapping the name/picture: a small sheet with Switch user / Sign out / Settings (no immediate sign-out). */
   function accountMenu() {
@@ -1711,6 +1712,7 @@
     d.textContent = '⚠️ ' + Cloud.loadError; app.insertBefore(d, app.firstChild);
   }
   window.addEventListener('hashchange', route);
+  window.addEventListener('resize', () => {}); 
   window.addEventListener('courses:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; route(); });
   // Live data from the cloud: redraw data pages (not while someone is typing in a box)
   window.addEventListener('cloud:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; const p = location.hash.replace(/^#\/?/, '').split('/')[0]; if ((['', 'course', 'lesson', 'work', 'dashboard', 'grades', 'case', 'teachers', 'courses', 'sections', 'students'].includes(p) || (p === 'settings' && !Students.isStaffSession)) && Students.current) route(); renderWho(); });

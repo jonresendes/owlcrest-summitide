@@ -109,6 +109,10 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Rules changed in v43** — paste `firestore.rules` into Firestore → Rules → Publish before uploading the app (see DEPLOY.md).
 
+## Top bar at any text size (v52)
+
+The header is a grid — brand · menu · install · name chip — so nothing is ever pushed off the right edge: the menu shrinks and scrolls sideways first, and when it cannot show its first items beside the chip (large text size, a narrow window), `pwa.js` adds `.stacked` and the menu drops to a full-width second row under the brand and chip. Phones keep their own layout.
+
 ## Chalkboard desks (v51)
 
 On the Teacher's Desk and The Headmaster's Desk every tile is a **chalkboard**: a green slate board (faint chalk haze and scratches) in a thick wooden frame with a hard shadow, chalk-white line icons (inline SVG, `CHALK` in `app.js`), hand-lettered titles and detail lines in *Patrick Hand* (Google Fonts, already allowed by the CSP), and a chalk tray with two sticks along the bottom. The **My notes** area on every desk is now a darker wood pad set into the desk, with the sticky notes stuck on it at slight angles under a strip of tape. The Student Desk keeps its white tiles (the body carries `data-desk="staff"` / `"student"`), and the high-contrast and inverted modes override both looks. The mock-up this came from is the *Chalkboard Desk Mock-up* design artifact.

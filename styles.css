@@ -1051,3 +1051,24 @@ body[data-page="desk"] .desk-notes .sticky:nth-child(even) { transform: rotate(1
 body[data-page="desk"] .desk-notes .sticky:hover { transform: rotate(0) scale(1.02); z-index: 1; }
 body[data-page="desk"] .desk-notes .sticky-title-ro { font-size: 1.2rem; }
 body[data-contrast="high"] .desk-notes, body[data-contrast="inverted"] .desk-notes { background: inherit; color: inherit; box-shadow: none; }
+
+/* ---- top bar never overflows the window (v52) ----
+   Normal: brand · menu · install · name chip on one row; the menu shrinks and scrolls sideways before anything is pushed
+   off screen. When the menu cannot show at least its first items (large text, narrow window), pwa.js adds .stacked and
+   the menu drops to a full-width second row. Phones keep their own layout (max-width: 640px rules above). */
+@media (min-width: 641px) {
+  .topbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: 1.25rem; row-gap: 0.4rem; min-width: 0; }
+  .brand { grid-column: 1; }
+  .topnav { grid-column: 2; min-width: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .topnav::-webkit-scrollbar { display: none; }
+  .install-btn { grid-column: 3; }
+  .who-chip { grid-column: 4; margin-left: 0; min-width: 0; max-width: 100%; }
+  .topbar.stacked { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .topbar.stacked .topnav { grid-column: 1 / -1; grid-row: 2; }
+  .topbar.stacked .brand { grid-column: 1; }
+  .topbar.stacked .install-btn { grid-column: 3; justify-self: end; }
+  .topbar.stacked .who-chip { grid-column: 4; justify-self: end; }
+}
+.who { max-width: 100%; }
+.who-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 1280px) { .role-badge-text { display: none; } .who-name .small { display: none; } }

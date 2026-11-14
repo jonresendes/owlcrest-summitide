@@ -86,7 +86,7 @@
      APP_VERSION is baked into this file; version.json on the site says what is published.
      Settings → Updates compares the two and offers a one-tap update (new service worker +
      cache clear + reload). The check also runs on load and hourly. */
-  const APP_VERSION = '51';
+  const APP_VERSION = '52';
   let latest = null;   // { version, date, notes } from the site, when newer
   async function checkForUpdate() {
     try {
@@ -255,4 +255,18 @@
   });
 
   window.LHNav = { go, back, stack };
+
+  /* ---------- top bar: drop the menu to its own row when it no longer fits beside the name chip ---------- */
+  function fitTopbar() {
+    const bar = document.querySelector('.topbar'), nav = document.querySelector('.topnav'); if (!bar || !nav) return;
+    if (window.innerWidth <= 640) { bar.classList.remove('stacked'); return; }
+    bar.classList.remove('stacked');
+    const links = Array.from(nav.querySelectorAll('a:not([hidden])')); if (!links.length) return;
+    const tooTight = nav.scrollWidth > nav.clientWidth + 2;   // some menu items are hidden behind the edge
+    if (tooTight) bar.classList.add('stacked');
+  }
+  window.addEventListener('resize', fitTopbar); window.addEventListener('load', fitTopbar); window.addEventListener('hashchange', () => setTimeout(fitTopbar, 0));
+  window.addEventListener('cloud:auth', () => setTimeout(fitTopbar, 50)); document.addEventListener('DOMContentLoaded', () => setTimeout(fitTopbar, 0));
+  new MutationObserver(() => fitTopbar()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-font', 'style', 'class'] });
+  window.fitTopbar = fitTopbar;
 })();
