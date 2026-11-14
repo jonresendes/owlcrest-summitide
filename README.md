@@ -109,9 +109,9 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Rules changed in v43** — paste `firestore.rules` into Firestore → Rules → Publish before uploading the app (see DEPLOY.md).
 
-## Top bar at any text size (v52)
+## The header (v53)
 
-The header is a grid — brand · menu · install · name chip — so nothing is ever pushed off the right edge: the menu shrinks and scrolls sideways first, and when it cannot show its first items beside the chip (large text size, a narrow window), `pwa.js` adds `.stacked` and the menu drops to a full-width second row under the brand and chip. Phones keep their own layout.
+One clean row on desktop: **← Back · brand · menu · Install · name chip**, never wrapping. The menu is the only part that gives way: when the row is tight (large text size, narrow window) `pwa.js` adds `.tight` — smaller menu text, the desk item shortens to *HM Desk* / *My Desk*, the role-badge text and "(teacher)" hide — and if that is still not enough the menu scrolls sideways under a soft fade at its edges, keeping the active item in view. On a phone (≤ 640 px) there are two rows: ← · brand · chip (avatar and badge only) · install icon, then the menu row, which scrolls. Nothing in the header ever stacks or runs off the edge.
 
 ## Chalkboard desks (v51)
 

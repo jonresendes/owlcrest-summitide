@@ -88,7 +88,7 @@
     document.querySelectorAll('.topnav a').forEach(a => a.classList.toggle('active', a.dataset.nav === key));
     const d = document.querySelector('[data-nav="dashboard"]'); if (d) d.hidden = Settings.locked || !Staff.master;
     const g = document.querySelector('[data-nav="grades"]'); if (g) g.hidden = !Students.current || Students.current.isStaff;
-    const h = document.querySelector('[data-nav="home"]'); if (h) h.textContent = deskName();
+    const h = document.querySelector('[data-nav="home"]'); if (h) { const full = deskName(); h.innerHTML = '<span class="nav-full">' + esc(full) + '</span><span class="nav-short">' + (full === 'Student Desk' ? 'My Desk' : full === "Teacher's Desk" ? 'My Desk' : 'HM Desk') + '</span>'; h.title = full; }
     const cs = document.querySelector('[data-nav="case"]'); if (cs) cs.hidden = !Students.current || Students.current.isStaff;
     const sn = document.querySelector('[data-nav="sections"]'); if (sn) sn.hidden = !Students.current;
     const st = document.querySelector('[data-nav="students"]'); if (st) st.hidden = !Students.current || !Students.current.isStaff;

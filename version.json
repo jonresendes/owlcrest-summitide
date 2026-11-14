@@ -1,5 +1,5 @@
 {
- "version": "52",
+ "version": "53",
  "date": "2026-11-14",
- "notes": "Top bar never overflows the window at large text sizes (the menu scrolls, the name chip keeps its place). Chalkboard tiles on the Teacher's and Headmaster's Desks (slate boards in wooden frames, chalk lettering and icons, chalk tray); the My notes area is now a wood desk pad with the sticky notes stuck on it. Also v50: courses by curriculum area."
+ "notes": "Streamlined header on every screen: one row on desktop (Back · brand · menu · Install · name chip), two on a phone (brand row, menu row); the menu shrinks, shortens the desk label and scrolls under a fade instead of anything stacking. Also v50–v52: courses by curriculum area, chalkboard desks."
 }

@@ -432,12 +432,7 @@ body { overflow-x: hidden; }
 
 @media (max-width: 640px) {
   .app { padding-left: max(0.9rem, env(safe-area-inset-left)); padding-right: max(0.9rem, env(safe-area-inset-right)); }
-  .topbar { gap: 0.5rem 0.75rem; }
-  .brand { flex: 1; }
   .brand-logo { height: 36px; }
-  .install-btn { order: 2; }
-  .topnav { order: 3; }
-  .topnav a { padding: 0.4rem 0.6rem; font-size: 0.95rem; }
   .page-head { flex-direction: column; align-items: stretch; }
   .page-head .btn { align-self: flex-start; }
   .unit-row { grid-template-columns: minmax(0, 1fr); }
@@ -1052,23 +1047,36 @@ body[data-page="desk"] .desk-notes .sticky:hover { transform: rotate(0) scale(1.
 body[data-page="desk"] .desk-notes .sticky-title-ro { font-size: 1.2rem; }
 body[data-contrast="high"] .desk-notes, body[data-contrast="inverted"] .desk-notes { background: inherit; color: inherit; box-shadow: none; }
 
-/* ---- top bar never overflows the window (v52) ----
-   Normal: brand · menu · install · name chip on one row; the menu shrinks and scrolls sideways before anything is pushed
-   off screen. When the menu cannot show at least its first items (large text, narrow window), pwa.js adds .stacked and
-   the menu drops to a full-width second row. Phones keep their own layout (max-width: 640px rules above). */
-@media (min-width: 641px) {
-  .topbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: 1.25rem; row-gap: 0.4rem; min-width: 0; }
-  .brand { grid-column: 1; }
-  .topnav { grid-column: 2; min-width: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
-  .topnav::-webkit-scrollbar { display: none; }
-  .install-btn { grid-column: 3; }
-  .who-chip { grid-column: 4; margin-left: 0; min-width: 0; max-width: 100%; }
-  .topbar.stacked { grid-template-columns: auto minmax(0, 1fr) auto auto; }
-  .topbar.stacked .topnav { grid-column: 1 / -1; grid-row: 2; }
-  .topbar.stacked .brand { grid-column: 1; }
-  .topbar.stacked .install-btn { grid-column: 3; justify-self: end; }
-  .topbar.stacked .who-chip { grid-column: 4; justify-self: end; }
-}
+/* ---- the header, one clean row on desktop and two on a phone (v53) ----
+   Desktop: ← Back · brand · menu · Install · name chip, left to right, never wrapping. The menu is the only part that
+   gives way: when it cannot fit, pwa.js adds .tight (smaller menu text, badge text hidden) and, if still too wide, the
+   menu scrolls sideways under a soft fade at its edges. Phone: row 1 = ← · brand · chip · install; row 2 = the menu. */
+.topbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.9rem; min-width: 0; padding: 0.65rem 1.25rem; }
+.topbar .back-btn { flex: 0 0 auto; order: 0; }
+.topbar .brand { flex: 0 0 auto; order: 1; }
+.topbar .topnav { flex: 1 1 auto; min-width: 0; order: 2; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; white-space: nowrap; padding: 0.15rem 0.25rem; margin: -0.15rem 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
+.topbar .topnav::-webkit-scrollbar { display: none; }
+.topbar .topnav a { flex: 0 0 auto; }
+.topbar .install-btn { flex: 0 0 auto; order: 3; margin-left: 0; white-space: nowrap; }
+.topbar .who-chip { flex: 0 0 auto; order: 4; margin-left: 0; min-width: 0; max-width: 40%; }
 .who { max-width: 100%; }
 .who-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-@media (max-width: 1280px) { .role-badge-text { display: none; } .who-name .small { display: none; } }
+.topbar.tight .topnav a { padding: 0.35rem 0.6rem; font-size: 0.92rem; }
+.topbar.tight .role-badge-text, .topbar.tight .who-name .small { display: none; }
+.topbar.tight .install-btn { font-size: 0.8rem; padding: 0.35rem 0.6rem; }
+.topnav .nav-short { display: none; }
+.topbar.tight .topnav .nav-full { display: none; }
+.topbar.tight .topnav .nav-short { display: inline; }
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; gap: 0.5rem 0.6rem; padding: 0.55rem 0.9rem; }
+  .topbar .brand { flex: 1 1 auto; order: 1; }
+  .topbar .who-chip { order: 2; max-width: none; }
+  .topbar .install-btn { order: 9; flex: 0 0 auto; }
+  .topbar .topnav { order: 10; flex: 1 1 0; min-width: 60%; padding: 0.1rem 0; margin: 0; }
+  .topbar .topnav a { padding: 0.4rem 0.7rem; font-size: 0.95rem; }
+  .topbar.tight .topnav a { padding: 0.35rem 0.55rem; font-size: 0.9rem; }
+  .topbar .who-name { display: none; }
+  .topbar .install-btn { font-size: 1rem; padding: 0.35rem 0.55rem; }
+  .topbar .install-btn .install-label { display: none; }
+}
