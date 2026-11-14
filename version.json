@@ -1,5 +1,5 @@
 {
- "version": "49",
+ "version": "50",
  "date": "2026-11-14",
- "notes": "Course files are data, never code: JSON only (convert .js with course2json.js), every string scrubbed, slide html sanitised, Headmaster-only, logged. Also v47–v48: desk tidy-up and Load a course from a file."
+ "notes": "Courses page grouped by Ontario curriculum area (Religious Education first, then the Ministry's list) as expandable bars with compact course rows; same grouping when a student joins a class."
 }

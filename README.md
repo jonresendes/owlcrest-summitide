@@ -109,6 +109,10 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Rules changed in v43** — paste `firestore.rules` into Firestore → Rules → Publish before uploading the app (see DEPLOY.md).
 
+## Courses by curriculum area (v50)
+
+The Courses page groups courses under the Ministry's secondary curriculum areas, shown as the Ministry's own list look — a coloured code block, the area name, an arrow — one bar per area that has courses; tapping a bar expands it (one at a time, remembered for the session) into compact rows: code · title · subtitle · units/lessons · your sections, with *Preview* and *＋ Section*. The board's **Religious Education** area comes first; then The Arts, Business Studies, Canadian and World Studies, Classical Studies and International Languages, Computer Studies, Cooperative Education, English, ESL/ELD, First Nations, Métis, and Inuit Studies, French as a Second Language, Guidance and Career Education, Health and Physical Education, Interdisciplinary Studies, Mathematics, Native Languages, Science, Social Sciences and Humanities, Technological Education, Alternative (K) courses. The area is decided by the course code (`LH.courseArea` in `util.js`): religion courses (HRE/HRF/HRT/HRC) and HZT4U / HZB3M → Religious Education; otherwise the first letter(s) of the code (E/OLC → English, ESL/ELD → ESL, ICS → Computer Studies, IDC → Interdisciplinary, LN → Native Languages, N → FNMI, K → Alternative, A/B/C/F/G/H/L/M/P/S/T as the Ministry uses them). A course file may set `area: '<key>'` to place itself. A student's *Join a new class* list uses the same grouping.
+
 ## Loading a course from a file (v48–v49)
 
 The Headmaster can add a course without touching the repository: **Courses → 📥 Load a course from a file** (`courseloader.js`).

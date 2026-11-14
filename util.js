@@ -396,7 +396,53 @@
   /** Every term of a unit at the standard level (keys used by the Focus Plan). */
   function allTermKeys(unit) { return (unit.terms || []).map(t => L(t.term, 2)); }
 
-  window.LH = { LEVELS, LEVEL_NAMES, LEVEL_DESC, BANDS, band, body, def, byLevel, L, shuffle, sample, esc, safeUrl, num, md, speak, stopSpeaking, speakBtn, termsFor, slidesFor, mcOptions,
+  /* ---------- Ontario subject areas (by course-code letter), with the Catholic board's Religious Education area ----------
+     A course file may set `area: '<key>'` to place itself; otherwise the code decides. */
+  const AREAS = [   // the Ministry's secondary curriculum areas, in its order, with the board's Religious Education area first
+    { key: 'religion',  label: 'Religious Education',                                                   short: 'REL', colour: '#6b2d8f' },
+    { key: 'arts',      label: 'The Arts',                                                              short: 'ART', colour: '#c8411a' },
+    { key: 'business',  label: 'Business Studies',                                                      short: 'BUS', colour: '#0a4a46' },
+    { key: 'cws',       label: 'Canadian and World Studies',                                            short: 'CWS', colour: '#2e7d32' },
+    { key: 'languages', label: 'Classical Studies and International Languages',                         short: 'CS IL', colour: '#5b7a2a' },
+    { key: 'computer',  label: 'Computer Studies',                                                      short: 'CS', colour: '#8a6508' },
+    { key: 'coop',      label: 'Cooperative Education',                                                 short: 'COOP', colour: '#c81a6c' },
+    { key: 'english',   label: 'English',                                                               short: 'ENG', colour: '#6d6650' },
+    { key: 'esl',       label: 'English As a Second Language and English Literacy Development',         short: 'ESL', colour: '#9b3fa0' },
+    { key: 'fnmi',      label: 'First Nations, Métis, and Inuit Studies',                               short: 'FNMI', colour: '#0b6ab6' },
+    { key: 'french',    label: 'French as a Second Language',                                           short: 'FSL', colour: '#7a2a6a' },
+    { key: 'guidance',  label: 'Guidance and Career Education',                                         short: 'GCE', colour: '#c04a1a' },
+    { key: 'hpe',       label: 'Health and Physical Education',                                         short: 'HPE', colour: '#8a2d8a' },
+    { key: 'interdisc', label: 'Interdisciplinary Studies',                                             short: 'IDC', colour: '#4a5a8a' },
+    { key: 'math',      label: 'Mathematics',                                                           short: 'MATH', colour: '#0b4f8a' },
+    { key: 'native',    label: 'Native Languages',                                                      short: 'NL', colour: '#8a6c1e' },
+    { key: 'science',   label: 'Science',                                                               short: 'SCI', colour: '#0a7a6f' },
+    { key: 'sshum',     label: 'Social Sciences and Humanities',                                        short: 'SSH', colour: '#c81a1a' },
+    { key: 'tech',      label: 'Technological Education',                                               short: 'TECH', colour: '#0a6f6f' },
+    { key: 'alt',       label: 'Alternative (non-credit) Courses',                                      short: 'K', colour: '#5a7a5a' },
+    { key: 'other',     label: 'Other',                                                                 short: '—', colour: '#6b7280' }
+  ];
+  const RELIGION = /^(HRE|HRF|HRT|HRC)|^(HZT4U|HZB3M)$/;   // the board's Religious Education area: religion courses and Philosophy
+  function courseCode(c) { const m = String((c && (c.code || c.title || c.id)) || '').toUpperCase().match(/^([A-Z]{3}[1-4][A-Z0-9](?:\/[A-Z0-9]{1,5})?)/); return m ? m[1] : ''; }
+  function courseArea(c) {
+    if (c && c.area && AREAS.some(a => a.key === c.area)) return c.area;
+    const code = courseCode(c); if (!code) return 'other';
+    if (RELIGION.test(code)) return 'religion';
+    const p3 = code.slice(0, 3), p1 = code[0];
+    if (/^(ESL|ELD)/.test(p3)) return 'esl';
+    if (/^(OLC|ENG|EAE|EWC|ELS|EMS|EPS|ETC|ETS|EBT|ENL|EIE|EAC)/.test(p3) || p1 === 'E') return 'english';
+    if (/^(ICS|ICD)/.test(p3)) return 'computer';
+    if (/^(IDC|IDP)/.test(p3)) return 'interdisc';
+    if (/^(COP|DCO|GWL)/.test(p3) || p3 === 'COO') return 'coop';
+    if (/^(NAC|NBE|NBV|NDA|NDG|NDW)/.test(p3) || p1 === 'N') return 'fnmi';
+    if (/^LN/.test(p3)) return 'native';
+    if (p1 === 'K') return 'alt';
+    return { A: 'arts', B: 'business', C: 'cws', F: 'french', G: 'guidance', H: 'sshum', L: 'languages', M: 'math', P: 'hpe', S: 'science', T: 'tech', O: 'english' }[p1] || 'other';
+  }
+  const areaInfo = key => AREAS.find(a => a.key === key) || AREAS[AREAS.length - 1];
+  /** Courses grouped by area, in area order, empty areas left out. */
+  function groupByArea(list) { const m = {}; list.forEach(c => { const k = courseArea(c); (m[k] = m[k] || []).push(c); }); return AREAS.filter(a => m[a.key]).map(a => ({ area: a, courses: m[a.key] })); }
+
+  window.LH = { AREAS, courseArea, courseCode, areaInfo, groupByArea, LEVELS, LEVEL_NAMES, LEVEL_DESC, BANDS, band, body, def, byLevel, L, shuffle, sample, esc, safeUrl, num, md, speak, stopSpeaking, speakBtn, termsFor, slidesFor, mcOptions,
                 questionsFor, resolveQuestion, termQuestions, choicePool, normalize, findCourse, findUnit, markSeen,
                 focusFor, unitsFor, lessonsFor, catsOf, allTermKeys, accom, assessmentCount, difficulty, assessmentOrder,
                 lessonCats, lessonCat, lessonQuestions, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };
