@@ -109,6 +109,10 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Rules changed in v43** — paste `firestore.rules` into Firestore → Rules → Publish before uploading the app (see DEPLOY.md).
 
+## Load a Course or Section — simpler loader (v55)
+
+The Headmaster's course loader at the foot of **Courses** is now a bar in the same family as the curriculum-area bars (amber 📥 block, "Load a Course or Section"), with three numbered steps — **Select the course file → Confirm its Ontario course code → Load it** — a real **📂 Select a course file** button (the native file input is visually hidden but still keyboard-focusable), and the chosen file name beside it. The report that appears after picking a file carries the same step numbers: step 2 is the code box (button reads *Use this code* when the code came from the file), step 3 is either *Create a section of …* (code already in The Academy) or *Load CODE into The Academy* (new code). The security explanation lives in a small "How course files are kept safe" fold. Nothing about parsing, scrubbing, validation or saving changed (`courseloader.js` untouched). CSS: `.loader-*` rules and a `.visually-hidden` helper; the inner `.grid-2` is capped so the card fits a phone.
+
 ## Student View — a demo student inside each staff account (v54)
 
 **Settings → 👁 Student View** (teachers and the Headmaster). *Create my demo student* makes a profile that exists only inside that account: `students/demo__<uid>` with `demo: true`, `demoOwner`, `teachers: [<uid>]`, written directly by the staff member's app (`Cloud.createDemo`; the create rule already allows a staff member to create a profile whose access list is just themselves). It has no sign-in, is never on a roster, and is left out of `Students.list` — so the Students page, the desk counts, the grids, the directory, *add an existing student* and every other list never show it (`Students.everyone` is the raw list; `Students.demoFor(owner)` finds the demo; the access-list reconciliation leaves demo records alone).

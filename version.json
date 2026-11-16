@@ -1,5 +1,5 @@
 {
- "version": "54",
- "date": "2026-11-14",
- "notes": "Student View: every teacher and the Headmaster get a private demo student (Settings → Student View) to set up like a real student and then see The Academy as that student; its progress is kept, nothing else is touched."
+ "version": "55",
+ "date": "2026-11-15",
+ "notes": "Courses page: the Headmaster's course loader is now a simple \"Load a Course or Section\" bar \u2014 select a file, confirm the code, load \u2014 styled like the curriculum-area bars."
 }

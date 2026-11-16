@@ -401,11 +401,20 @@
   let pendingCourseFile = null;   // { courses, envelope, source } from the last parsed file
   function courseLoaderHtml() {
     const loaded = CourseFiles.list();
-    return '<div class="card" id="courseLoader" style="margin-top:1.5rem;padding:1rem 1.25rem"><h2 style="margin:0 0 0.3rem">📥 Load a course from a file</h2>' +
-      '<p class="muted small">Pick a <code>.json</code> course file: the envelope <code>{ "format": "academy-course/1", "code": "ENG3U", "build": "2026-11-14", "course": {…} }</code> or a bare course object. A course file is <strong>data, never code</strong> — nothing in it is run; a repo-style <code>.js</code> file is converted first with <code>node course2json.js file.js</code>. Every piece of text is scrubbed (no scripts, styles, frames or odd links can get through), the shape is checked, then you confirm its <strong>Ontario course code</strong>. A code that is already in The Academy does not add a second course: it creates a <strong>section</strong> of the existing course for the teacher you choose. A new code adds the course for everyone, exactly like the built-in ones.</p>' +
-      '<div class="btn-row"><input type="file" id="courseFile" accept=".json,application/json"></div>' +
+    return '<div class="area-fold loader-fold" id="courseLoader">' +
+      '<div class="area-bar static loader-bar"><div class="area-block loader-block" aria-hidden="true">📥</div>' +
+      '<div class="area-text"><strong>Load a Course or Section</strong><span class="small muted">Pick a course file · confirm its code · it joins The Academy</span></div></div>' +
+      '<div class="loader-body">' +
+      '<ol class="loader-steps">' +
+      '<li><span class="loader-num">1</span><div><strong>Select the course file</strong><span class="muted small">A <code>.json</code> course file from the authoring workflow.</span></div></li>' +
+      '<li><span class="loader-num">2</span><div><strong>Confirm its Ontario course code</strong><span class="muted small">e.g. ENG3U, GLC2O. We read it from the file; change it if it is wrong.</span></div></li>' +
+      '<li><span class="loader-num">3</span><div><strong>Load it</strong><span class="muted small"><strong>New code</strong> → a new course for every teacher. <strong>Code already here</strong> → a new section of that course for the teacher you pick.</span></div></li>' +
+      '</ol>' +
+      '<div class="loader-pick"><input type="file" id="courseFile" accept=".json,application/json" class="visually-hidden"><label for="courseFile" class="btn loader-btn">📂 Select a course file</label><span class="muted small" id="courseFileName">No file selected yet</span></div>' +
       '<div id="courseFileOut"></div>' +
-      (loaded.length ? '<h3 style="margin:1rem 0 0.3rem">Courses loaded from files</h3><div class="hist-list">' + loaded.map(x => '<div class="hist-item"><strong>' + esc(x.course.icon || '📘') + ' ' + esc(x.course.title) + '</strong><span class="tag">' + esc(x.code) + '</span><span class="muted small">' + (x.course.build ? 'build ' + esc(x.course.build) + ' · ' : '') + x.course.units.length + ' units</span><button class="btn ghost sm" data-course-remove="' + esc(x.code) + '">🗑 Remove</button></div>').join('') + '</div>' : '') + '</div>';
+      '<details class="loader-help"><summary class="muted small">How course files are kept safe</summary><p class="muted small">A course file is <strong>data, never code</strong> — nothing in it is run. Every piece of text is scrubbed (scripts, styles, frames and odd links are stripped), the shape is checked, and only the Headmaster can load one. A repo-style <code>.js</code> course is converted first with <code>node course2json.js file.js</code>.</p></details>' +
+      (loaded.length ? '<h3 class="loader-h3">Courses loaded from files</h3><div class="hist-list">' + loaded.map(x => '<div class="hist-item"><strong>' + esc(x.course.icon || '📘') + ' ' + esc(x.course.title) + '</strong><span class="tag">' + esc(x.code) + '</span><span class="muted small">' + (x.course.build ? 'build ' + esc(x.course.build) + ' · ' : '') + x.course.units.length + ' units</span><button class="btn ghost sm" data-course-remove="' + esc(x.code) + '">🗑 Remove</button></div>').join('') + '</div>' : '') +
+      '</div></div>';
   }
   function courseFileReportHtml(parsed) {
     const course = parsed.courses[0]; const v = CourseFiles.validate(course); const code = CourseFiles.codeOf(course, parsed.envelope);
@@ -416,13 +425,14 @@
       '<p class="muted small" style="margin:0 0 0.5rem">' + st.units + ' units · ' + st.lessons + ' lessons · ' + st.slides + ' slides · ' + st.questions + ' questions · ' + st.terms + ' terms · ' + st.assignments + ' assignments · ' + Math.round((st.size || 0) / 1024) + ' kB</p>' +
       (v.errors.length ? '<div class="small" style="color:#b91c1c"><strong>Cannot load — fix these first:</strong><ul style="margin:0.2rem 0 0.4rem;padding-left:1.2rem">' + v.errors.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul></div>' : '') +
       (v.warns.length ? '<details class="small"><summary class="muted">' + v.warns.length + ' warning' + (v.warns.length === 1 ? '' : 's') + '</summary><ul style="margin:0.2rem 0 0.4rem;padding-left:1.2rem">' + v.warns.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul></details>' : '') +
-      '<div class="plan-section"><div class="plan-label">Ontario course code</div><div class="btn-row"><input class="text-input" id="courseCode" style="max-width:180px;text-transform:uppercase" maxlength="12" placeholder="e.g. ENG3U" value="' + esc(code) + '"><button class="btn" id="courseCodeCheck">Check this code</button></div>' +
+      '<div class="plan-section"><div class="plan-label"><span class="loader-num">2</span> Confirm the Ontario course code</div><div class="btn-row"><input class="text-input" id="courseCode" style="max-width:180px;text-transform:uppercase" maxlength="12" placeholder="e.g. ENG3U" value="' + esc(code) + '"><button class="btn" id="courseCodeCheck">' + (code ? 'Use this code' : 'Check this code') + '</button></div>' +
       '<p class="muted small" style="margin:0.3rem 0 0">' + (code ? 'Read from the file — change it if it is wrong.' : 'The file does not say which course this is. Type the code (3 letters, grade digit, letter — e.g. GLC2O, SNC1L/2L).') + '</p><div id="courseCodeOut"></div></div></div>';
   }
   function bindCourseLoader() {
     const inp = app.querySelector('#courseFile'), out = app.querySelector('#courseFileOut'); if (!inp) return;
     inp.addEventListener('change', async () => {
       const f = inp.files && inp.files[0]; if (!f) return;
+      const nm = app.querySelector('#courseFileName'); if (nm) nm.textContent = f.name;
       out.innerHTML = '<p class="muted small">Reading ' + esc(f.name) + '…</p>';
       try { pendingCourseFile = await CourseFiles.parse(f); out.innerHTML = courseFileReportHtml(pendingCourseFile); bindCodeCheck(); }
       catch (e) { pendingCourseFile = null; out.innerHTML = '<p class="small" style="color:#b91c1c">⚠️ ' + esc(e.message || String(e)) + '</p>'; }
@@ -441,7 +451,7 @@
       const ex = CourseFiles.existing(code); const course = pendingCourseFile.courses[0]; const v = CourseFiles.validate(course);
       if (ex) {
         out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">✅ <strong>' + esc(code) + '</strong> is already in The Academy: <em>' + esc(ex.title) + '</em>' + (ex.source === 'cloud' ? ' (loaded from a file' + (ex.build ? ', build ' + esc(ex.build) : '') + ')' : ' (built in)') + '. The file is not added again — create a section of it instead' + (ex.source === 'cloud' ? ', or <button class="btn ghost sm" id="courseReplace">replace the loaded copy with this file</button>' : '') + '.</div>' +
-          '<div class="plan-section"><div class="plan-label">New section of ' + esc(ex.title) + '</div><div class="grid-2">' +
+          '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Create a section of ' + esc(ex.title) + '</div><div class="grid-2">' +
           '<label class="field">Section name<input class="text-input" id="lcSecName" placeholder="e.g. Period 2"></label><label class="field">Term<input class="text-input" id="lcSecTerm" placeholder="e.g. Fall 2026"></label>' +
           '<label class="field">Teacher<select class="text-input" id="lcSecTeacher"><option value="">Me (Headmaster)</option>' + Staff.teachers.map(t => '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>').join('') + '</select></label></div>' +
           '<div class="btn-row" style="margin-top:0.5rem"><button class="btn" id="lcSecCreate">🏫 Create the section</button></div></div>';
@@ -449,7 +459,7 @@
         const rp = app.querySelector('#courseReplace'); if (rp) rp.addEventListener('click', () => saveCourse(code, course, v, out, true));
       } else {
         out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">🆕 <strong>' + esc(code) + '</strong> is not in The Academy yet.' + (v.errors.length ? ' Fix the errors above before it can be added.' : '') + '</div>' +
-          (v.errors.length ? '' : '<div class="btn-row" style="margin-top:0.5rem"><button class="btn" id="courseAdd">＋ Add ' + esc(code) + ' to The Academy</button><span class="muted small">It appears in Courses for every teacher at once; students see it once a section of it includes them (or they join it).</span></div>');
+          (v.errors.length ? '' : '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Load the course</div><div class="btn-row"><button class="btn" id="courseAdd">📥 Load ' + esc(code) + ' into The Academy</button><span class="muted small">It appears in Courses for every teacher at once; students see it once a section of it includes them (or they join it).</span></div></div>');
         const add = app.querySelector('#courseAdd'); if (add) add.addEventListener('click', () => saveCourse(code, course, v, out, false));
       }
     };
