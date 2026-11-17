@@ -1,4 +1,4 @@
-/* ENG3U - English (Grade 11, University Preparation) · The Academy / Learn Hub
+/* ENG3U - English (Grade 11, University Preparation) · Summitide Learning / Learn Hub
    Built from the teacher's "ENG3U - Complete Course" package (33 slide decks, worksheets,
    answer keys, unit tests, unit assignments, CCT and final exam).
    Lesson routine (same in every lesson):

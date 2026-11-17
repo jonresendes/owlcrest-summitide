@@ -1,5 +1,5 @@
 /* SNC1L/2L · Science, Locally Developed (Grades 9/10)
-   The Academy · Learn Hub course file.  Pilot: Unit 1 · Science at Work (8 lessons).
+   Summitide Learning course file.  Pilot: Unit 1 · Science at Work (8 lessons).
    Add Units 2–5 as further entries in `units`.  Load after colouring.js. */
 
 window.LearnHub = window.LearnHub || { courses: [] };

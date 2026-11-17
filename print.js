@@ -97,7 +97,7 @@
       '<button class="btn" id="printNow">Print / Save as PDF</button><a class="btn secondary" href="' + back + '">✕ Close</a></div></div>' +
       '<div class="print-doc"><header class="p-head"><div class="p-course">' + course.icon + ' ' + esc(course.title) + '</div><div class="p-unit">' + esc(unit.title) + '</div></header>' +
       parts.join('') + (keyOn() ? keys.join('') : '') +
-      '<footer class="p-foot">' + esc(course.title) + ' · ' + esc(unit.title) + ' · The Academy</footer></div>';
+      '<footer class="p-foot">' + esc(course.title) + ' · ' + esc(unit.title) + ' · Summitide Learning</footer></div>';
     app.querySelector('#printNow').addEventListener('click', () => window.print());
     const kt = app.querySelector('#keyToggle'); if (kt) kt.addEventListener('change', () => { sessionStorage.setItem('learnhub.printKey', kt.checked ? '1' : '0'); page(courseId, unitId, what, i, n); });
   }

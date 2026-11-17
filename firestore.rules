@@ -1,5 +1,5 @@
 rules_version = '2';
-// The Academy · LearnHub — security rules, v43 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v43 (free-plan edition: no Cloud Functions).
 // Paste the whole file into Firebase console → Firestore Database → Rules → Publish.
 //
 // The idea in one paragraph: being signed in is not enough. A caller must have a staff record or a

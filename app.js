@@ -1586,7 +1586,7 @@
       '<div class="small" style="display:grid;gap:0.3rem;text-align:right">' +
       '<div>HTTPS ' + ok(d.https) + '</div><div>manifest.json ' + ok(d.manifest) + '</div><div>icon-192.png ' + ok(d.icon192) + '</div><div>icon-512.png ' + ok(d.icon512) + '</div><div>sw.js (offline) ' + ok(d.sw) + '</div>' +
       Object.keys(d).filter(k => k.startsWith('file:') && !d[k]).map(k => '<div>' + esc(k.slice(5)) + ' ' + ok(false) + '</div>').join('') + '</div></div>';
-    card.innerHTML = '<div class="setting-row" style="padding-top:0"><div><label>Status</label><div class="help">' + (d.standalone ? 'You are using the installed app.' : d.installed ? 'LearnHub is installed on this device. Open it from your home screen or app list.' : 'LearnHub is not installed on this device yet. Installing adds an icon and lets it work offline.') + '</div></div>' +
+    card.innerHTML = '<div class="setting-row" style="padding-top:0"><div><label>Status</label><div class="help">' + (d.standalone ? 'You are using the installed app.' : d.installed ? 'Summitide is installed on this device. Open it from your home screen or app list.' : 'Summitide is not installed on this device yet. Installing adds an icon and lets it work offline.') + '</div></div>' +
       (d.installed ? '<span class="tag ok">Installed</span>' : '<span class="tag">Not installed</span>') + '</div>' + rows +
       '<div class="btn-row" style="margin-top:0.75rem">' +
       (d.installed ? '<button class="btn secondary" id="appUninstall">Uninstall…</button><button class="btn ghost" id="appForget">Not installed here? Reset</button>'

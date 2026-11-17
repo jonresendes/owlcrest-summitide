@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* course2json.js — convert a repo-style course file (window.LearnHub.courses.push({ … })) into the JSON envelope
-   that The Academy's Headmaster can upload in Courses → Load a course from a file.
+   that Summitide Learning's Headmaster can upload in Courses → Load a course from a file.
 
      node course2json.js eng3u.js              → writes eng3u.json next to it
      node course2json.js eng3u.js out.json     → writes out.json

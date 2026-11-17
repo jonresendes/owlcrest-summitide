@@ -1,5 +1,5 @@
 /* glc2o.js — GLC2O - Career Studies (Grade 10, Open, 2024 curriculum)
-   The Academy · Learn Hub course file. Built from the teacher's GLC2O slide decks, worksheets,
+   Summitide Learning course file. Built from the teacher's GLC2O slide decks, worksheets,
    answer keys, unit tests and assignments (5 units, 29 lessons).
 
    Every lesson has the same five slides:

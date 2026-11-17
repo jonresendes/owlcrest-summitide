@@ -12,11 +12,13 @@
      3. Paste the Client ID into Settings → Teacher Lock → Google Drive.
    The app then asks the signed-in Google user (the school admin account) for
    permission to create files in Drive (scope drive.file: only files this app
-   creates) and writes into a folder called "The Academy exports".
+   creates) and writes into a folder called "Summitide Learning exports" (a folder still named
+   "The Academy exports" from before v56 is renamed and reused, with the exports in it).
    ========================================================= */
 (function () {
   const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-  const FOLDER = 'The Academy exports';
+  const FOLDER = 'Summitide Learning exports';
+  const OLD_FOLDER = 'The Academy exports';   // the folder's name before v56: found and renamed on the next push or pull
 
   /* ---------- building the export ---------- */
   function studentsInScope() {
@@ -31,7 +33,7 @@
     const students = studentsInScope();
     const courses = window.LearnHub.courses || [];
     const rows = [['Student', 'Course', 'Unit', 'Lesson', 'Track / level', 'Slides read', 'Quiz best %', 'Quiz attempts', 'Assignments handed in', 'Unit test best %', 'Awards earned']];
-    const data = { exportedAt: new Date().toISOString(), by: staff.name, role: staff.role, app: 'The Academy · Learn Hub',
+    const data = { exportedAt: new Date().toISOString(), by: staff.name, role: staff.role, app: 'Summitide Learning · OwlCrest Academy',
       students: [], sections: Sections.list,
       // names only: no PIN, password or e-mail ever leaves in an export (v43)
       staff: { teachers: Staff.teachers.map(t => ({ id: t.id, name: t.name })) } };
@@ -63,8 +65,8 @@
   function download() {
     const e = build();
     const save = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
-    save('academy-export-' + e.stamp + '.json', e.json, 'application/json');
-    save('academy-summary-' + e.stamp + '.csv', e.csv, 'text/csv');
+    save('summitide-export-' + e.stamp + '.json', e.json, 'application/json');
+    save('summitide-summary-' + e.stamp + '.csv', e.csv, 'text/csv');
     return e;
   }
   /** Merge an exported JSON back in (students by id; progress replaced for those students). */
@@ -111,14 +113,16 @@
     return r.json();
   }
   async function folderId(tok) {
-    const q = encodeURIComponent("name='" + FOLDER + "' and mimeType='application/vnd.google-apps.folder' and trashed=false");
-    const found = await api(tok, 'https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)');
-    if (found.files && found.files.length) return found.files[0].id;
+    const find = async name => { const q = encodeURIComponent("name='" + name + "' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+      const r = await api(tok, 'https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)'); return r.files && r.files.length ? r.files[0].id : null; };
+    const id = await find(FOLDER); if (id) return id;
+    const old = await find(OLD_FOLDER);   // exports made before the app was renamed: keep them, under the new folder name
+    if (old) { try { await api(tok, 'https://www.googleapis.com/drive/v3/files/' + old, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: FOLDER }) }); } catch (e) { console.warn('could not rename the exports folder', e); } return old; }
     const made = await api(tok, 'https://www.googleapis.com/drive/v3/files', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: FOLDER, mimeType: 'application/vnd.google-apps.folder' }) });
     return made.id;
   }
   async function upload(tok, folder, name, text, mime) {
-    const boundary = 'academy' + Date.now();
+    const boundary = 'summitide' + Date.now();
     const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name, parents: [folder] }) +
       '\r\n--' + boundary + '\r\nContent-Type: ' + mime + '\r\n\r\n' + text + '\r\n--' + boundary + '--';
     return api(tok, 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body });
@@ -132,8 +136,8 @@
     say('Asking for permission…'); const tok = await token(clientId);
     say('Finding the export folder…'); const folder = await folderId(tok);
     const e = build();
-    say('Uploading summary (CSV)…'); const f1 = await upload(tok, folder, 'academy-summary-' + e.stamp + '.csv', e.csv, 'text/csv');
-    say('Uploading full export (JSON)…'); const f2 = await upload(tok, folder, 'academy-export-' + e.stamp + '.json', e.json, 'application/json');
+    say('Uploading summary (CSV)…'); const f1 = await upload(tok, folder, 'summitide-summary-' + e.stamp + '.csv', e.csv, 'text/csv');
+    say('Uploading full export (JSON)…'); const f2 = await upload(tok, folder, 'summitide-export-' + e.stamp + '.json', e.json, 'application/json');
     const log = Settings.get('driveLog') || []; log.unshift({ at: new Date().toISOString(), by: (Staff.current || {}).name, students: e.students, files: [f1.name, f2.name] });
     Settings.set('driveLog', log.slice(0, 10));
     return { files: [f1, f2], students: e.students };
@@ -147,7 +151,7 @@
     say('Loading Google sign-in…'); await loadGis();
     say('Asking for permission…'); const tok = await token(clientId);
     say('Looking for the latest export…'); const folder = await folderId(tok);
-    const q = encodeURIComponent("'" + folder + "' in parents and name contains 'academy-export-' and trashed=false");
+    const q = encodeURIComponent("'" + folder + "' in parents and (name contains 'summitide-export-' or name contains 'academy-export-') and trashed=false");
     const list = await api(tok, 'https://www.googleapis.com/drive/v3/files?q=' + q + '&orderBy=createdTime%20desc&pageSize=1&fields=files(id,name,createdTime)');
     if (!list.files || !list.files.length) throw new Error('No export found in "' + FOLDER + '" yet. Push from the other device first.');
     const f = list.files[0];

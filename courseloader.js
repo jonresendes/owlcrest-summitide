@@ -1,4 +1,4 @@
-/* Course files: the Headmaster loads a course into The Academy from a file, at run time, without touching the repo.
+/* Course files: the Headmaster loads a course into Summitide Learning from a file, at run time, without touching the repo.
    ------------------------------------------------------------------------------------------------------------
    SECURITY MODEL (read before changing anything here)
      • A course file is DATA, never code. The app accepts only JSON and parses it with JSON.parse; nothing in a file is
@@ -17,7 +17,7 @@
              or a bare course object  { id, title, units… }  (the same shape every course file in this repo pushes).
    Course code
      The Ontario code (ENG3U, GLC2O, SNC1L/2L …) is read from the envelope, the id or the title ("CODE - description")
-     and must be confirmed in the box before anything is saved. If a course with that code is already in The Academy
+     and must be confirmed in the box before anything is saved. If a course with that code is already in Summitide Learning
      (built in or loaded earlier) the file does not add a second course: it offers to create a SECTION of the existing
      course for a chosen teacher instead.
    Storage
@@ -105,7 +105,7 @@
   };
   CF.isCode = s => CODE_RE.test(String(s || '').toUpperCase().trim()) && String(s).trim().length <= 12;
   CF.idFor = code => String(code).toLowerCase().replace(/[^a-z0-9]+/g, '');
-  /** The course already in The Academy with this code (built in or loaded), if any. */
+  /** The course already in Summitide Learning with this code (built in or loaded), if any. */
   CF.existing = function (code) {
     const id = CF.idFor(code), up = String(code).toUpperCase();
     return (window.LearnHub.courses || []).find(c => c.id === id || (CF.codeOf(c) && CF.codeOf(c) === up)) || null;

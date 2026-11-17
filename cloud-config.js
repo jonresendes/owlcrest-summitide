@@ -1,5 +1,6 @@
 /* =========================================================
-   cloud-config.js — The Academy's Firebase project.
+   cloud-config.js — Summitide Learning's Firebase project (still named "the-academy---learnhub" in Firebase;
+   a Firebase project cannot be renamed, and the name is never shown to users).
    These values are public identifiers (not secrets): access to data is
    controlled by the Firestore security rules in firestore.rules.
    To turn the cloud OFF (device-only mode), set enabled: false.

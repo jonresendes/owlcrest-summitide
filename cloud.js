@@ -124,7 +124,7 @@
     const run = flush();
     let timer; const timeout = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('stuck')), waitMs || 8000); });
     try { await Promise.race([run, timeout]); }
-    catch (e) { if (e.message === 'stuck') throw new Error('The cloud has not confirmed this change yet (' + Cloud.waiting + ' waiting). Keep the app open and press Save again in a moment; if it keeps happening, close other open copies of The Academy on this device.'); throw e; }
+    catch (e) { if (e.message === 'stuck') throw new Error('The cloud has not confirmed this change yet (' + Cloud.waiting + ' waiting). Keep the app open and press Save again in a moment; if it keeps happening, close other open copies of Summitide Learning on this device.'); throw e; }
     finally { clearTimeout(timer); }
     if (Cloud.lastError) throw new Error(Cloud.lastError);
   };
