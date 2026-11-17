@@ -442,7 +442,16 @@
   /** Courses grouped by area, in area order, empty areas left out. */
   function groupByArea(list) { const m = {}; list.forEach(c => { const k = courseArea(c); (m[k] = m[k] || []).push(c); }); return AREAS.filter(a => m[a.key]).map(a => ({ area: a, courses: m[a.key] })); }
 
-  window.LH = { AREAS, courseArea, courseCode, areaInfo, groupByArea, LEVELS, LEVEL_NAMES, LEVEL_DESC, BANDS, band, body, def, byLevel, L, shuffle, sample, esc, safeUrl, num, md, speak, stopSpeaking, speakBtn, termsFor, slidesFor, mcOptions,
+  /** The questions of one attempt, each marked right or wrong. Students never see the right answers (v56);
+      a teacher also sees what the student answered. */
+  function reviewList(items, forTeacher, title) {
+    if (!Array.isArray(items) || !items.length) return '';
+    const wrong = items.filter(it => !it.ok).length;
+    return '<div class="review-list"><div class="plan-label">' + esc(title || (forTeacher ? 'Answers' : 'Your answers')) + ' · ' + (items.length - wrong) + ' of ' + items.length + ' correct</div><ol>' +
+      items.map(it => '<li class="' + (it.ok ? 'ok' : 'bad') + '"><span class="rv-mark" role="img" aria-label="' + (it.ok ? 'correct' : 'not correct') + '">' + (it.ok ? '✓' : '✗') + '</span><span class="rv-q">' + esc(it.q) + (forTeacher && it.a ? '<span class="rv-a">answered: ' + esc(it.a) + '</span>' : '') + '</span></li>').join('') + '</ol>' +
+      (forTeacher ? '' : '<p class="muted small">' + (wrong ? 'The questions marked ✗ are the ones to look at again. ' : '') + 'Correct answers are not shown.</p>') + '</div>';
+  }
+  window.LH = { reviewList, AREAS, courseArea, courseCode, areaInfo, groupByArea, LEVELS, LEVEL_NAMES, LEVEL_DESC, BANDS, band, body, def, byLevel, L, shuffle, sample, esc, safeUrl, num, md, speak, stopSpeaking, speakBtn, termsFor, slidesFor, mcOptions,
                 questionsFor, resolveQuestion, termQuestions, choicePool, normalize, findCourse, findUnit, markSeen,
                 focusFor, unitsFor, lessonsFor, catsOf, allTermKeys, accom, assessmentCount, difficulty, assessmentOrder,
                 lessonCats, lessonCat, lessonQuestions, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };

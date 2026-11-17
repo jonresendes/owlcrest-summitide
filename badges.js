@@ -38,7 +38,7 @@
     /* ---- course trophies ---- */
     courseTrophy:{ tier: 'trophy', icon: '🏆', name: '{course} Trophy',        desc: 'Earn the medal for every unit in {course}.' },
     scholarCrown:{ tier: 'trophy', icon: '👑', name: '{course} Scholar\'s Crown', desc: 'Pass every lesson quiz in {course}.' },
-    trailblazer: { tier: 'trophy', icon: '🚀', name: '{course} Trailblazer',   desc: 'Score 80% or more on every unit test in {course} — Level 4 achievement.' },
+    trailblazer: { tier: 'trophy', icon: '🚀', name: '{course} Summit Flag',   desc: 'Score 80% or more on every unit test in {course} — Level 4 achievement.' },
     grandMaster: { tier: 'trophy', icon: '🌟', name: '{course} Grand Master',  desc: 'Earn Gold in every unit of {course}.' }
   };
   const UNIT_KEYS = ['study', 'firstQuiz', 'quizzes', 'firstTry', 'scribe', 'lessons', 'testPass', 'testSharp', 'testPerfect', 'persistence',

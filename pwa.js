@@ -15,7 +15,7 @@
                  set: v => { try { v ? localStorage.setItem(KEY_INSTALLED, '1') : localStorage.removeItem(KEY_INSTALLED); } catch (e) {} } };
   if (standalone()) flag.set(true);                       // running as the installed app = definitely installed here
 
-  /** Is LearnHub installed on this device? Uses the browser's answer when it can give one. */
+  /** Is Summitide installed on this device? Uses the browser's answer when it can give one. */
   async function isInstalled() {
     if (standalone() || flag.get()) return true;
     try {
@@ -38,12 +38,12 @@
         ? ['Tap the <strong>⋮ menu</strong> in the top-right corner of Chrome.', 'Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.', 'Tap <strong>Install</strong>.']
         : isSafari
           ? ['In Safari, open the <strong>File</strong> menu and choose <strong>Add to Dock…</strong>.']
-          : ['Open Chrome\'s <strong>⋮ menu</strong> → <strong>Cast, save and share</strong> → <strong>Install page as app…</strong>, then click <strong>Install</strong>.', 'The dialog should be titled <strong>Install LearnHub</strong> and show a blue diamond icon. If it says <em>"Install this page as an app"</em> with a plain letter instead, the browser could not load the app\'s manifest or icons — open <strong>Settings → App</strong> in LearnHub to see which file is missing.'],
+          : ['Open Chrome\'s <strong>⋮ menu</strong> → <strong>Cast, save and share</strong> → <strong>Install page as app…</strong>, then click <strong>Install</strong>.', 'The dialog should be titled <strong>Install Summitide</strong> and show the owl shield icon. If it says <em>"Install this page as an app"</em> with a plain letter instead, the browser could not load the app\'s manifest or icons — open <strong>Settings → App</strong> in Summitide to see which file is missing.'],
     uninstall: isIOS
-      ? ['On the Home Screen, press and hold the <strong>LearnHub</strong> icon.', 'Tap <strong>Remove App</strong> → <strong>Delete App</strong>.']
+      ? ['On the Home Screen, press and hold the <strong>Summitide</strong> icon.', 'Tap <strong>Remove App</strong> → <strong>Delete App</strong>.']
       : isAndroid
-        ? ['Press and hold the <strong>LearnHub</strong> icon on your Home screen or app list.', 'Tap <strong>Uninstall</strong> (or drag it to <em>Uninstall</em>).']
-        : ['Open the installed LearnHub window, click the <strong>⋮ menu</strong> in its title bar and choose <strong>Uninstall LearnHub</strong>.', 'Or type <code>chrome://apps</code> in Chrome\'s address bar, right-click LearnHub and choose <strong>Remove from Chrome</strong>.']
+        ? ['Press and hold the <strong>Summitide</strong> icon on your Home screen or app list.', 'Tap <strong>Uninstall</strong> (or drag it to <em>Uninstall</em>).']
+        : ['Open the installed Summitide window, click the <strong>⋮ menu</strong> in its title bar and choose <strong>Uninstall Summitide</strong>.', 'Or type <code>chrome://apps</code> in Chrome\'s address bar, right-click Summitide and choose <strong>Remove from Chrome</strong>.']
   };
   function dialog(title, list, note) {
     const d = document.createElement('div'); d.className = 'learn-overlay'; d.id = 'installHelp';
@@ -53,9 +53,9 @@
     d.querySelector('#installHelpClose').addEventListener('click', () => d.remove());
     d.addEventListener('click', e => { if (e.target === d) d.remove(); });
   }
-  const installHelp = () => dialog('Install LearnHub', steps.install,
-    '<p class="muted small" style="margin-top:1rem">If the browser only offers "Install this page as an app" with a plain letter icon, it has not found the app\'s manifest or icons — open <strong>Settings → App</strong> in LearnHub to see which file is missing on the website.</p>');
-  const uninstallHelp = () => dialog('Uninstall LearnHub', steps.uninstall,
+  const installHelp = () => dialog('Install Summitide', steps.install,
+    '<p class="muted small" style="margin-top:1rem">If the browser only offers "Install this page as an app" with a plain letter icon, it has not found the app\'s manifest or icons — open <strong>Settings → App</strong> in Summitide to see which file is missing on the website.</p>');
+  const uninstallHelp = () => dialog('Uninstall Summitide', steps.uninstall,
     '<p class="muted small" style="margin-top:1rem">Websites cannot uninstall themselves, so this is done from the device. Your progress stays saved in the browser.</p>');
 
   async function install() {
@@ -86,7 +86,7 @@
      APP_VERSION is baked into this file; version.json on the site says what is published.
      Settings → Updates compares the two and offers a one-tap update (new service worker +
      cache clear + reload). The check also runs on load and hourly. */
-  const APP_VERSION = '55';
+  const APP_VERSION = '56';
   let latest = null;   // { version, date, notes } from the site, when newer
   async function checkForUpdate() {
     try {
@@ -114,7 +114,7 @@
     const host = document.getElementById('toasts'); if (!host) return;
     const el = document.createElement('div');
     el.className = 'toast update-toast';
-    el.innerHTML = '<div class="t-icon">⬆️</div><div><div class="t-title">LearnHub</div><div class="t-name">' + text + '</div></div>' +
+    el.innerHTML = '<div class="t-icon">⬆️</div><div><div class="t-title">Summitide</div><div class="t-name">' + text + '</div></div>' +
       (btnLabel ? '<button class="btn sm" id="updateBtn">' + btnLabel + '</button>' : '');
     host.appendChild(el);
     const b = el.querySelector('#updateBtn'); if (b) b.addEventListener('click', () => { onClick(); el.remove(); });
@@ -187,7 +187,7 @@
   function askClose() {
     dialogOpen = true;
     const d = document.createElement('div'); d.id = 'closeDialog'; d.className = 'learn-overlay';
-    d.innerHTML = '<div class="learn-card" style="max-width:380px;text-align:center"><div class="slide-visual">👋</div><h2>Close LearnHub?</h2><p class="muted">Your progress is saved.</p>' +
+    d.innerHTML = '<div class="learn-card" style="max-width:380px;text-align:center"><div class="slide-visual">👋</div><h2>Close Summitide?</h2><p class="muted">Your progress is saved.</p>' +
       '<div class="btn-row" style="justify-content:center"><button class="btn secondary" id="stayBtn">Keep learning</button><button class="btn" id="closeBtn">Close app</button></div></div>';
     document.body.appendChild(d);
     d.querySelector('#stayBtn').addEventListener('click', closeDialog);

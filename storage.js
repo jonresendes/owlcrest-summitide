@@ -49,12 +49,12 @@
   /* Each level is a grade band. Work done at a level earns a grade inside that level's band:
      a perfect Level 2 quiz is 69, never more. The bands are the single source of truth for
      everything below (level cards, suggestions, the Grades grids). */
-  const LEVEL_BANDS = { 1: [50, 59], 2: [60, 69], 3: [70, 84], 4: [85, 100] };
+  const LEVEL_BANDS = { 1: [50, 59], 2: [60, 69], 3: [70, 79], 4: [80, 100] };   // the Ministry's ranges (Growing Success)
   const LEVELS = {
-    1: { name: 'Explorer',    band: '50–59%', short: 'Limited',      desc: 'Simple words, short lessons, fewer questions, obvious answer choices and gentle games. (Ontario Level 1)' },
-    2: { name: 'Scholar',     band: '60–69%', short: 'Some',         desc: 'Clear language, regular lessons, guided questions with a word bank and all games. (Ontario Level 2)' },
-    3: { name: 'Challenger',  band: '70–84%', short: 'Considerable', desc: 'The full course at the provincial standard: complete lessons, full tests, typed answers and bigger game boards. (Ontario Level 3)' },
-    4: { name: 'Trailblazer', band: '85–100%', short: 'Thorough',    desc: 'Extended thinking: expectation codes, real-life application questions, the longest tests and the hardest game settings. (Ontario Level 4)' }
+    1: { name: 'Shore',  icon: '🌊', band: '50–59%', short: 'Limited',      desc: 'Simple words, short lessons, fewer questions, obvious answer choices and gentle games. (Ontario Level 1)' },
+    2: { name: 'Trail',  icon: '🥾', band: '60–69%', short: 'Some',         desc: 'Clear language, regular lessons, guided questions with a word bank and all games. (Ontario Level 2)' },
+    3: { name: 'Ridge',  icon: '⛰️', band: '70–79%', short: 'Considerable', desc: 'The full course at the provincial standard: complete lessons, full tests, typed answers and bigger game boards. (Ontario Level 3)' },
+    4: { name: 'Summit', icon: '🏔️', band: '80–100%', short: 'Thorough',    desc: 'Extended thinking: expectation codes, real-life application questions, the longest tests and the hardest game settings. (Ontario Level 4)' }
   };
   /** Achievement level suggested by a percentage (the bands above). */
   function bandFor(pct) { return pct >= LEVEL_BANDS[4][0] ? 4 : pct >= LEVEL_BANDS[3][0] ? 3 : pct >= LEVEL_BANDS[2][0] ? 2 : 1; }
@@ -62,24 +62,32 @@
   /* ---------- levelled grades ----------
      raw   = the percentage scored on the quiz / test (or teacher score ÷ max for an assignment)
      level = the level the work was done at (1–4)
-     One rule, every level: 50% raw is a pass and earns a grade of 50; a perfect score earns the top of the
-     level's band; in between, the grade climbs in a straight line. Below 50% raw the grade is the raw score (a fail).
-     So each level is a scaled-down copy of Level 4: a Level 2 student who scores 75% has a grade of 60,
-     the same place inside 50–69 as 75 is inside 50–100.
+     One rule, every level: 50% raw is a pass and earns a grade of 50 (the floor); a perfect score earns the top of
+     the level's band; in between, the grade climbs in a straight line. Below 50% raw the grade is the raw score (a fail).
+     Level 4's band tops out at 100, so Level 4 is the only level where the grade equals the raw score.
+     Each lower level is a scaled-down copy of it: 75% raw is 55 at Level 1, 60 at Level 2, 65 at Level 3 and 75 at Level 4.
+     (v56 moved the bands to the Ministry's ranges: Level 3 now tops out at 79 and Level 4 starts at 80.)
      The best levelled grade across every level the student has attempted is the grade that counts. */
   const PASS_MARK_GRADING = 50;
+  const MOVE_UP_MARK = 85;         // a quiz at or above this offers the next level; a unit test suggests it to the teacher
   const Grading = {
     BANDS: LEVEL_BANDS,
     PASS: PASS_MARK_GRADING,
+    MOVE_UP: MOVE_UP_MARK,
     /** The grade (0–100, whole number) for a raw percentage earned at a level. */
     levelled(raw, level) {
       raw = Math.max(0, Math.min(100, +raw || 0)); level = LEVEL_BANDS[level] ? +level : 2;
-      const hi = LEVEL_BANDS[level][1];
-      if (raw < PASS_MARK_GRADING) return Math.round(raw);
-      return Math.round(PASS_MARK_GRADING + (raw - PASS_MARK_GRADING) / (100 - PASS_MARK_GRADING) * (hi - PASS_MARK_GRADING));
+      const hi = LEVEL_BANDS[level][1], P = PASS_MARK_GRADING;
+      if (raw < P) return Math.round(raw);
+      return Math.round(P + (raw - P) / (100 - P) * (hi - P));   // one straight line: a pass is 50, a perfect score is the top of the band
     },
     /** The raw percentage a student at this level needs for a given grade (inverse of levelled). */
-    rawFor(grade, level) { const hi = LEVEL_BANDS[level] ? LEVEL_BANDS[level][1] : 69; if (grade < PASS_MARK_GRADING) return grade; return Math.round(PASS_MARK_GRADING + (grade - PASS_MARK_GRADING) / (hi - PASS_MARK_GRADING) * (100 - PASS_MARK_GRADING)); },
+    rawFor(grade, level) {
+      const b = LEVEL_BANDS[level] || LEVEL_BANDS[2]; const hi = b[1], P = PASS_MARK_GRADING;
+      if (grade < P) return grade; if (grade > hi) return null;                      // not reachable at this level
+      for (let r = P; r <= 100; r++) if (this.levelled(r, level) >= grade) return r;  // smallest whole raw % that earns it
+      return 100;
+    },
     /** Best grade across per-level attempts: { [level]: { best } } → { grade, level, raw } or null. */
     bestOf(perLevel) {
       let out = null;
@@ -87,9 +95,11 @@
       return out;
     },
     /** Record one attempt at a level on a quiz-style record ({ best, attempts, passed, levels }). Keeps the raw fields for awards. */
-    recordAttempt(rec, level, pct) {
+    recordAttempt(rec, level, pct, items) {
       rec.levels = rec.levels || {}; const r = rec.levels[level] = rec.levels[level] || { best: 0, attempts: 0 };
       r.attempts++; r.best = Math.max(r.best, pct); r.at = new Date().toISOString();
+      // v56: the latest attempt's answers — question, right or wrong, what the student answered. The answer key is never stored.
+      if (Array.isArray(items) && items.length) r.last = { pct, at: r.at, items: items.slice(0, 30).map(it => ({ q: String(it.q || '').slice(0, 200), ok: !!it.ok, a: String(it.a === undefined || it.a === null ? '' : it.a).slice(0, 120) })) };
       const b = this.bestOf(rec.levels); if (b) { rec.grade = b.grade; rec.gradeLevel = b.level; rec.gradeRaw = b.raw; }
       return b;
     },
@@ -249,7 +259,8 @@
     /** Record a level suggestion after a test (teacher reviews it in Settings). */
     suggest(courseId, unitTitle, pct) {
       const s = this.current; if (!s) return null;
-      const band = bandFor(pct), cur = this.levelFor(courseId, s);
+      const cur = this.levelFor(courseId, s);
+      const band = pct >= MOVE_UP_MARK && cur < 4 ? cur + 1 : pct < PASS_MARK_GRADING && cur > 1 ? cur - 1 : cur;   // v56: the same rule as the quiz offers
       s.suggestions = s.suggestions || {};
       if (band === cur) { delete s.suggestions[courseId]; this.save(); return null; }
       s.suggestions[courseId] = { level: band, from: cur, pct, unit: unitTitle, at: new Date().toISOString() };
@@ -422,11 +433,13 @@
     graded(studentId) {
       const me = Students.current;
       const data = JSON.parse(JSON.stringify(me && me.id === studentId ? this.data : this.peek(studentId)));
-      Object.keys(data).forEach(c => Object.keys(data[c] || {}).forEach(u => { const work = data[c][u] && data[c][u].work; if (work && typeof work === 'object') Object.keys(work).forEach(l => Object.keys(work[l] || {}).forEach(n => { if (work[l][n] && typeof work[l][n] === 'object') delete work[l][n].grade; })); }));
+      Object.keys(data).forEach(c => Object.keys(data[c] || {}).forEach(u => { const work = data[c][u] && data[c][u].work; if (work && typeof work === 'object') Object.keys(work).forEach(l => Object.keys(work[l] || {}).forEach(n => { if (work[l][n] && typeof work[l][n] === 'object') delete work[l][n].grade; })); if (data[c][u] && typeof data[c][u] === 'object') delete data[c][u].marks; }));
       const g = this.grades(studentId);
       Object.keys(g).forEach(c => Object.keys(g[c] || {}).forEach(u => Object.keys(g[c][u] || {}).forEach(l => Object.keys(g[c][u][l] || {}).forEach(n => {
         const gr = g[c][u][l][n]; if (!gr || typeof gr !== 'object') return;
-        const unit = (data[c] = data[c] || {})[u] = data[c][u] || {}; unit.work = unit.work || {}; const wl = unit.work[l] = unit.work[l] || {};
+        const unit = (data[c] = data[c] || {})[u] = data[c][u] || {};
+        if (!/^\d+$/.test(n)) { (unit.marks = unit.marks || {})[l + ':' + n] = gr; return; }   // v56: 'q' = comment on a lesson quiz, 'test' + 't' = on the unit test
+        unit.work = unit.work || {}; const wl = unit.work[l] = unit.work[l] || {};
         (wl[n] = wl[n] || { text: '', done: false }).grade = gr; }))));
       return data;
     },

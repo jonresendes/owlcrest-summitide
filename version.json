@@ -1,5 +1,5 @@
 {
- "version": "55",
- "date": "2026-11-15",
- "notes": "Courses page: the Headmaster's course loader is now a simple \"Load a Course or Section\" bar \u2014 select a file, confirm the code, load \u2014 styled like the curriculum-area bars."
+ "version": "56",
+ "date": "2026-11-16",
+ "notes": "Summitide Learning by OwlCrest Academy: new name and look; levels are now Shore, Trail, Ridge and Summit on the Ministry grade bands with the two-step grading rule; quizzes and tests show which questions were wrong without the answers; a marking screen for marking one item across the whole class."
 }

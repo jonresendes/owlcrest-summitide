@@ -124,7 +124,7 @@
     d.querySelector('#acctClose').addEventListener('click', close);
     d.querySelector('#acctSettings').addEventListener('click', close);
     d.querySelector('#acctSwitch').addEventListener('click', () => { close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
-    d.querySelector('#acctSignOut').addEventListener('click', () => { if (!confirm('Sign out of The Academy on this device?')) return; close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
+    d.querySelector('#acctSignOut').addEventListener('click', () => { if (!confirm('Sign out of Summitide Learning on this device?')) return; close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
   }
   const avatarHtml = (s, cls) => '<span class="' + (cls || 'who-avatar') + '" style="background:' + esc(s.colour) + '">' + esc(s.avatar) + '</span>';
 
@@ -169,7 +169,7 @@
         '<div class="plan-section"><div class="plan-label">Your picture</div><details class="avatar-details"><summary><span class="avatar-current" id="suAvatarNow">🧑‍🏫</span> Choose a picture</summary>' + avatarPickerHtml('🧑‍🏫', 'data-su-avatar', false) + '</details></div>' +
         '<div class="btn-row" style="margin-top:1rem"><button class="btn lg" id="tCreate">Create teacher profile</button></div></div>';
     }
-    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo">🎓</div><h1>Welcome to The Academy</h1><p class="muted">' + (cont ? 'Welcome back! Continue, or pick another name.' : students.length || staffTiles.length ? 'Tap your name to sign in.' : 'Create the first profile to get started.') + '</p></div>' +
+    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Welcome to Summitide Learning</h1><p class="brand-by">by OwlCrest Academy</p><p class="muted">' + (cont ? 'Welcome back! Continue, or pick another name.' : students.length || staffTiles.length ? 'Tap your name to sign in.' : 'Create the first profile to get started.') + '</p></div>' +
       (!welcomeState.mode && !welcomeState.pinFor ? ((cont ? '<button class="continue-tile" data-welcome="' + esc(cont.id) + '" style="--tile:' + esc(cont.colour) + '">' + avatarHtml(cont, 'tile-avatar') + '<span><span class="tile-name">Continue as ' + esc(cont.name) + '</span><span class="muted small">Pick up where you left off</span></span><span class="continue-arrow">→</span></button>' : '') +(students.length ? '<div class="student-grid">' + students.map(p => tile(p)).join('') + '</div>' : '') +
         (staffTiles.length ? '<div class="student-grid staff-grid">' + staffTiles.map(p => tile(p, p.role)).join('') + '</div>' : '') +
         '<div class="card signin-add"><h3>New here?</h3><div class="btn-row">' + (canAdd ? '<button class="btn" data-mode="student">🎒 I\'m a student</button>' : '') + '<button class="btn secondary" data-mode="teacher">🧑‍🏫 I\'m a teacher</button></div>' + (canAdd ? '' : '<p class="muted small" style="margin:0.5rem 0 0">Students are added by their teacher on this device.</p>') + '</div>') : form) + '</div>';
@@ -243,7 +243,7 @@
         '<div class="btn-row" style="margin-top:0.75rem"><button class="btn lg" id="siGo"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? 'Signing in…' : 'Sign in') + '</button>' +
         (student && canSelf ? '<button class="btn ghost" id="siSignup">New student? Create an account</button>' : '') + '</div></div>';
     }
-    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo">🎓</div><h1>Welcome to The Academy</h1><p class="muted">' + (student ? 'Sign in with your student number and your birthday.' : 'Teachers sign in with their teacher ID and password.') + '</p></div>' +
+    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Welcome to Summitide Learning</h1><p class="brand-by">by OwlCrest Academy</p><p class="muted">' + (student ? 'Sign in with your student number and your birthday.' : 'Teachers sign in with their teacher ID and password.') + '</p></div>' +
       (st.msg ? '<div class="signin-msg' + (st.msgOk ? ' ok' : '') + '">' + esc(st.msg) + '</div>' : '') + form +
       '<p class="muted small center" style="margin-top:1rem">' + (Cloud.online ? '☁️ Connected' : '📴 Offline — sign in needs the internet the first time on a device') + '</p></div>';
     const on = (id, fn) => { const el = app.querySelector(id); if (el) el.addEventListener('click', fn); };
@@ -269,7 +269,7 @@
     const first = app.querySelector('#siUser, #suNumber'); if (first) first.focus();
   }
   function pageMasterSetup() {
-    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo">🎓</div><h1>Set up the Headmaster account</h1><p class="muted">The Headmaster is the admin account: it adds teachers, creates sections and sees every student. There is only one, and it can only be created while none exists — after that, teachers are added by the Headmaster in the Teachers tab.</p></div>' +
+    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Set up the Headmaster account</h1><p class="muted">The Headmaster is the admin account: it adds teachers, creates sections and sees every student. There is only one, and it can only be created while none exists — after that, teachers are added by the Headmaster in the Teachers tab.</p></div>' +
       '<div class="card signin-card"><label class="signin-field">Your name<input class="text-input" id="mName" maxlength="40" placeholder="e.g. Ms Patel"></label><label class="signin-field">Teacher ID (what you will sign in with)<input class="text-input" id="mLogin" placeholder="e.g. jresendes"></label><label class="signin-field">Password (at least 10 characters)<input class="text-input" id="mPass" type="password"></label><label class="signin-field">School e-mail (optional)<input class="text-input" id="mEmail" placeholder="name@school.ca"></label>' +
       '<div class="btn-row" style="margin-top:0.75rem"><button class="btn lg" id="mGo">Create Headmaster account</button><button class="btn ghost" id="mBack">Cancel</button></div><p class="muted small" id="mMsg"></p></div></div>';
     app.querySelector('#mBack').addEventListener('click', () => { signinState.signup = false; location.hash = '#/signin'; pageCloudSignIn(); });
@@ -403,7 +403,7 @@
     const loaded = CourseFiles.list();
     return '<div class="area-fold loader-fold" id="courseLoader">' +
       '<div class="area-bar static loader-bar"><div class="area-block loader-block" aria-hidden="true">📥</div>' +
-      '<div class="area-text"><strong>Load a Course or Section</strong><span class="small muted">Pick a course file · confirm its code · it joins The Academy</span></div></div>' +
+      '<div class="area-text"><strong>Load a Course or Section</strong><span class="small muted">Pick a course file · confirm its code · it joins Summitide Learning</span></div></div>' +
       '<div class="loader-body">' +
       '<ol class="loader-steps">' +
       '<li><span class="loader-num">1</span><div><strong>Select the course file</strong><span class="muted small">A <code>.json</code> course file from the authoring workflow.</span></div></li>' +
@@ -439,7 +439,7 @@
     });
     app.querySelectorAll('[data-course-remove]').forEach(b => b.addEventListener('click', async () => {
       const code = b.dataset.courseRemove; const c = CourseFiles.loaded[code]; if (!c) return;
-      if (!confirm('Remove "' + c.title + '" from The Academy?\n\nSections of it stay but their course will be missing until it is loaded again; students\' progress records are kept.')) return;
+      if (!confirm('Remove "' + c.title + '" from Summitide Learning?\n\nSections of it stay but their course will be missing until it is loaded again; students\' progress records are kept.')) return;
       b.disabled = true; try { await CourseFiles.remove(code); pageCourses(); } catch (e) { alert('Could not remove: ' + (e.message || e)); b.disabled = false; }
     }));
   }
@@ -450,7 +450,7 @@
       if (!CourseFiles.isCode(code)) { out.innerHTML = '<p class="small" style="color:#b91c1c">That is not an Ontario course code. Codes look like ENG3U, GLC2O or SNC1L/2L.</p>'; return; }
       const ex = CourseFiles.existing(code); const course = pendingCourseFile.courses[0]; const v = CourseFiles.validate(course);
       if (ex) {
-        out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">✅ <strong>' + esc(code) + '</strong> is already in The Academy: <em>' + esc(ex.title) + '</em>' + (ex.source === 'cloud' ? ' (loaded from a file' + (ex.build ? ', build ' + esc(ex.build) : '') + ')' : ' (built in)') + '. The file is not added again — create a section of it instead' + (ex.source === 'cloud' ? ', or <button class="btn ghost sm" id="courseReplace">replace the loaded copy with this file</button>' : '') + '.</div>' +
+        out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">✅ <strong>' + esc(code) + '</strong> is already in Summitide Learning: <em>' + esc(ex.title) + '</em>' + (ex.source === 'cloud' ? ' (loaded from a file' + (ex.build ? ', build ' + esc(ex.build) : '') + ')' : ' (built in)') + '. The file is not added again — create a section of it instead' + (ex.source === 'cloud' ? ', or <button class="btn ghost sm" id="courseReplace">replace the loaded copy with this file</button>' : '') + '.</div>' +
           '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Create a section of ' + esc(ex.title) + '</div><div class="grid-2">' +
           '<label class="field">Section name<input class="text-input" id="lcSecName" placeholder="e.g. Period 2"></label><label class="field">Term<input class="text-input" id="lcSecTerm" placeholder="e.g. Fall 2026"></label>' +
           '<label class="field">Teacher<select class="text-input" id="lcSecTeacher"><option value="">Me (Headmaster)</option>' + Staff.teachers.map(t => '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>').join('') + '</select></label></div>' +
@@ -458,8 +458,8 @@
         app.querySelector('#lcSecCreate').addEventListener('click', () => { const name = app.querySelector('#lcSecName').value.trim(); if (!name) return alert('Give the section a name.'); const t = app.querySelector('#lcSecTeacher').value || null; const sec = Sections.add(name, ex.id, t, app.querySelector('#lcSecTerm').value.trim()); if (Cloud.enabled) Cloud.flushNow().catch(() => {}); Sections.setCurrent(Staff.current.id, sec.id); location.hash = '#/sections'; });
         const rp = app.querySelector('#courseReplace'); if (rp) rp.addEventListener('click', () => saveCourse(code, course, v, out, true));
       } else {
-        out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">🆕 <strong>' + esc(code) + '</strong> is not in The Academy yet.' + (v.errors.length ? ' Fix the errors above before it can be added.' : '') + '</div>' +
-          (v.errors.length ? '' : '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Load the course</div><div class="btn-row"><button class="btn" id="courseAdd">📥 Load ' + esc(code) + ' into The Academy</button><span class="muted small">It appears in Courses for every teacher at once; students see it once a section of it includes them (or they join it).</span></div></div>');
+        out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">🆕 <strong>' + esc(code) + '</strong> is not in Summitide Learning yet.' + (v.errors.length ? ' Fix the errors above before it can be added.' : '') + '</div>' +
+          (v.errors.length ? '' : '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Load the course</div><div class="btn-row"><button class="btn" id="courseAdd">📥 Load ' + esc(code) + ' into Summitide Learning</button><span class="muted small">It appears in Courses for every teacher at once; students see it once a section of it includes them (or they join it).</span></div></div>');
         const add = app.querySelector('#courseAdd'); if (add) add.addEventListener('click', () => saveCourse(code, course, v, out, false));
       }
     };
@@ -475,7 +475,7 @@
       const meta = await CourseFiles.save(code, course, { by: Staff.current ? Staff.current.name : '', build: pendingCourseFile.envelope && pendingCourseFile.envelope.build, format: pendingCourseFile.envelope && pendingCourseFile.envelope.format });
       pendingCourseFile = null;
       pageCourses();
-      const n = app.querySelector('#courseFileOut'); if (n) n.innerHTML = '<div class="plan-banner">✅ <strong>' + esc(course.title) + '</strong> is now in The Academy (' + esc(code) + ', build ' + esc(meta.build) + '). <a href="#/course/' + esc(course.id) + '">Preview it</a> · <a href="#/sections?new=' + esc(course.id) + '">create a section</a>.</div>';
+      const n = app.querySelector('#courseFileOut'); if (n) n.innerHTML = '<div class="plan-banner">✅ <strong>' + esc(course.title) + '</strong> is now in Summitide Learning (' + esc(code) + ', build ' + esc(meta.build) + '). <a href="#/course/' + esc(course.id) + '">Preview it</a> · <a href="#/sections?new=' + esc(course.id) + '">create a section</a>.</div>';
       n && n.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) { out.innerHTML = '<p class="small" style="color:#b91c1c">⚠️ Could not save: ' + esc(e.message || String(e)) + '</p>'; }
   }
@@ -875,31 +875,32 @@
       '<button class="btn lg" id="startBtn">' + esc(o.start || 'Start') + '</button>' + (o.alt || '') + (o.print ? '<div style="margin-top:0.75rem">' + Print.button(o.print, 'Print a paper copy') + '</div>' : '') + '</div>';
     app.querySelector('#startBtn').addEventListener('click', start);
     function start() {
-      let i = 0, score = 0;
+      let i = 0, score = 0; const items = [];
       const next = () => {
         if (i >= qs.length) return finish();
         const q = qs[i];
         app.innerHTML = o.head + '<div class="score-bar"><span>Question ' + (i + 1) + ' of ' + qs.length + '</span><span>Score: ' + score + '</span></div><div class="question"><div class="q-host"></div></div>';
         const host = app.querySelector('.q-host');
-        const done = (ok) => { if (ok) score++; i++; next(); };
-        if (q.type === 'mc' || q.type === 'tf') Games.askChoice(host, q, done);
-        else if (q.type === 'fill') Games.renderFill(host, q, done);
+        const done = (ok, given) => { items.push({ q: q.prompt || 'Match each item to its pair.', ok: !!ok, a: given }); if (ok) score++; i++; next(); };
+        // quizzes and tests never show the right answer (v56): the student learns which questions to look at again
+        if (q.type === 'mc' || q.type === 'tf') Games.askChoice(host, q, done, { hideAnswer: true });
+        else if (q.type === 'fill') Games.renderFill(host, q, done, { hideAnswer: true });
         else if (q.type === 'match') {
           markSeen(q);
           host.innerHTML = '<div class="q-prompt">' + esc(q.prompt || 'Match each item to its pair.') + '</div><div class="m-host"></div>';
-          Games.renderMatchBoard(host.querySelector('.m-host'), q.pairs, mistakes => done(mistakes <= Math.floor(q.pairs.length / 3)), { chunk: q.chunk });
+          Games.renderMatchBoard(host.querySelector('.m-host'), q.pairs, mistakes => done(mistakes <= Math.floor(q.pairs.length / 3), mistakes + (mistakes === 1 ? ' mistake' : ' mistakes')), { chunk: q.chunk });
         }
       };
       next();
       function finish() {
         const pct = Math.round(score / qs.length * 100);
-        const fresh = o.onDone(pct, score) || [];
+        const fresh = o.onDone(pct, score, items) || [];
         const gl = o.gradeLine ? o.gradeLine(pct) : '';
         app.innerHTML = o.head + '<div class="card result-card"><div class="big-num">' + pct + '%</div>' +
           '<h2>' + (pct === 100 ? 'Perfect!' : pct >= Badges.PASS_MARK ? 'You passed!' : 'Keep practising') + '</h2>' +
           '<p class="muted">' + score + ' of ' + qs.length + ' correct.' + (pct < Badges.PASS_MARK ? ' Read the lesson again and try once more.' : '') + '</p>' + gl +
           (fresh.length ? '<p>' + fresh.map(a => '<span class="tag accent">' + a.icon + ' ' + esc(a.name) + '</span>').join(' ') + '</p>' : '') +
-          (o.extra ? o.extra(pct) : '') + (o.note ? o.note(pct) : '') +
+          (o.extra ? o.extra(pct) : '') + (o.note ? o.note(pct) : '') + LH.reviewList(items, false) +
           '<div class="btn-row" style="justify-content:center"><button class="btn" id="retry">Try again</button>' + (o.links || '') + '</div></div>';
         app.querySelector('#retry').addEventListener('click', o.retry);
         if (o.afterRender) o.afterRender();
@@ -942,12 +943,12 @@
     runAssessment({ head, qs, best: u.testBest, title: level > base ? 'Unit test at Level ' + level + ' · ' + LEVEL_NAMES[level] : 'Ready for the unit test?', start: level > base ? 'Start the Level ' + level + ' test' : 'Start the test', print: '#/print/' + course.id + '/' + unit.id + '/test',
       alt: level > base ? '<p class="muted small" style="margin-top:0.9rem">A rewrite one level up: a higher grade here replaces your Level ' + base + ' grade; a lower one changes nothing.</p>' : rewriteOffer(course, base, '#/test/' + course.id + '/' + unit.id),
       gradeLine: (pct) => gradeLineHtml(level, pct, u.test, 'unit test'),
-      onDone(pct) {
+      onDone(pct, score, items) {
         u.testAttempts = (u.testAttempts || 0) + 1;
         u.testBest = Math.max(u.testBest || 0, pct);
         if (pct >= Badges.PASS_MARK) u.testPassed = true; else u.failedOnce = true;
         if (pct === 100) u.testPerfect = true;
-        Grading.recordAttempt(u.test, level, pct);
+        Grading.recordAttempt(u.test, level, pct, items);
         Progress.save();
         const fresh = Badges.evaluate(course, unit);
         Students.suggest(course.id, unit.title, pct);   // level suggestion for the teacher (never shown to the student)
@@ -973,16 +974,16 @@
     runAssessment({ head, qs, best: rec.best, icon: '❓', title: level > base ? 'Quiz at Level ' + level + ' · ' + LEVEL_NAMES[level] : 'Quick check on this lesson', start: level > base ? 'Start the Level ' + level + ' quiz' : 'Start the quiz', print: '#/print/' + course.id + '/' + unit.id + '/quiz/' + lessonIdx,
       alt: level > base ? '<p class="muted small" style="margin-top:0.9rem">A rewrite one level up: a higher grade here replaces your Level ' + base + ' grade; a lower one changes nothing.</p>' : rewriteOffer(course, base, '#/quiz/' + course.id + '/' + unit.id + '/' + lessonIdx),
       gradeLine: (pct) => gradeLineHtml(level, pct, rec, 'quiz'),
-      onDone(pct) {
+      onDone(pct, score, items) {
         rec.attempts++; rec.best = Math.max(rec.best, pct); if (pct >= Badges.PASS_MARK) rec.passed = true;
-        Grading.recordAttempt(rec, level, pct);
+        Grading.recordAttempt(rec, level, pct, items);
         Progress.save();
         if (pct >= Badges.PASS_MARK) Students.recordLessonLevel(course.id, lessonIdx, level, pct);
         return Badges.evaluate(course, unit);
       },
       extra: (pct) => level === base ? levelPromptHtml(course, lessonIdx, pct) : '',
       note: (pct) => { if (Students.trackFor(course.id)) return ''; const l = Settings.level; if (pct >= 85 && l < 4) return ''; if (pct < Badges.PASS_MARK && l > 1) return '';
-        return '<p class="muted small">Level ' + l + ' · ' + LEVEL_NAMES[l] + (l < 4 ? ' — score 85% or more on a quiz to be offered Level ' + (l + 1) + '.' : ' — the top level.') + (l > 1 && pct >= BAND_MIN[l] ? ' You are above the Level ' + l + ' band (' + BAND_MIN[l] + '%+).' : '') + '</p>'; },
+        return '<p class="muted small">Level ' + l + ' · ' + LEVEL_NAMES[l] + (l < 4 ? ' — score 85% or more on a quiz to be offered Level ' + (l + 1) + '.' : ' — the top level.') + (l > 1 && Grading.levelled(pct, l) >= BAND_MIN[l] ? ' That score earns a grade inside the Level ' + l + ' band (' + LEVELS[l].band + ').' : '') + '</p>'; },
       afterRender: () => bindLevelPrompt(course),
       retry: () => pageQuiz(courseId, unitId, lessonIdx, at),
       links: (function () { const ls = lessonsFor(unit); const pos = ls.findIndex(l => l._idx === lessonIdx); const next = pos >= 0 && pos < ls.length - 1 ? ls[pos + 1] : null;
@@ -1289,7 +1290,7 @@
   function pageTeachers() {
     const me = Students.current; if (!me || me.role !== 'master') return pageHome();
     setCourseColor(null); setNav('teachers');
-    app.innerHTML = '<div class="page-head"><div><h1>🧑‍🏫 Teachers</h1><p class="muted">Every teacher profile at The Academy. Add a teacher, open a profile to change it, assign sections and add students. Only the Headmaster sees this page.</p>' + cloudStatusHtml() + '</div></div><div class="card hm-card">' + teachersHtml() + '</div>';
+    app.innerHTML = '<div class="page-head"><div><h1>🧑‍🏫 Teachers</h1><p class="muted">Every teacher profile at Summitide Learning. Add a teacher, open a profile to change it, assign sections and add students. Only the Headmaster sees this page.</p>' + cloudStatusHtml() + '</div></div><div class="card hm-card">' + teachersHtml() + '</div>';
     bindTeachers();
   }
 
@@ -1346,7 +1347,7 @@
   function demoOf(me) { return Students.demoFor(demoOwnerKey(me)); }
   function studentViewHtml(me) {
     const d = demoOf(me);
-    const intro = '<p class="muted small">A <strong>demo student</strong> that exists only inside your account: not on any roster, not in the Students list, the directory, the grids or anyone else\'s screen. Set its level, courses, accommodations, Modified program or Focus Plan exactly as you would for a real student, then <strong>open Student View</strong> to see The Academy as that student would — lessons, quizzes, games, grades, the desk. Everything the demo does is kept (its own progress and work), and nothing else is touched.</p>';
+    const intro = '<p class="muted small">A <strong>demo student</strong> that exists only inside your account: not on any roster, not in the Students list, the directory, the grids or anyone else\'s screen. Set its level, courses, accommodations, Modified program or Focus Plan exactly as you would for a real student, then <strong>open Student View</strong> to see Summitide Learning as that student would — lessons, quizzes, games, grades, the desk. Everything the demo does is kept (its own progress and work), and nothing else is touched.</p>';
     if (!d) return intro + '<div class="btn-row"><button class="btn" id="demoCreate">🧪 Create my demo student</button></div>';
     return intro +
       '<div class="plan-banner" style="display:flex;flex-wrap:wrap;gap:0.6rem 1rem;align-items:center;justify-content:space-between"><span><strong>' + esc(d.avatar) + ' ' + esc(d.name) + '</strong> · Level ' + esc(String(d.level)) + ' · ' + (Array.isArray(d.courses) ? d.courses.length + ' course' + (d.courses.length === 1 ? '' : 's') : 'all courses') + (Object.keys(d.track || {}).length ? ' · Modified program' : '') + '</span>' +
@@ -1385,7 +1386,7 @@
     const old = document.getElementById('demoBanner'); if (old) old.remove();
     const cur = Students.current; if (!cur || !cur.demo) return;
     const d = document.createElement('div'); d.id = 'demoBanner'; d.className = 'demo-banner'; d.setAttribute('role', 'status');
-    d.innerHTML = '<span>👁 <strong>Student View</strong> — you are seeing The Academy as <strong>' + esc(cur.name) + '</strong>, your demo student. What the demo does is kept; nothing else is affected.</span><button class="btn sm" id="demoExit">↩ Back to my desk</button>';
+    d.innerHTML = '<span>👁 <strong>Student View</strong> — you are seeing Summitide Learning as <strong>' + esc(cur.name) + '</strong>, your demo student. What the demo does is kept; nothing else is affected.</span><button class="btn sm" id="demoExit">↩ Back to my desk</button>';
     app.insertBefore(d, app.firstChild);
     d.querySelector('#demoExit').addEventListener('click', exitStudentView);
   }
@@ -1589,7 +1590,7 @@
       (d.installed ? '<span class="tag ok">Installed</span>' : '<span class="tag">Not installed</span>') + '</div>' + rows +
       '<div class="btn-row" style="margin-top:0.75rem">' +
       (d.installed ? '<button class="btn secondary" id="appUninstall">Uninstall…</button><button class="btn ghost" id="appForget">Not installed here? Reset</button>'
-                   : '<button class="btn" id="appInstall">⬇️ Install LearnHub</button><button class="btn ghost" id="appHow">How to install</button>') + '</div>';
+                   : '<button class="btn" id="appInstall">⬇️ Install Summitide</button><button class="btn ghost" id="appHow">How to install</button>') + '</div>';
     const on = (id, fn) => { const el = card.querySelector(id); if (el) el.addEventListener('click', fn); };
     on('#appInstall', async () => { await PWA.install(); renderAppCard(); });
     on('#appHow', () => PWA.installHelp());
@@ -1726,9 +1727,9 @@
     if (location.hash !== route.last) tUI.msg = '';
     if (location.hash !== route.last) Object.keys(sessionStorage).filter(k => /^learnhub\.(sg\.|studentOpen|workOpen|recOpen|mediaOpen|planOpen|sectionsOpen|focusOpen|teacherOpen|tSecOpen)/.test(k)).forEach(k => sessionStorage.removeItem(k));
     route.last = location.hash;
-    if (!Cloud.enabled && (window.CLOUD_CONFIG || {}).enabled) { app.innerHTML = '<div class="empty"><div class="signin-logo">🎓</div><p>The Academy could not start its connection to the cloud.</p><p class="muted small">Check the internet connection and reload the page.</p><button class="btn" id="reloadBtn">Reload</button></div>'; app.querySelector('#reloadBtn').addEventListener('click', () => location.reload()); return; }
+    if (!Cloud.enabled && (window.CLOUD_CONFIG || {}).enabled) { app.innerHTML = '<div class="empty"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><p>Summitide Learning could not start its connection to the cloud.</p><p class="muted small">Check the internet connection and reload the page.</p><button class="btn" id="reloadBtn">Reload</button></div>'; app.querySelector('#reloadBtn').addEventListener('click', () => location.reload()); return; }
     if (Cloud.enabled) {
-      if (!Cloud.ready) { app.innerHTML = '<div class="empty"><div class="signin-logo">🎓</div><p class="muted">Connecting…</p></div>'; return; }
+      if (!Cloud.ready) { app.innerHTML = '<div class="empty"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><p class="muted">Connecting…</p></div>'; return; }
       if (parts[0] === 'welcome' || parts[0] === 'signin') {
         // Only "Switch user" / "Sign out" from the account menu end a session. Landing here any other
         // way (the phone's back button stepping through old history, a bookmark) just goes home.
@@ -1747,6 +1748,7 @@
       case 'work': return pageWork(parts[1], parts[2]);
       case 'test': return pageTest(parts[1], parts[2], parts[3]);
       case 'print': return Print.page(parts[1], parts[2], parts[3], parts[4], parts[5]);
+      case 'mark': if (!Students.isStaffSession) return pageHome(); try { return Marking.page(parts.slice(1)); } catch (e) { app.innerHTML = '<div class="empty">The marking screen could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
       case 'dashboard': if (!Students.isStaffSession) return pageHome(); try { return Dashboard.page(); } catch (e) { app.innerHTML = '<div class="empty"><h2>The dashboard could not load</h2><p class="muted small">' + esc(e.message) + '</p><a class="btn" href="#/settings">Settings</a></div>'; return; }
       case 'games': return pageGames(parts[1], parts[2]);
       case 'game': return pageGame(parts[1], parts[2], parts[3]);

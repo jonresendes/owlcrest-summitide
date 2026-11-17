@@ -6,15 +6,15 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://accounts.google.com; frame-src 'self' blob: https://docs.google.com https://drive.google.com https://www.youtube-nocookie.com https://www.youtube.com https://accounts.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#2c3a8f">
+  <meta name="theme-color" content="#1b2f5e">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="The Academy">
+  <meta name="apple-mobile-web-app-title" content="Summitide">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <title>The Academy · Learn Hub</title>
+  <title>Summitide Learning · OwlCrest Academy</title>
   <meta name="description" content="A learning environment with study rooms, tests, games and a display case of achievements.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
 <body>
   <header class="topbar">
     <button class="back-btn" id="backBtn" type="button" title="Back" aria-label="Back" hidden>← <span class="back-label">Back</span></button>
-    <a href="#/" class="brand"><img src="logo.png" alt="The Academy — Learn Hub" class="brand-logo"></a>
+    <a href="#/" class="brand"><img src="logo.png" alt="Summitide Learning — OwlCrest Academy" class="brand-logo"></a>
     <nav class="topnav">
       <a href="#/" data-nav="home">Student Desk</a>
       <a href="#/sections" data-nav="sections">Sections</a>
@@ -68,6 +68,7 @@
   <script src="drive.js"></script>
   <script src="overlay.js"></script>
   <script src="dashboard.js"></script>
+  <script src="marking.js"></script>    <!-- v56: mark one item for the whole class -->
   <script src="app.js"></script>
   <script src="pwa.js"></script>
   <script src="report.js"></script>   <!-- "Found a problem?" button; loads html2canvas.min.js only when it is pressed -->

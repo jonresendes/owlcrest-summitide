@@ -7,16 +7,29 @@
    Student (#/grades[/course]): the same row for themselves, read-only.
    ========================================================= */
 (function () {
-  const { esc, lessonsFor, assignmentsFor, lessonQuestions, unitsFor } = window.LH;
+  const { esc, lessonsFor, assignmentsFor, lessonQuestions, unitsFor, LEVELS, reviewList } = window.LH;
+
+  /** The most recent recorded attempt on a quiz-style record: { level, pct, at, items } or null. */
+  function lastReview(rec) {
+    let out = null;
+    Object.keys((rec && rec.levels) || {}).forEach(l => { const r = rec.levels[l]; if (r && r.last && Array.isArray(r.last.items) && (!out || String(r.last.at) > String(out.at))) out = { level: +l, pct: r.last.pct, at: r.last.at, items: r.last.items }; });
+    return out;
+  }
   const app = document.getElementById('app');
   const DEFAULT_MAX = 10;
 
   /** Levelled grade for a quiz-style record; legacy records (no per-level attempts) use the fallback level. */
   function gradeOf(q, fallbackLevel) {
+    if (q && q.override) { const lvl = q.override.level || fallbackLevel || 2; return { grade: Grading.levelled(q.override.raw, lvl), level: lvl, raw: q.override.raw, teacher: true }; }   // set by the teacher on the marking screen
     if (!q || !(q.attempts > 0 || q.best > 0)) return null;
     if (q.levels && Object.keys(q.levels).length) { const b = Grading.bestOf(q.levels); if (b) return b; }   // always from the attempts, so a change of grade scale applies everywhere
     if (q.grade !== undefined && q.gradeLevel) return { grade: q.grade, level: q.gradeLevel, raw: q.gradeRaw !== undefined ? q.gradeRaw : q.best };
     const lvl = fallbackLevel || 2; return { grade: Grading.levelled(q.best || 0, lvl), level: lvl, raw: q.best || 0, legacy: true };
+  }
+  /** A quiz-style record with the teacher's score laid over it (marks['<lesson>:q'] / marks['test:t'] = { score, level, note }). */
+  function over(rec, mark) {
+    if (!mark || mark.score === undefined || mark.score === null || isNaN(+mark.score)) return rec;
+    return Object.assign({}, rec || {}, { override: { raw: Math.max(0, Math.min(100, +mark.score)), level: +mark.level || null } });
   }
   function cls(g) { return g >= LEVEL_BANDS[4][0] ? 'top' : g >= LEVEL_BANDS[3][0] ? 'pass' : 'low'; }
   function qCell(q, fallbackLevel) {
@@ -24,11 +37,11 @@
     if (!g) return '<td class="d-cell none" title="not tried">–</td>';
     const tries = q.attempts || Object.values(q.levels || {}).reduce((n, r) => n + (r.attempts || 0), 0);
     const perLevel = Object.keys(q.levels || {}).map(l => 'L' + l + ': ' + q.levels[l].best + '% raw → ' + Grading.levelled(q.levels[l].best, +l)).join(' · ');
-    return '<td class="d-cell ' + cls(g.grade) + '" title="' + tries + ' attempt' + (tries === 1 ? '' : 's') + (perLevel ? ' · ' + perLevel : ' · ' + g.raw + '% raw at Level ' + g.level) + '"><span class="g-num">' + g.grade + '</span><span class="g-lvl">L' + g.level + ' · ' + g.raw + '%</span></td>';
+    return '<td class="d-cell ' + cls(g.grade) + '" title="' + tries + ' attempt' + (tries === 1 ? '' : 's') + (perLevel ? ' · ' + perLevel : ' · ' + g.raw + '% raw at Level ' + g.level) + (g.teacher ? ' · score set by the teacher' : '') + '"><span class="g-num">' + g.grade + '</span><span class="g-lvl">' + (g.teacher ? '✎ ' : '') + 'L' + g.level + ' · ' + g.raw + '%</span></td>';
   }
   /** The unit test as a quiz-style record (per-level attempts when present, legacy best otherwise). */
   function testRec(u) { return u.test && u.test.levels && Object.keys(u.test.levels).length ? Object.assign({ best: u.testBest || 0, attempts: u.testAttempts || 1 }, u.test) : (u.testBest ? { best: u.testBest, attempts: u.testAttempts || 0 } : null); }
-  function tCell(u, fallbackLevel) { return qCell(testRec(u), fallbackLevel); }
+  function tCell(u, fallbackLevel) { return qCell(over(testRec(u), (u.marks || {})['test:t']), fallbackLevel); }
   /** Assignment cell: state + grade (editable for teachers). The teacher's score out of 10 becomes a levelled grade at the level the work was done. */
   function aCell(w, editable, ref, fallbackLevel) {
     const g = w && w.grade;
@@ -44,27 +57,29 @@
   /** Every levelled grade in a unit for one student (quizzes, assignments, test) → average. */
   function unitAverage(course, unit, lessons, u, fallbackLevel) {
     const gs = []; const quiz = u.quiz || {}, work = u.work || {};
-    lessons.forEach(l => { if (lessonQuestions(unit, l._idx).length) { const g = gradeOf(quiz[l._idx], fallbackLevel); if (g) gs.push(g.grade); }
+    lessons.forEach(l => { if (lessonQuestions(unit, l._idx).length) { const g = gradeOf(over(quiz[l._idx], (u.marks || {})[l._idx + ':q']), fallbackLevel); if (g) gs.push(g.grade); }
       assignmentsFor(l).forEach(a => { const w = (work[l._idx] || {})[a._idx]; if (!w) return; const lg = Grading.assignment(Object.assign({}, w, { level: w.level || (w.grade && w.grade.level) || fallbackLevel })); if (lg) gs.push(lg.grade); }); });
-    const t = gradeOf(testRec(u), fallbackLevel); if (t) gs.push(t.grade);
+    const t = gradeOf(over(testRec(u), (u.marks || {})['test:t']), fallbackLevel); if (t) gs.push(t.grade);
     return { avg: Grading.average(gs), n: gs.length };
   }
   /** Column headers for a unit (lessons with their assignments). */
-  function headers(unit, lessons, forStudent) {
+  function headers(unit, lessons, forStudent, course) {
+    // teacher grid (v56): every column heading opens that item for the whole class on the marking screen
+    const mk = (path, text, title) => forStudent || !course ? text : '<a class="d-mark" href="#/mark/' + esc(course.id) + '/' + esc(unit.id) + '/' + path + '" title="' + esc(title) + ' — mark this for the whole class">' + text + '</a>';
     const top = ['<th class="d-name" rowspan="2">' + (forStudent ? 'Class' : 'Student') + '</th>' + (forStudent ? '' : '<th rowspan="2">Level</th>')];
     const bottom = [];
     lessons.forEach((l, i) => { const as = assignmentsFor(l); const hasQ = lessonQuestions(unit, l._idx).length > 0; const n = (hasQ ? 1 : 0) + as.length; if (!n) return;
       top.push('<th class="d-les" colspan="' + n + '" title="' + esc(l.title) + '">L' + (i + 1) + '</th>');
-      if (hasQ) bottom.push('<th class="d-sub" title="Lesson quiz">quiz</th>');
-      as.forEach((a, k) => bottom.push('<th class="d-sub" title="' + esc(a.title) + '">✍️' + (k + 1) + '</th>')); });
-    top.push('<th rowspan="2">Unit test</th><th rowspan="2" title="Average of every levelled grade in the unit: quizzes, graded assignments and the unit test">Unit avg</th><th rowspan="2">Awards</th>');
+      if (hasQ) bottom.push('<th class="d-sub" title="Lesson quiz">' + mk('quiz/' + l._idx, 'quiz', 'Lesson ' + (i + 1) + ' quiz') + '</th>');
+      as.forEach((a, k) => bottom.push('<th class="d-sub" title="' + esc(a.title) + '">' + mk('work/' + l._idx + '/' + a._idx, '✍️' + (k + 1), a.title) + '</th>')); });
+    top.push('<th rowspan="2">' + mk('test', 'Unit test', 'Unit test') + '</th><th rowspan="2" title="Average of every levelled grade in the unit: quizzes, graded assignments and the unit test">Unit avg</th><th rowspan="2">Awards</th>');
     return '<tr>' + top.join('') + '</tr><tr>' + bottom.join('') + '</tr>';
   }
   function rowCells(course, unit, lessons, u, editable, sid, fallbackLevel) {
     const quiz = u.quiz || {}, work = u.work || {};
     let cells = '';
     lessons.forEach(l => { const as = assignmentsFor(l); const hasQ = lessonQuestions(unit, l._idx).length > 0;
-      if (hasQ) cells += qCell(quiz[l._idx], fallbackLevel);
+      if (hasQ) cells += qCell(over(quiz[l._idx], (u.marks || {})[l._idx + ':q']), fallbackLevel);
       as.forEach(a => cells += aCell((work[l._idx] || {})[a._idx], editable, 'data-grade="' + esc(sid) + '" data-c="' + esc(course.id) + '" data-u="' + esc(unit.id) + '" data-l="' + esc(l._idx) + '" data-n="' + esc(a._idx) + '"', fallbackLevel)); });
     const av = unitAverage(course, unit, lessons, u, fallbackLevel);
     return cells + tCell(u, fallbackLevel) + '<td class="d-cell avg ' + (av.avg === null ? 'none' : cls(av.avg)) + '" title="' + av.n + ' graded item' + (av.n === 1 ? '' : 's') + '">' + (av.avg === null ? '–' : '<strong>' + av.avg + '</strong>') + '</td><td class="d-cell none">' + Object.keys(u.earned || {}).length + '</td>';
@@ -111,9 +126,9 @@
         const lvl = t ? '<span class="tag">Mod · ' + ({ k2: 'K–2', g35: '3–5', g68: '6–8' }[t.band]) + '</span>' : '<span class="tag">L' + Students.levelFor(course.id, s) + '</span>';
         return '<tr><td class="d-name"><a href="#/students" data-open-student="' + esc(s.id) + '">' + esc(s.avatar) + ' ' + esc(s.name) + '</a>' + (s.number ? '<div class="muted small">#' + esc(s.number) + '</div>' : '') + '</td><td>' + lvl + '</td>' + rowCells(course, un, lessons, u, true, s.id, Students.levelFor(course.id, s)) + '</tr>';
       }).join('');
-      return '<details class="card unit-grid"' + (ui === 0 ? ' open' : '') + '><summary class="unit-summary"><h2 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (ui + 1) + ' · ') + esc(un.title) + '</h2><span class="fold-hint">' + lessons.length + ' lessons · tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, false) + rows + '</table></div></details>';
+      return '<details class="card unit-grid"' + (ui === 0 ? ' open' : '') + '><summary class="unit-summary"><h2 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (ui + 1) + ' · ') + esc(un.title) + '</h2><span class="fold-hint">' + lessons.length + ' lessons · tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, false, course) + rows + '</table></div></details>';
     }).join('');
-    app.innerHTML = head + '<p class="small muted">Every cell is a <strong>levelled grade</strong>: the score earned at the level the work was done, placed inside that level\'s band (L1 50–59 · L2 60–69 · L3 70–84 · L4 85–100): 50% is a pass and a grade of 50 at every level, a perfect score is the top of the band, and the grade climbs in a straight line between. Below 50% the grade is the raw score. The small line shows the level and the raw score; a rewrite one level up counts when it scores higher. <span class="d-key top">85+</span> <span class="d-key pass">70–84</span> <span class="d-key low">below 70</span> · assignments: <strong>✓</strong> handed in, <strong>✎</strong> draft, <strong>–</strong> not started · type a score out of ' + DEFAULT_MAX + ' and the grade is worked out at the level the work was done · click a name to open the student in Settings.</p>' + tables +
+    app.innerHTML = head + '<p class="small muted">Every cell is a <strong>levelled grade</strong>: the score earned at the level the work was done, placed inside that level\'s band (' + [1, 2, 3, 4].map(l => 'Level ' + l + ' · ' + LEVELS[l].name + ' ' + LEVELS[l].band.replace('%', '')).join(' · ') + '): 50% is a pass and a grade of 50 at every level, a perfect score is the top of the band, and the grade climbs in a straight line between, so Level 4 is the only level where the grade equals the score. Below 50% the grade is the raw score. The small line shows the level and the raw score; a rewrite one level up counts when it scores higher. <strong>Tap a column heading to mark that item for the whole class.</strong> <span class="d-key top">' + LEVEL_BANDS[4][0] + '+</span> <span class="d-key pass">' + LEVEL_BANDS[3][0] + '–' + LEVEL_BANDS[3][1] + '</span> <span class="d-key low">below ' + LEVEL_BANDS[3][0] + '</span> · assignments: <strong>✓</strong> handed in, <strong>✎</strong> draft, <strong>–</strong> not started · type a score out of ' + DEFAULT_MAX + ' and the grade is worked out at the level the work was done · click a name to open the student in Settings.</p>' + tables +
       (students.length ? '' : '<div class="empty">No students in this section yet.</div>');
     app.querySelector('#dashSection').addEventListener('change', e => { Sections.setCurrent(sid, e.target.value || null); page(); });
     const dc = app.querySelector('#dashCourse'); if (dc) dc.addEventListener('change', e => { sessionStorage.setItem('learnhub.dashCourse', e.target.value); page(); });
@@ -131,17 +146,23 @@
     const graded = Progress.graded(me.id);   // my own work with my teacher's grades laid over it
     app.innerHTML = '<div class="page-head"><div><h1>📊 Grades</h1><p class="muted">Your quiz and test scores, what you have handed in, and the grades your teacher has given.</p></div>' +
       (courseId ? '<a class="btn secondary" href="#/grades">All classes</a>' : '') + '</div>' +
-      '<p class="small muted">Each cell is your <strong>grade</strong> for that piece of work — your score placed inside the band of the level you did it at (Level 1 50–59 · Level 2 60–69 · Level 3 70–84 · Level 4 85–100): 50% passes at every level, a perfect score is the top of your band. The small line is the level and your raw score. If your teacher allows rewrites one level up, the higher grade counts. <span class="d-key top">85+</span> <span class="d-key pass">70–84</span> <span class="d-key low">below 70</span> · assignments: <strong>✓</strong> handed in, <strong>✎</strong> draft, <strong>–</strong> not started.</p>' +
+      '<p class="small muted">Each cell is your <strong>grade</strong> for that piece of work — your score placed inside the band of the level you did it at (' + [1, 2, 3, 4].map(l => 'Level ' + l + ' · ' + LEVELS[l].name + ' ' + LEVELS[l].band.replace('%', '')).join(' · ') + '): 50% passes at every level and earns a 50; a perfect score is the top of your band. The small line is the level and your raw score. If your teacher allows rewrites one level up, the higher grade counts. <span class="d-key top">' + LEVEL_BANDS[4][0] + '+</span> <span class="d-key pass">' + LEVEL_BANDS[3][0] + '–' + LEVEL_BANDS[3][1] + '</span> <span class="d-key low">below ' + LEVEL_BANDS[3][0] + '</span> · assignments: <strong>✓</strong> handed in, <strong>✎</strong> draft, <strong>–</strong> not started.</p>' +
       (list.length ? list.map(c => {
         Settings.activeCourse = c.id;
         const units = unitsFor(c).map((un, ui) => { const lessons = lessonsFor(un); const u = (graded[c.id] || {})[un.id] || {};
           const notes = []; lessons.forEach(l => assignmentsFor(l).forEach(a => { const w = ((u.work || {})[l._idx] || {})[a._idx]; if (w && w.grade && w.grade.note) notes.push('<li><strong>' + esc(a.title) + ':</strong> ' + esc(w.grade.note) + '</li>'); }));
-          return '<details class="card unit-grid"><summary class="unit-summary"><h3 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (c.units.indexOf(un) + 1) + ' · ') + esc(un.title) + '</h3><span class="fold-hint">' + (() => { const t = gradeOf(testRec(u), Students.levelFor(c.id, me)); return t ? 'test grade ' + t.grade + ' · ' : ''; })() + 'tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, true) + '<tr><td class="d-name">' + c.icon + ' ' + esc(c.title) + '</td>' + rowCells(c, un, lessons, u, false, me.id, Students.levelFor(c.id, me)) + '</tr></table></div>' + (notes.length ? '<div class="small" style="margin-top:0.5rem"><strong>Teacher comments</strong><ul>' + notes.join('') + '</ul></div>' : '') + '</details>'; }).join('');
+          const marks = u.marks || {}, reviews = [];
+          lessons.forEach((l, li) => { const m = marks[l._idx + ':q']; if (m && m.score !== undefined && m.score !== null) notes.push('<li><strong>Quiz, lesson ' + (li + 1) + ':</strong> your teacher set the score to ' + esc(m.score) + '%.</li>'); if (m && m.note) notes.push('<li><strong>Quiz, lesson ' + (li + 1) + ':</strong> ' + esc(m.note) + '</li>');
+            const r = lastReview((u.quiz || {})[l._idx]); if (r) reviews.push('<details class="rv-fold"><summary>Quiz, lesson ' + (li + 1) + ' · ' + esc(l.title) + ' — ' + r.pct + '% at Level ' + r.level + '</summary>' + reviewList(r.items, false) + '</details>'); });
+          if (marks['test:t'] && marks['test:t'].score !== undefined && marks['test:t'].score !== null) notes.push('<li><strong>Unit test:</strong> your teacher set the score to ' + esc(marks['test:t'].score) + '%.</li>');
+          if (marks['test:t'] && marks['test:t'].note) notes.push('<li><strong>Unit test:</strong> ' + esc(marks['test:t'].note) + '</li>');
+          const tr = lastReview(u.test); if (tr) reviews.push('<details class="rv-fold"><summary>Unit test — ' + tr.pct + '% at Level ' + tr.level + '</summary>' + reviewList(tr.items, false) + '</details>');
+          return '<details class="card unit-grid"><summary class="unit-summary"><h3 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (c.units.indexOf(un) + 1) + ' · ') + esc(un.title) + '</h3><span class="fold-hint">' + (() => { const t = gradeOf(over(testRec(u), (u.marks || {})['test:t']), Students.levelFor(c.id, me)); return t ? 'test grade ' + t.grade + ' · ' : ''; })() + 'tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, true) + '<tr><td class="d-name">' + c.icon + ' ' + esc(c.title) + '</td>' + rowCells(c, un, lessons, u, false, me.id, Students.levelFor(c.id, me)) + '</tr></table></div>' + (notes.length ? '<div class="small" style="margin-top:0.5rem"><strong>From your teacher</strong><ul>' + notes.join('') + '</ul></div>' : '') + (reviews.length ? '<div class="small" style="margin-top:0.6rem"><strong>Your latest attempts</strong> <span class="muted">— which questions to look at again</span>' + reviews.join('') + '</div>' : '') + '</details>'; }).join('');
         return '<section class="class-grades" style="--course:' + esc(c.color || '') + '"><h2>' + c.icon + ' ' + esc(c.title) + '</h2>' + units + '</section>';
       }).join('') : '<div class="empty">You are not in any class yet.</div>');
     Settings.activeCourse = null;
   }
 
-  window.Dashboard = { page };
+  window.Dashboard = { page, gradeOf, testRec, lastReview, over };
   window.Grades = { page: studentPage };
 })();

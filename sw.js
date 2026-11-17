@@ -1,7 +1,7 @@
-/* The Academy · Learn Hub — service worker (offline cache + update detection).
+/* Summitide Learning (OwlCrest Academy) — service worker (offline cache + update detection).
    BUMP THE VERSION every time you upload changed files; that is what makes
    installed copies show the "Update available" notice. */
-const VERSION = 'learnhub-v55';
+const VERSION = 'summitide-v56';
 const FILES = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const FILES = [
   './icon-192.png',
   './icon-512.png',
   './logo.png',
+  './crest.png',
   './opendyslexic-400.woff2',
   './opendyslexic-700.woff2',
   './styles.css',
@@ -26,6 +27,7 @@ const FILES = [
   './drive.js',
   './overlay.js',
   './dashboard.js',
+  './marking.js',
   './app.js',
   './pwa.js',
   './report.js',

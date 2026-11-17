@@ -23,11 +23,11 @@
     host.querySelectorAll('.option').forEach(btn => {
       btn.addEventListener('click', () => {
         const correct = btn.dataset.v === answerText;
-        host.querySelectorAll('.option').forEach(b => { b.disabled = true; if (b.dataset.v === answerText) b.classList.add('correct'); });
+        host.querySelectorAll('.option').forEach(b => { b.disabled = true; if (b.dataset.v === answerText && (correct || !opts.hideAnswer)) b.classList.add('correct'); });
         if (!correct) btn.classList.add('wrong');
         host.querySelector('.q-feedback').innerHTML = '<div class="feedback ' + (correct ? 'ok' : 'bad') + '">' +
-          (correct ? '🎉 Correct!' : '👉 The answer is: ' + esc(answerText)) + '</div>';
-        setTimeout(() => done(correct), opts.delay !== undefined ? opts.delay : (correct ? 900 : 1800));
+          (correct ? '🎉 Correct!' : opts.hideAnswer ? '✗ Not quite.' : '👉 The answer is: ' + esc(answerText)) + '</div>';
+        setTimeout(() => done(correct, btn.dataset.v), opts.delay !== undefined ? opts.delay : (correct ? 900 : opts.hideAnswer ? 1100 : 1800));
       });
     });
     return host;
@@ -192,7 +192,8 @@
   };
 
   /** Fill-in-the-blank widget; done(correct). */
-  function renderFill(host, q, done) {
+  function renderFill(host, q, done, opts) {
+    opts = opts || {};
     markSeen(q);
     const promptHtml = esc(q.prompt).replace(/_{2,}/, '<span class="blank" id="blank">&nbsp;</span>');
     host.innerHTML = '<div class="q-prompt">' + promptHtml + ' ' + speakBtn(q.prompt.replace(/_{2,}/, 'blank'), '.q-prompt') + '</div>' +
@@ -203,9 +204,9 @@
     const finish = (val) => {
       const correct = normalize(val) === normalize(q.answer);
       const blank = host.querySelector('#blank'); if (blank) blank.textContent = val;
-      host.querySelectorAll('.chip').forEach(c => { c.disabled = true; if (c.dataset.v === q.answer) c.classList.add('used'); });
-      host.querySelector('.q-feedback').innerHTML = '<div class="feedback ' + (correct ? 'ok' : 'bad') + '">' + (correct ? '🎉 Correct!' : '👉 The answer is: ' + esc(q.answer)) + '</div>';
-      setTimeout(() => done(correct), correct ? 900 : 1800);
+      host.querySelectorAll('.chip').forEach(c => { c.disabled = true; if (c.dataset.v === q.answer && (correct || !opts.hideAnswer)) c.classList.add('used'); });
+      host.querySelector('.q-feedback').innerHTML = '<div class="feedback ' + (correct ? 'ok' : 'bad') + '">' + (correct ? '🎉 Correct!' : opts.hideAnswer ? '✗ Not quite.' : '👉 The answer is: ' + esc(q.answer)) + '</div>';
+      setTimeout(() => done(correct, val), correct ? 900 : opts.hideAnswer ? 1100 : 1800);
     };
     host.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => finish(c.dataset.v)));
     const go = host.querySelector('#fillGo');

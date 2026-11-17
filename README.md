@@ -1,6 +1,43 @@
-# The Academy · Learn Hub
+# Summitide Learning · OwlCrest Academy
+
+*Formerly The Academy · Learn Hub. Version 56 is the first build under the new name.*
+
 
 A static learning environment for any number of courses. Each unit is a list of **Lessons** — each lesson has slides, a quiz and assignments — plus a **unit test** and a **Game Room** (7 games), and every achievement lands in **The Display Case**. Everything is plain HTML/CSS/JS — no build step, no server — so it deploys straight to GitHub Pages.
+
+## Version 56 — Summitide Learning (16 November 2026)
+
+**Name and look.** The app is **Summitide Learning**, by **OwlCrest Academy**. The crest (`crest.png`) is the school's own OwlCrest shield ("Curious First · Est. 2026"); the app's palette in `styles.css` (`--primary` dark blue, `--success` forest green, `--accent` burgundy) matches it. `logo.png` (crest + wordmark), `icon-192.png` and `icon-512.png` are made from it. Storage keys and the `window.LearnHub` course registry keep their old names, so existing data and course files load unchanged.
+
+**Levels.** The four levels are **Level 1 · Shore, Level 2 · Trail, Level 3 · Ridge, Level 4 · Summit**, on the Ministry's grade bands from *Growing Success*: 50–59, 60–69, 70–79, 80–100 (`LEVEL_BANDS` in `storage.js`). The level number and name are both shown.
+
+**Grading rule (unchanged in shape).** 50% on the work is a pass and a grade of 50 at every level; a perfect score is the top of the level's band; the grade climbs in a straight line between; below 50% the grade is the raw score. Level 4 is therefore the only level where the grade equals the score. Because grades are worked out from the stored attempts each time they are shown, every existing Level 3 grade is re-read on the new 70–79 band automatically (a perfect Level 3 quiz was 84 and is now 79).
+
+| Score on the work | L1 · Shore | L2 · Trail | L3 · Ridge | L4 · Summit |
+|---|---|---|---|---|
+| 100% | 59 | 69 | 79 | 100 |
+| 90% | 57 | 65 | 73 | 90 |
+| 85% | 56 | 63 | 70 | 85 |
+| 80% | 55 | 61 | 67 | 80 |
+| 70% | 54 | 58 | 62 | 70 |
+| 60% | 52 | 54 | 56 | 60 |
+| 50% (pass) | 50 | 50 | 50 | 50 |
+
+**Moving up.** Still 85% or more on a lesson quiz (`Grading.MOVE_UP`). The teacher's level suggestion after a unit test now follows the same rule: 85%+ suggests one level up, a fail suggests one level down.
+
+**Quizzes and tests no longer show the answer.** After a wrong answer the student sees "Not quite" and moves on. The result screen lists every question with ✓ or ✗ and never the correct answer. Games still show answers: they are practice.
+
+**Answers are recorded.** Each quiz and unit-test record keeps the latest attempt at each level: `levels[L].last = { pct, at, items: [{ q, ok, a }] }` — the question, right or wrong, and what the student answered. The answer key is not stored. Attempts made before v56 have no answers on record.
+
+**Marking screen** (`marking.js`, `#/mark/<course>/<unit>/quiz/<lesson>` · `…/work/<lesson>/<n>` · `…/test`). On the Grades grid, tap any column heading to mark that item for the whole class: one card per student with the submission, the level it was done at, a score out of 10 (assignments), a comment and its own Save button. A drop-down and arrows move to the next item; a filter shows everyone / to mark / marked / not handed in. Quizzes and tests are marked by the app: the teacher sees each answer, can leave a comment, and can **set the score by hand** (a percentage, graded at the level the work was done). A hand-set score replaces the app's mark on both Grades grids and in the unit average, shows a ✎, and is cleared by emptying the box. It also works for a quiz or test written on paper.
+
+**Where marks are stored.** In the teacher's grades record (`grades/<student>__<course>`), which a student can read but not write: assignments at `[lesson][n]`, a quiz mark at `[lesson]['q']` and a unit-test mark at `['test']['t']` (`{ score, level, note }`). `Progress.graded()` lays them over the student's work (`unit.marks`), and ignores anything of that name written by a student. **No change to `firestore.rules` is needed for v56.**
+
+**The student's side.** Under Grades, each unit shows the teacher's comments (assignments, quizzes and the test) and a "Your latest attempts" list with which questions were right and wrong.
+
+**Deploy.** Upload every file in this folder (new: `marking.js`, `crest.png`; changed: most others). The version is already bumped to 56 in `sw.js`, `pwa.js` and `version.json`. Check the address in `manifest.json` → `related_applications` matches where the app is published.
+
+**Not in v56** (planned; see the project tracker): the server, the Brightspace connection, the materials library and generated slide decks, the Headmaster's measures. Voice recordings still stay on the device they were made on.
 
 All files live side by side in the repository root (no folders), so you can upload them straight to GitHub:
 
@@ -156,9 +193,9 @@ Keep these true in any change; they are what the v42 review and the v43 update e
 
 ## Levelled grades (v45)
 
-Each level is a **grade band**: L1 · Explorer 50–59, L2 · Scholar 60–69, L3 · Challenger 70–84, L4 · Trailblazer 85–100 (`LEVEL_BANDS` in `storage.js` — the single source for the level cards, the move-up/move-down offers, teacher suggestions and the grid colours). Work done at a level earns a grade inside that band.
+Each level is a **grade band**: L1 · Shore 50–59, L2 · Trail 60–69, L3 · Ridge 70–79, L4 · Summit 80–100 (`LEVEL_BANDS` in `storage.js` — the single source for the level cards, the move-up/move-down offers, teacher suggestions and the grid colours). Work done at a level earns a grade inside that band.
 
-- **One rule at every level** (`Grading.levelled(raw, level)`): **50% raw is a pass and a grade of 50**; a perfect score is the top of the band; between them the grade climbs in a straight line; below 50% the grade is the raw score (a fail). Each level is a scaled copy of Level 4: 75% raw is 55 at L1, 60 at L2, 67 at L3, 75 at L4; a perfect Level 2 quiz is 69, never more. `Grading.rawFor(grade, level)` is the inverse ("what do I need for a 60?"). The pass mark for awards and *You passed!* is 50% (`Badges.PASS_MARK`).
+- **One rule at every level** (`Grading.levelled(raw, level)`): **50% raw is a pass and a grade of 50**; a perfect score is the top of the band; between them the grade climbs in a straight line; below 50% the grade is the raw score (a fail). Each level is a scaled copy of Level 4: 75% raw is 55 at L1, 60 at L2, 65 at L3, 75 at L4; a perfect Level 2 quiz is 69, never more. `Grading.rawFor(grade, level)` is the inverse ("what do I need for a 60?"). The pass mark for awards and *You passed!* is 50% (`Badges.PASS_MARK`).
 - **Tracked per level.** A quiz record keeps `levels[L] = { best, attempts, at }` beside the raw `best` (which still drives awards and the 85% level offers); the unit test keeps `unit.test.levels[L]`; an assignment stores the level it was handed in at (`work.level`) and the teacher's score out of 10 becomes a levelled grade at that level. The grade that counts is the best levelled grade across levels, worked out at display time. Records from before v45 are graded at the student's current level for the course.
 - **Rewrites one level up.** Students page → student row → *Rewrites one level up* (off by default; teacher-only field). Every quiz and unit test start screen then offers *Take it at Level N+1*; the page runs the next level's version (`#/quiz/c/u/l/N+1`, `#/test/c/u/N+1`), only ever one level up and never on the Modified program. A higher levelled grade replaces the old one; a lower one changes nothing. The result card shows the grade for the attempt and the grade that counts.
 - **Level offers after a quiz:** 85%+ raw → offered one level up; below 50% raw (a fail) → offered one level down.
@@ -227,7 +264,7 @@ Students, sections and teachers are stored on the device (`learnhub.students`, `
 
 Levels follow the Ontario achievement chart and are set per student inside **Settings → Teacher Lock → Students**. The level is never shown to the student (no badge, no label anywhere in the app). After every test the app records a **level suggestion** for the teacher when the score lands in a different band (e.g. "Level 3 → 4, 86% on Unit 1"); it appears in the student's row with *Apply* / *Dismiss* buttons and is never shown to the student.
 
-| | Level 1 · Explorer (50–59%) | Level 2 · Scholar (60–69%) | Level 3 · Challenger (70–84%) | Level 4 · Trailblazer (85–100%) |
+| | Level 1 · Shore (50–59%) | Level 2 · Trail (60–69%) | Level 3 · Ridge (70–79%) | Level 4 · Summit (80–100%) |
 |---|---|---|---|---|
 | Slides | `body[1]` text (simple words, shortened passages) | `body[2]` | `body[3]` (+ expectation codes, worked examples) | `body[4]`, or `body[3]` when a course has no Level 4 text |
 | Test | 5 questions, 2 options (obvious distractor), word bank of 2 | 8 questions, 3 options, word bank of 4 | 12 questions, all options, type-in blanks | 15 questions, all options, type-in blanks |
@@ -278,7 +315,7 @@ The Focus Plan lets a teacher choose exactly which pieces of a course a student 
   - **Goals to work toward** — the checklist the student sees on the course page (e.g. read every lesson, pass the test, finish 3 games). Each goal ticks itself off when the matching award is earned.
 - Leaving every chip in a group selected means "all of them".
 
-The student sees a 🎯 banner, a smaller course and a *My goals* checklist per unit; the Display Case and course trophy count only the units in the plan. Combine with **Level 1 · Explorer** for the simplest possible experience. The plan is stored on the device (`localStorage`, key `learnhub.focus`).
+The student sees a 🎯 banner, a smaller course and a *My goals* checklist per unit; the Display Case and course trophy count only the units in the plan. Combine with **Level 1 · Shore** for the simplest possible experience. The plan is stored on the device (`localStorage`, key `learnhub.focus`).
 
 ## Adding a course
 

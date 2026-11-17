@@ -1,30 +1,32 @@
 /* =========================================================
-   LearnHub — design tokens
+   Summitide Learning (OwlCrest Academy) — design tokens
+   The crest's three colours: dark blue, forest green and burgundy.
    Change the palette here and the whole app follows.
    ========================================================= */
 :root {
-  --bg: #f4f6fb;
+  --bg: #f4f6f8;
   --surface: #ffffff;
-  --surface-2: #eef1f8;
+  --surface-2: #edf0f5;
   --text: #1f2937;
   --muted: #6b7280;
-  --line: #e2e6f0;
+  --line: #dfe4ec;
 
-  --primary: #3b5bdb;      /* indigo-blue */
-  --primary-soft: #e3e8fb;
-  --accent: #f59f00;       /* warm amber */
-  --accent-soft: #fff2d6;
-  --success: #2f9e6e;
-  --success-soft: #dcf5e9;
+  --primary: #1b2f5e;      /* OwlCrest dark blue */
+  --primary-soft: #e3e9f5;
+  --accent: #7a1f3d;       /* OwlCrest burgundy */
+  --accent-soft: #f6e4ea;
+  --success: #1f6b45;      /* OwlCrest forest green */
+  --success-soft: #dff0e6;
   --danger: #d9480f;
   --danger-soft: #ffe8df;
 
   --on-primary: #ffffff;   /* text on primary-coloured buttons */
   --on-course: #ffffff;    /* text on course-coloured surfaces (tabs, game boards) */
-  --on-accent: #3b2a00;    /* text on amber */
-  --accent-text: #8a5a00;  /* amber text on soft amber */
+  --on-accent: #ffffff;    /* text on burgundy */
+  --accent-text: #7a1f3d;  /* burgundy text on soft burgundy */
   --row-alt: #fafbfe;      /* alternate table rows */
   --trophy-glow: #fffbe8;
+  --crest-blue: #1b2f5e; --crest-green: #1f6b45; --crest-burgundy: #7a1f3d; --crest-cream: #f6f1e4;
   --overlay: rgba(31, 41, 55, 0.55);
 
   --bronze: #c47f3a;
@@ -1107,3 +1109,83 @@ body[data-page="desk"] .demo-banner { background: #fff8e6; }
 .loader-body > *, .loader-body .card { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .loader-body .grid-2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 0.8rem; }
 .loader-body .small { overflow-wrap: anywhere; }
+
+
+/* ===== Summitide Learning · v56 ===== */
+/* brand */
+.topbar { border-bottom: 3px solid var(--crest-blue); box-shadow: 0 3px 0 var(--crest-burgundy); }
+.brand-logo { height: 54px; }
+.signin-logo { line-height: 0; }
+.signin-crest { width: 150px; height: auto; display: inline-block; filter: drop-shadow(0 6px 14px rgba(27, 47, 94, 0.25)); }
+.brand-by { margin: -0.2rem 0 0.9rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.78rem; color: var(--crest-burgundy); }
+body[data-contrast="inverted"] .brand-by { color: var(--accent); }
+body[data-contrast="inverted"] .topbar { border-bottom-color: #fff; box-shadow: none; }
+/* the four levels: Shore · Trail · Ridge · Summit */
+.tag.lv { color: #fff; }
+.tag.lv1 { background: #4a6fa5; }
+.tag.lv2 { background: var(--crest-green); }
+.tag.lv3 { background: var(--crest-burgundy); }
+.tag.lv4 { background: var(--crest-blue); }
+body[data-contrast="inverted"] .tag.lv { background: #000; color: #fff; outline: 1px solid #fff; }
+
+/* an attempt, question by question: right or wrong, never the answer */
+.review-list { text-align: left; margin: 1rem auto 0.5rem; max-width: 640px; }
+.review-list ol { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
+.review-list li { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.45rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid var(--line); border-left-width: 5px; background: var(--surface); }
+.review-list li.ok { border-left-color: var(--success); }
+.review-list li.bad { border-left-color: var(--danger); background: var(--danger-soft); }
+.rv-mark { font-weight: 800; flex: none; width: 1.2rem; text-align: center; }
+.review-list li.ok .rv-mark { color: var(--success); }
+.review-list li.bad .rv-mark { color: var(--danger); }
+.rv-q { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rv-a { display: block; font-size: 0.85rem; color: var(--muted); margin-top: 0.15rem; }
+.rv-fold { margin-top: 0.4rem; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.4rem 0.7rem; background: var(--surface); }
+.rv-fold summary { cursor: pointer; font-weight: 700; }
+
+/* grades grid: column headings open the marking screen */
+.dash th a.d-mark { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+.dash th a.d-mark:hover, .dash th a.d-mark:focus-visible { color: var(--primary); text-decoration-style: solid; }
+
+/* marking screen: one item, the whole class */
+.mark-bar { padding: 0.9rem 1rem; margin-bottom: 1rem; position: sticky; top: 4.6rem; z-index: 5; }
+.mark-task { margin-top: 0.6rem; }
+.mark-task summary { cursor: pointer; font-weight: 700; }
+.mark-jump { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.7rem; max-height: 5.2rem; overflow-y: auto; }
+.mark-chip { border: 1px solid var(--line); border-left: 5px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 0.15rem 0.65rem; font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+.mark-chip[data-state="todo"] { border-left-color: var(--crest-burgundy); }
+.mark-chip[data-state="done"] { border-left-color: var(--success); }
+.mark-chip[data-state="draft"] { border-left-color: var(--gold); }
+.mark-list { display: grid; gap: 1rem; }
+.mark-card { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.15rem; scroll-margin-top: 13rem; }
+.mark-card[hidden] { display: none; }
+.mark-card[data-state="todo"] { border-left-color: var(--crest-burgundy); }
+.mark-card[data-state="done"] { border-left-color: var(--success); }
+.mark-card[data-state="draft"] { border-left-color: var(--gold); }
+.mark-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+.mark-who { font-weight: 800; font-size: 1.1rem; margin-right: auto; }
+.mark-card[data-state="todo"] .mark-state { background: var(--accent-soft); color: var(--accent-text); }
+.mark-card[data-state="done"] .mark-state { background: var(--success-soft); color: var(--success); }
+.mark-meta { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin-bottom: 0.35rem; }
+.mark-text { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-2); border-radius: var(--radius-sm); padding: 0.8rem 1rem; line-height: 1.55; max-height: 26rem; overflow-y: auto; }
+.mark-attempt + .mark-attempt { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px dashed var(--line); }
+.mark-card .review-list { max-width: none; margin: 0.3rem 0 0; }
+.mark-tools { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.8rem 1rem; align-items: end; margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px solid var(--line); }
+.mark-field { display: grid; gap: 0.25rem; font-weight: 700; font-size: 0.85rem; }
+.mark-score .text-input { width: 5.2rem; font-size: 1.1rem; font-weight: 800; text-align: center; }
+.mark-grade { font-weight: 600; font-size: 0.85rem; }
+.mark-note { grid-column: 2; }
+.mark-tools > .mark-note:first-child { grid-column: 1 / span 2; }
+.mark-note textarea { width: 100%; resize: vertical; }
+.mark-save { display: grid; gap: 0.25rem; justify-items: end; }
+.mark-status.unsaved { color: var(--danger); font-weight: 800; }
+@media (max-width: 720px) {
+  .mark-bar { position: static; }
+  .mark-tools { grid-template-columns: minmax(0, 1fr); }
+  .mark-note, .mark-tools > .mark-note:first-child { grid-column: 1; }
+  .mark-save { justify-items: start; }
+  .mark-card { scroll-margin-top: 5rem; }
+}
+@media print { .mark-bar, .mark-save { display: none; } .mark-card { box-shadow: none; break-inside: avoid; } }
+
+.mark-over { color: var(--accent-text); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; }
+.mark-score .text-input[data-max="100"] { width: 5.6rem; }
