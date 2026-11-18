@@ -86,7 +86,7 @@
      APP_VERSION is baked into this file; version.json on the site says what is published.
      Settings → Updates compares the two and offers a one-tap update (new service worker +
      cache clear + reload). The check also runs on load and hourly. */
-  const APP_VERSION = '56';
+  const APP_VERSION = '57';
   let latest = null;   // { version, date, notes } from the site, when newer
   async function checkForUpdate() {
     try {
@@ -133,9 +133,13 @@
         }
         if ('caches' in window) {
           const keys = await caches.keys();
-          for (const k of keys) if (!/^learnhub-/.test(k)) { await caches.delete(k); removed = true; }
+          // v57: the app's own cache is named summitide-<version> since v56 (learnhub-<version> before). v56 still tested
+          // for "learnhub-" here, so it deleted its own cache on every start and reloaded, over and over.
+          for (const k of keys) if (!/^(summitide|learnhub)-/.test(k)) await caches.delete(k);
         }
-        if (removed && !sessionStorage.getItem('learnhub.cleaned')) { sessionStorage.setItem('learnhub.cleaned', '1'); location.reload(); return; }
+        // Reload only when a foreign service worker was really removed, and at most once per tab: the marker is kept
+        // outside the "learnhub." names that signing out clears, so a signed-out start can never loop.
+        if (removed && !sessionStorage.getItem('summitide.swCleaned')) { sessionStorage.setItem('summitide.swCleaned', '1'); location.reload(); return; }
       } catch (e) { /* ignore */ }
       navigator.serviceWorker.register('./sw.js').then(reg => {
         const announce = worker => notice('A new version is ready.', 'Update now', () => worker.postMessage('SKIP_WAITING'));

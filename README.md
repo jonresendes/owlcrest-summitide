@@ -5,6 +5,16 @@
 
 A static learning environment for any number of courses. Each unit is a list of **Lessons** — each lesson has slides, a quiz and assignments — plus a **unit test** and a **Game Room** (7 games), and every achievement lands in **The Display Case**. Everything is plain HTML/CSS/JS — no build step, no server — so it deploys straight to GitHub Pages.
 
+## Version 57 — reload-loop fix (17 November 2026)
+
+**The fault in v56.** v56 renamed the offline cache from `learnhub-v55` to `summitide-v56`, but the start-up clean-up in `pwa.js` still treated every cache not named `learnhub-…` as left over from another app. So each start deleted the app's own cache and reloaded. One reload per tab was allowed by a marker in `sessionStorage`, but a signed-out cloud session clears the app's session markers on every start, so on the sign-in screen the page reloaded without end (the flashing, with the top menu switching between four items and two). Signed-in users got one extra reload and no offline copy.
+
+**The fix.** The clean-up recognises both cache names, no longer reloads for a deleted cache at all, and reloads at most once per tab when it really removes a foreign service worker, using a marker (`summitide.swCleaned`) that signing out does not clear. Version bumped to 57 in `sw.js`, `pwa.js` and `version.json`.
+
+**Install identity.** `manifest.json` now has `"id": "summitide-learning"` and `"start_url": "./index.html?app=summitide"`, so a device that wrongly reports the old app as already installed sees a new app.
+
+**Rule for future builds:** when the cache name in `sw.js` changes, check every place that matches cache names (`pwa.js`), and test with the service worker switched on.
+
 ## Version 56 — Summitide Learning (16 November 2026)
 
 **Name and look.** The app is **Summitide Learning**, by **OwlCrest Academy**. The crest (`crest.png`) is the school's own OwlCrest shield ("Curious First · Est. 2026"); the app's palette in `styles.css` (`--primary` dark blue, `--success` forest green, `--accent` burgundy) matches it. `logo.png` (crest + wordmark), `icon-192.png` and `icon-512.png` are made from it. Storage keys and the `window.LearnHub` course registry keep their old names, so existing data and course files load unchanged.

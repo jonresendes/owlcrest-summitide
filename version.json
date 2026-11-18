@@ -1,5 +1,5 @@
 {
- "version": "56",
- "date": "2026-11-16",
- "notes": "Summitide Learning by OwlCrest Academy: new name and look; levels are now Shore, Trail, Ridge and Summit on the Ministry grade bands with the two-step grading rule; quizzes and tests show which questions were wrong without the answers; a marking screen for marking one item across the whole class."
+ "version": "57",
+ "date": "2026-11-17",
+ "notes": "Fixes the reload loop in version 56 (the page flashing on the sign-in screen) and restores offline use. Also gives the app a new install identity so it can be installed again on devices that reported it as already installed."
 }
