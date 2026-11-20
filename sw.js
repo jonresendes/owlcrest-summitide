@@ -1,61 +1,73 @@
-// Atlas Explorers offline support.
-// Change VERSION whenever you upload a new index.html so phones pick up the update.
-const VERSION = "atlas-v46";
-const CORE = [
-  "./",
-  "index.html",
-  "manifest.json",
-  "icon-192.png",
-  "icon-512.png",
-  "icon-maskable-512.png",
-  "apple-touch-icon.png",
-  "favicon-32.png",
-  "icon.svg"
+/* Summitide Learning (OwlCrest Academy) — service worker (offline cache + update detection).
+   BUMP THE VERSION every time you upload changed files; that is what makes
+   installed copies show the "Update available" notice. */
+const VERSION = 'summitide-v60';
+const FILES = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './logo.png',
+  './crest.png',
+  './opendyslexic-400.woff2',
+  './opendyslexic-700.woff2',
+  './nunito.woff2',
+  './lexend.woff2',
+  './patrick-hand.woff2',
+  './styles.css',
+  './olc4o.js',
+  './colouring.js',
+  './hrf3o.js',
+  './snc1l2l.js',
+  './eng3u.js',
+  './storage.js',
+  './util.js',
+  './badges.js',
+  './games.js',
+  './print.js',
+  './media.js',
+  './drive.js',
+  './overlay.js',
+  './dashboard.js',
+  './marking.js',
+  './live.js',
+  './privacy.js',
+  './coins.js',
+  './app.js',
+  './pwa.js',
+  './report.js',
+  './html2canvas.min.js',
+  './glc2o.js',
+  './cloud-config.js',
+  './cloud.js',
+  './courseloader.js',
+  './firebase-app-compat.js',
+  './firebase-auth-compat.js',
+  './firebase-firestore-compat.js'
 ];
 
-// Download fresh copies (skipping the browser's own short-term cache) so an update is really new.
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(VERSION)
-      // Save each file on its own, so one missing icon can't stop the game installing or working offline.
-      .then(cache => Promise.all(CORE.map(u =>
-        fetch(new Request(u, { cache: "reload" }))
-          .then(res => { if (res.ok) return cache.put(u, res); })
-          .catch(() => {}))))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', e => {
+  // Fetch fresh copies and cache each file on its own, so one missing file cannot break the install.
+  e.waitUntil(caches.open(VERSION).then(c => Promise.all(FILES.map(f =>
+    fetch(new Request(f, { cache: 'reload' })).then(r => { if (r.ok) return c.put(f, r); }).catch(() => null)
+  ))).then(() => self.skipWaiting()));
 });
-
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
+self.addEventListener('message', e => { if (e.data === 'SKIP_WAITING') self.skipWaiting(); });
 
-// Serve from the cache first so the game opens instantly and offline,
-// then refresh the cached copy in the background when online.
-self.addEventListener("fetch", event => {
-  const req = event.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  // The "Check for updates" button always asks the website directly.
-  if (url.pathname.endsWith("/sw.js") || url.pathname.endsWith("/cloud.json")) return;
-  const isFont = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
-  if (url.origin !== self.location.origin && !isFont) return;
-
-  event.respondWith(
-    caches.open(VERSION).then(async cache => {
-      const key = req.mode === "navigate" ? "index.html" : req;
-      const cached = await cache.match(key, { ignoreSearch: req.mode === "navigate" });
-      const network = fetch(req)
-        .then(res => {
-          if (res && (res.ok || res.type === "opaque")) cache.put(key, res.clone());
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+// Network first (always fresh when online), cache fallback (works offline).
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.origin !== location.origin) return;                                   // the cloud goes straight to the network
+  if (/\/(sw\.js|version\.json|cloud\.json)$/.test(url.pathname)) return;      // update checks always hit the website
+  e.respondWith(
+    fetch(e.request).then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); }
+      return res;
+    }).catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || (e.request.mode === 'navigate' ? caches.match('./index.html') : undefined)))
   );
 });

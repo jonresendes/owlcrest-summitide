@@ -172,7 +172,7 @@
     app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Welcome to Summitide Learning</h1><p class="brand-by">by OwlCrest Academy</p><p class="muted">' + (cont ? 'Welcome back! Continue, or pick another name.' : students.length || staffTiles.length ? 'Tap your name to sign in.' : 'Create the first profile to get started.') + '</p></div>' +
       (!welcomeState.mode && !welcomeState.pinFor ? ((cont ? '<button class="continue-tile" data-welcome="' + esc(cont.id) + '" style="--tile:' + esc(cont.colour) + '">' + avatarHtml(cont, 'tile-avatar') + '<span><span class="tile-name">Continue as ' + esc(cont.name) + '</span><span class="muted small">Pick up where you left off</span></span><span class="continue-arrow">→</span></button>' : '') +(students.length ? '<div class="student-grid">' + students.map(p => tile(p)).join('') + '</div>' : '') +
         (staffTiles.length ? '<div class="student-grid staff-grid">' + staffTiles.map(p => tile(p, p.role)).join('') + '</div>' : '') +
-        '<div class="card signin-add"><h3>New here?</h3><div class="btn-row">' + (canAdd ? '<button class="btn" data-mode="student">🎒 I\'m a student</button>' : '') + '<button class="btn secondary" data-mode="teacher">🧑‍🏫 I\'m a teacher</button></div>' + (canAdd ? '' : '<p class="muted small" style="margin:0.5rem 0 0">Students are added by their teacher on this device.</p>') + '</div>') : form) + '</div>';
+        '<div class="card signin-add"><h3>New here?</h3><div class="btn-row">' + (canAdd ? '<button class="btn" data-mode="student">🎒 I\'m a student</button>' : '') + '<button class="btn secondary" data-mode="teacher">🧑‍🏫 I\'m a teacher</button></div>' + (canAdd ? '' : '<p class="muted small" style="margin:0.5rem 0 0">Students are added by their teacher on this device.</p>') + '</div>') : form) + (window.Privacy ? '<p class="muted small center" style="margin-top:1rem">' + Privacy.link() + '</p>' : '') + '</div>';
     // bindings
     app.querySelectorAll('[data-welcome]').forEach(b => b.addEventListener('click', () => {
       const id = b.dataset.welcome;
@@ -245,7 +245,7 @@
     }
     app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Welcome to Summitide Learning</h1><p class="brand-by">by OwlCrest Academy</p><p class="muted">' + (student ? 'Sign in with your student number and your birthday.' : 'Teachers sign in with their teacher ID and password.') + '</p></div>' +
       (st.msg ? '<div class="signin-msg' + (st.msgOk ? ' ok' : '') + '">' + esc(st.msg) + '</div>' : '') + form +
-      '<p class="muted small center" style="margin-top:1rem">' + (Cloud.online ? '☁️ Connected' : '📴 Offline — sign in needs the internet the first time on a device') + '</p></div>';
+      '<p class="muted small center" style="margin-top:1rem">' + (Cloud.online ? '☁️ Connected' : '📴 Offline — sign in needs the internet the first time on a device') + (window.Privacy ? ' · ' + Privacy.link() : '') + '</p></div>';
     const on = (id, fn) => { const el = app.querySelector(id); if (el) el.addEventListener('click', fn); };
     app.querySelectorAll('[data-si-mode]').forEach(b => b.addEventListener('click', () => { st.mode = b.dataset.siMode; st.msg = ''; st.signup = false; pageCloudSignIn(); }));
     const fail = m => { st.busy = false; st.msg = m; st.msgOk = false; pageCloudSignIn(); };
@@ -395,6 +395,7 @@
       tile('#/courses', '📚', 'Courses', mine.length + ' active' + (arch.length ? ' · ' + arch.length + ' archived' : '')) +
       tile(mine.length === 1 ? '#/grades/' + mine[0].id : '#/sections', '📊', 'Grades', handedIn ? handedIn + ' handed in' : 'your marks') +
       tile('#/case', '🏆', 'Display Case', awards + ' / ' + total + ' awards') +
+      (window.Coins ? Coins.deskTiles(tile) : '') +   // v60: Shop and Locker, only where coins are on
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageHome);
   }
@@ -528,6 +529,7 @@
       tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length + ' courses · ' + LH.groupByArea(allCourses()).length + ' area' + (LH.groupByArea(allCourses()).length === 1 ? '' : 's'), ' data-chalk') +
       tile('#/dashboard', chalkIcon('grades'), 'Grades', cur ? esc(cur.name) : 'quizzes · assignments · tests', ' data-chalk') +
       tile('#/live', chalkIcon('live'), 'Live Class', window.Live ? esc(Live.deskDetail()) : 'who is writing · Focus Mode', ' data-chalk') +
+      (window.Coins ? Coins.staffTile(tile) : '') +
       (s.role === 'master' ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's'), ' data-chalk') : '') +
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageTeacherHome);
@@ -538,7 +540,7 @@
     const c = findCourseAll(sec.courseId); const roster = (sec.students || []).map(id => Students.byId(id)).filter(Boolean);
     return '<details class="card class-fold section-card" style="--course:' + esc(c ? c.color || '' : '') + '"><summary class="class-summary"><span class="card-icon">' + (c ? c.icon : '🏫') + '</span><span class="class-text"><h2>' + esc(sec.name) + '</h2><span class="muted small">' + (c ? esc(c.title) : '') + (sec.term ? ' · ' + esc(sec.term) : '') + (sec.archived ? ' · 📦 archived' : '') + '</span></span><span class="btn-row class-tags"><span class="tag">' + roster.length + ' student' + (roster.length === 1 ? '' : 's') + '</span></span></summary>' +
       '<div class="class-body">' + (roster.length ? '<div class="roster">' + roster.map(st => '<span class="roster-chip">' + esc(st.avatar) + ' ' + esc(st.name) + (st.number ? ' <span class="muted small">#' + esc(st.number) + '</span>' : '') + '</span>').join('') + '</div>' : '<p class="muted small">No students yet — add them on the <a href="#/students">Students page</a>.</p>') +
-      '<div class="btn-row" style="margin-top:0.6rem"><a class="btn" href="#/dashboard" data-section="' + esc(sec.id) + '">📊 Grades</a>' + (c ? '<a class="btn secondary sm" href="#/course/' + c.id + '">📚 Open the course</a>' : '') + '<a class="btn secondary sm" href="#/students" data-section="' + esc(sec.id) + '">👥 Students</a>' + (c ? '<a class="btn ghost sm" href="#/print/' + c.id + '/' + c.units[0].id + '/unit">🖨️ Print unit 1</a>' : '') + '</div></div></details>';
+      '<div class="btn-row" style="margin-top:0.6rem"><a class="btn" href="#/dashboard" data-section="' + esc(sec.id) + '">📊 Grades</a>' + (c ? '<a class="btn secondary sm" href="#/course/' + c.id + '">📚 Open the course</a>' : '') + '<a class="btn secondary sm" href="#/students" data-section="' + esc(sec.id) + '">👥 Students</a>' + (c ? '<a class="btn ghost sm" href="#/print/' + c.id + '/' + c.units[0].id + '/unit">🖨️ Print unit 1</a>' : '') + (window.Coins ? Coins.sectionButtons(sec) : '') + '</div></div></details>';
   }
   /* ----- Teacher notes: sticky notes, private to the signed-in teacher ----- */
   const NOTE_COLOURS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'];
@@ -641,7 +643,7 @@
     const q = courseSearch.q.trim().toLowerCase();
     app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: course.title }]) +
       '<div class="page-head"><div><h1>' + course.icon + ' ' + esc(course.title) + '</h1><p class="muted">' + esc(L(course.description) || course.subtitle || '') + '</p></div>' +
-      '<div class="btn-row">' + (Students.current.isStaff ? '' : '<button class="btn ghost sm" id="archiveCourse" title="Hide this class on your home page (you can bring it back)">📦 Archive class</button>') + '</div></div>' + Overlay.bar(course) + planBanner(course) + (Students.current.isStaff ? '' : levelBanner(course)) +
+      '<div class="btn-row">' + (window.Coins ? Coins.courseChip(course) : '') + (Students.current.isStaff ? '' : '<button class="btn ghost sm" id="archiveCourse" title="Hide this class on your home page (you can bring it back)">📦 Archive class</button>') + '</div></div>' + Overlay.bar(course) + planBanner(course) + (Students.current.isStaff ? '' : levelBanner(course)) +
       '<details class="card class-fold case-fold" style="margin-bottom:1rem"><summary class="class-summary"><span class="card-icon">🏆</span><span class="class-text"><h2>Display Case</h2><span class="muted small">' + esc(Students.current.name) + '\'s badges, medals and trophies in this course</span></span><span class="btn-row class-tags"><span class="tag accent">🏅 ' + Badges.summary(course).earned + ' / ' + Badges.summary(course).total + '</span></span></summary><div class="class-body">' + caseHtml(course) + '</div></details>' +
       '<div class="search-row course-search"><input class="text-input" id="courseQ" placeholder="🔍 Find a lesson by keyword (e.g. census, ritual, festival)" value="' + esc(courseSearch.q) + '"><button class="btn secondary" id="courseGo">Search</button>' + (q ? '<button class="btn ghost" id="courseClear">Clear</button>' : '') + '</div>' +
       '<div class="unit-list">' + unitsFor(course).map(unit => {
@@ -745,7 +747,7 @@
       '<div class="slide assignment"><div class="slide-read"><div class="btn-row between"><h2>Your task</h2>' + speakBtn(String(L(a.prompt)).replace(/[*#>-]/g, ''), '.slide-read') + '</div><div class="slide-body">' + md(L(a.prompt)) + '</div></div>' +
       '<div class="success-box"><strong>A complete answer…</strong> ' + esc(L(a.success)) + '</div>' +
       (starter ? '<p class="muted small">Sentence starter: <em>' + esc(starter) + '</em> <button class="btn ghost sm" id="useStarter">Use it</button></p>' : '') +
-      '<div class="work-tools">' + (w.done ? '' : Media.dictateBtn('#workText')) + '<span class="muted small">' + (Media.canDictate && !w.done && Settings.get('dictation') !== false ? 'Tap 🎤 to dictate instead of typing.' : '') + '</span></div>' +
+      '<div class="work-tools">' + (w.done ? '' : Media.dictateBtn('#workText')) + '<span class="muted small">' + (Media.canDictate && !w.done && Settings.get('dictation') !== false && (!window.Privacy || Privacy.dictationAllowed()) ? 'Tap 🎤 to dictate instead of typing.' : '') + '</span></div>' +
       '<textarea class="text-input work" id="workText" rows="10" placeholder="Write your answer here…"' + (w.done ? ' readonly' : '') + '>' + esc(w.text) + '</textarea>' +
       (Settings.get('dictation') !== false ? '<div class="plan-section"><div class="plan-label">🎙️ Or record your answer</div><div data-recorder="' + esc(Students.current.id + '/' + course.id + '/' + unit.id + '/' + lessonIdx + '/a' + n) + '" data-label="Record my answer"' + (w.done ? ' data-readonly="1"' : '') + '></div></div>' : '') +
       '<div class="btn-row between" style="margin-top:0.75rem"><span class="muted small" id="workMeta">' + words(w.text) + ' words' + (w.at ? ' · saved ' + new Date(w.at).toLocaleString() : '') + '</span>' +
@@ -1063,12 +1065,13 @@
       '<div class="setting-row"><div><label>Colour overlay (Irlen / visual stress)</label><div class="help">Tints the page like a coloured overlay. Try a few — the right colour is personal.</div></div><div class="tint-row">' + TINTS.map(t => '<button class="tint-swatch tint-' + t[0] + (Settings.get('tint') === t[0] ? ' on' : '') + '" data-tint="' + t[0] + '" title="' + t[1] + '" aria-label="' + t[1] + '"></button>').join('') + '<select class="text-input" id="tintSelect" style="max-width:170px">' + TINTS.map(t => '<option value="' + t[0] + '"' + (Settings.get('tint') === t[0] ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select></div></div>' +
       pref('motion', 'Animation', 'Reduced motion removes flips, spins and slide effects.', [['normal', 'Normal'], ['reduced', 'Reduced']]) +
       sw('readAloud', 'Read aloud buttons', 'Show 🔊 buttons that read slides and questions out loud and highlight each word as it is read.', Settings.get('readAloud')) +
-      sw('dictation', 'Dictation and voice recording', 'Show 🎤 dictate buttons on answers and 🎙️ record buttons on lessons and assignments.' + (Media.canDictate ? '' : ' (Dictation needs Chrome, Edge or Safari.)'), Settings.get('dictation') !== false) +
+      sw('dictation', 'Dictation and voice recording', 'Show 🎤 dictate buttons on answers and 🎙️ record buttons on lessons and assignments.' + (Media.canDictate ? '' : ' (Dictation needs Chrome, Edge or Safari.)') + (window.Privacy ? (Privacy.dictationAllowed() ? ' Dictation sends the sound of your voice to the maker of your browser to turn it into text; a recording stays on this device.' : ' <strong>Dictation is switched off for the whole school; voice recording still works.</strong>') : ''), Settings.get('dictation') !== false) +
       '<div class="setting-row"><div><label>Read&amp;Write (Texthelp)</label><div class="help">The Read&amp;Write for Google Chrome extension works on this app as it is: every slide, question and assignment is real text, so hover-to-speak, dictionary, picture dictionary, highlighters and prediction all work. Tip: turn off the read-aloud buttons above to avoid two voices.</div></div><a class="btn secondary sm" href="https://chromewebstore.google.com/search/Read%26Write%20for%20Google%20Chrome" target="_blank" rel="noopener">Chrome Web Store</a></div>';
     const profile = () => accountType +
       (staff ? '<div class="setting-row"><div><label>Name</label><div class="help">Shown on the welcome screen and in the header.</div></div><div class="btn-row"><input class="text-input" id="meName" value="' + esc(me.name) + '" maxlength="30" style="max-width:220px"><button class="btn secondary sm" id="meNameSave">Save</button></div></div>'
              : '<div class="setting-row"><div><label>Name</label><div class="help">Your name is set by your teacher — ask them if it needs changing.</div></div><strong>' + esc(me.name) + '</strong></div>' + (Cloud.enabled ? '<div class="setting-row"><div><label>Profile version</label><div class="help">Changes your teacher makes on another device show here once they arrive.</div></div><span class="small muted">' + profileStamp(me) + '</span></div>' : '')) +
       '<div class="setting-row avatar-row"><div><label>My picture</label><div class="help">Pick any picture you like' + (me.role === 'master' ? ' — the owl is yours alone as Headmaster.' : '.') + '</div></div><details class="avatar-details"><summary><span class="avatar-current">' + esc(me.avatar) + '</span> Change picture</summary>' + avatarPickerHtml(me.avatar, 'data-avatar', me.role === 'master') + '</details></div>' +
+      (window.Coins ? Coins.profileRow() : '') +
       (Cloud.enabled
         ? '<div class="setting-row"><div><label>Account</label><div class="help">' + (staff ? 'Teacher ID <strong>' + esc((Staff.current || {}).login || '') + '</strong>. ' : 'Student number <strong>' + esc(me.number || '') + '</strong>. Your password is your birthday (DDMMYYYY). ') + (Cloud.keepSignedIn() ? 'You stay signed in on this device.' : 'You are signed out after ' + ((window.CLOUD_CONFIG || {}).idleMinutes || 30) + ' minutes without activity.') + '</div></div><div class="btn-row">' + (staff ? '<button class="btn secondary sm" id="changePw">Change password</button>' : '') + '<button class="btn ghost sm" id="signOutBtn">Sign out</button></div></div>'
         : staff ? '<div class="setting-row"><div><label>Security</label><div class="help">Your 6-digit PIN signs you in from the welcome screen.</div></div><div class="btn-row"><button class="btn secondary sm" id="changePin">Change my PIN</button><a class="btn ghost sm" href="#/welcome">Sign out</a></div></div>'
@@ -1092,6 +1095,7 @@
         group('classes', '🎚️ My classes, level, accommodations &amp; modifications', courses().length + ' active', classes) +
         group('access', '♿ Accessibility', 'text, dyslexia-friendly text, contrast, overlay, read-aloud, dictation', accessibility) +
         group('app', '📱 App', 'install and offline', '<div id="appCard"><p class="muted small">Checking…</p></div>') +
+        (window.Privacy ? group('privacy', '🔏 Privacy', 'what is kept and who can see it', Privacy.summaryHtml()) : '') +
         group('progress', '🗑️ Progress', '', '<p class="muted small">' + esc(me.name) + '\'s progress and awards are saved ' + (Cloud.enabled ? 'to the cloud and follow you to any device.' : 'in this browser.') + '</p><button class="btn ghost" id="resetBtn">Reset ' + esc(me.name) + '\'s progress</button>') +
         group('updates', '🔄 Updates', 'version ' + (window.PWA ? PWA.APP_VERSION : '?'), '<div id="updatesCard"><p class="muted small">Checking…</p></div>');
     } else {
@@ -1099,6 +1103,8 @@
         '<p class="muted small" style="margin:0 0 1rem">Sections and students have their own pages: <a href="#/sections">🏫 Sections</a> · <a href="#/students">👥 Students</a>.</p>' +
         group('demo', '👁 Student View', 'a demo student only you can see', studentViewHtml(me)) +
         (me.role === 'master' ? group('teachers', '🧑‍🏫 Teachers', 'add a teacher · ' + Staff.teachers.length + ' profile' + (Staff.teachers.length === 1 ? '' : 's') + ' · sections · students · reset · remove', teachersHtml()) + group('issues', '🐞 Reported problems', 'screenshots and messages from the Found a problem? button', '<div id="issuesList"><p class="muted small">Loading…</p></div>') + (Cloud.enabled ? group('security', '🔐 Security', 'unused sign-ins · change log · data upgrade', securityHtml()) : '') + group('drive', '☁️ Google Drive &amp; exports', '', driveHtml()) : '') +
+        (window.Coins && me.role === 'master' ? group('coins', '🪙 Coins and shops', Coins.on() ? 'on for the school' : 'off for the school', Coins.settingsHtml()) : '') +
+        (window.Privacy ? (me.role === 'master' ? group('privacy', '🔏 Privacy and retention', 'notice · dictation · how long things are kept · end-of-term clean-up', Privacy.settingsHtml()) : group('privacy', '🔏 Privacy', 'what is kept and who can see it', Privacy.summaryHtml())) : '') +
         group('media', '🖼️ Media checklist', 'images and videos to add', mediaChecklistHtml()) +
         group('options', '🎛️ Class options', 'colouring breaks · welcome screen', '<h3>🎨 Colouring page learning breaks</h3>' +
           seg('colouringEvery', 'Show a learning card every…', 'How many areas the student colours before a lesson card appears. "Student chooses" lets them pick inside the game.', [['student', 'Student chooses'], [1, '1'], [3, '3'], [5, '5'], [10, '10'], [0, 'Off']], Settings.get('colouringEvery')) +
@@ -1129,6 +1135,8 @@
       if (v.pw !== v.again) return alert('The two new passwords did not match. Nothing was changed.');
       try { await Cloud.changeMyPassword(v.old, v.pw); alert('Password changed.'); } catch (e) { alert(e.message); } });
     if (staff) { bindTeachers(); bindDrive(); bindSecurity(); bindStudentView(); }
+    if (window.Privacy) Privacy.bind(app, pageSettings);
+    if (window.Coins) Coins.bindSettings(app, pageSettings);
   }
 
   /* ----- Sections (classes) ----- */
@@ -1734,6 +1742,8 @@
     if (location.hash !== route.last) Object.keys(sessionStorage).filter(k => /^learnhub\.(sg\.|studentOpen|workOpen|recOpen|mediaOpen|planOpen|sectionsOpen|focusOpen|teacherOpen|tSecOpen)/.test(k)).forEach(k => sessionStorage.removeItem(k));
     route.last = location.hash;
     if (!Cloud.enabled && (window.CLOUD_CONFIG || {}).enabled) { app.innerHTML = '<div class="empty"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><p>Summitide Learning could not start its connection to the cloud.</p><p class="muted small">Check the internet connection and reload the page.</p><button class="btn" id="reloadBtn">Reload</button></div>'; app.querySelector('#reloadBtn').addEventListener('click', () => location.reload()); return; }
+    // v59: the privacy notice is open to everyone, signed in or not
+    if (parts[0] === 'privacy' && window.Privacy && (!Cloud.enabled || Cloud.ready)) { setCourseColor(null); setNav(''); try { return Privacy.page(); } catch (e) { app.innerHTML = '<div class="empty">The privacy notice could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; } }
     if (Cloud.enabled) {
       if (!Cloud.ready) { app.innerHTML = '<div class="empty"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><p class="muted">Connecting…</p></div>'; return; }
       if (parts[0] === 'welcome' || parts[0] === 'signin') {
@@ -1767,6 +1777,8 @@
       case 'courses': return pageCourses();
       case 'notes': return pageNotes();
       case 'teachers': return pageTeachers();
+      case 'shop': case 'locker': case 'coins': if (!window.Coins || !Coins.on()) { location.replace(location.pathname + '#/'); return; }   // switched off: the address simply goes home
+        setCourseColor(null); setNav('home'); try { return Coins.page(parts); } catch (e) { app.innerHTML = '<div class="empty">This page could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
       case 'setup': return pageHome();
       default: return notFound();
     }
@@ -1783,7 +1795,7 @@
   window.addEventListener('resize', () => {}); 
   window.addEventListener('courses:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; route(); });
   // Live data from the cloud: redraw data pages (not while someone is typing in a box)
-  window.addEventListener('cloud:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; const p = location.hash.replace(/^#\/?/, '').split('/')[0]; if ((['', 'course', 'lesson', 'work', 'dashboard', 'grades', 'case', 'teachers', 'courses', 'sections', 'students'].includes(p) || (p === 'settings' && !Students.isStaffSession)) && Students.current) route(); renderWho(); });
+  window.addEventListener('cloud:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; const p = location.hash.replace(/^#\/?/, '').split('/')[0]; if ((['', 'course', 'lesson', 'work', 'dashboard', 'grades', 'case', 'teachers', 'courses', 'sections', 'students', 'shop', 'locker', 'coins'].includes(p) || (p === 'settings' && !Students.isStaffSession)) && Students.current) route(); renderWho(); });
   window.addEventListener('cloud:auth', () => {
     if (Cloud.user && /^#\/(welcome|signin)/.test(location.hash)) { location.hash = '#/'; return; }   // just signed in from the sign-in page
     if (!Cloud.user && Students.current) { Students.setCurrent(null); sessionStorage.removeItem('learnhub.entered'); }

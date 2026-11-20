@@ -100,7 +100,8 @@
     pickActive();
   }
   function pickActive() {
-    const running = Object.values(Live.sessions).filter(s => s && !s.endedAt);
+    // v59: a session a teacher forgot to end stops counting after 12 hours, so presence is never sent day after day
+    const running = Object.values(Live.sessions).filter(s => s && !s.endedAt && (Date.now() - new Date(s.startedAt).getTime()) < 12 * 3600000);
     running.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
     const next = running[0] || null;
     if ((next && next.id) !== (S.active && S.active.id) || (next && S.active && next.startedAt !== S.active.startedAt)) setActive(next); else { S.active = next; banner(); }

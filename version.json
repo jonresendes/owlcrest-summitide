@@ -1,5 +1,5 @@
 {
- "version": "58",
- "date": "2026-11-18",
- "notes": "Live Class Board and Focus Mode: teachers start a live session for a section, mark on a tiled screen who is writing today, and see who is in Summitide and on the item right now; late arrivals appear on their own. Focus Mode opens quizzes and tests full screen and records every time a student leaves the app."
+ "version": "60",
+ "date": "2026-11-20",
+ "notes": "Coins, shops and lockers: students earn coins for lessons, quizzes, assignments, unit tests and games, and spend them in their teacher's shop. Teachers switch coins on for a section, build their own shop and hand items over with Redeem coins. Each student has a Locker for their items and awards. The Headmaster can switch the whole thing off."
 }

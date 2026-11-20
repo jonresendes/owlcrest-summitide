@@ -1,5 +1,5 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v58 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v60 (free-plan edition: no Cloud Functions).
 // Paste the whole file into Firebase console → Firestore Database → Rules → Publish.
 //
 // The idea in one paragraph: being signed in is not enough. A caller must have a staff record or a
@@ -60,12 +60,15 @@ service cloud.firestore {
     // ----- students -----
     // What a student may change about themselves (notes = their own sticky notes). Never the level, course list, accommodations, track, name or number.
     function studentOwnFields() {
-      return ['prefs', 'archived', 'suggestions', 'lessonLevels', 'levelLog', 'courseLevels', 'avatar', 'colour', 'notes', 'rev', 'updatedAt', 'updatedBy'];
+      // v60: coins = coins the student's own app has counted from their work; coinReq = what they have asked a shop for
+      return ['prefs', 'archived', 'suggestions', 'lessonLevels', 'levelLog', 'courseLevels', 'avatar', 'colour', 'notes', 'coins', 'coinReq', 'rev', 'updatedAt', 'updatedBy'];
     }
     // A picture is one emoji and a colour is a colour — never markup.
     function tidyOwnFields() {
       return (!changed().hasAny(['avatar']) || (request.resource.data.avatar is string && request.resource.data.avatar.size() <= 16 && !request.resource.data.avatar.matches('(?s).*[<>].*')))
-          && (!changed().hasAny(['colour']) || (request.resource.data.colour is string && request.resource.data.colour.matches('^#[0-9a-fA-F]{3,8}$')));
+          && (!changed().hasAny(['colour']) || (request.resource.data.colour is string && request.resource.data.colour.matches('^#[0-9a-fA-F]{3,8}$')))
+          && (!changed().hasAny(['coinReq']) || (request.resource.data.coinReq is list && request.resource.data.coinReq.size() <= 10))
+          && (!changed().hasAny(['coins']) || request.resource.data.coins is map);
     }
     // The access list may change only by the caller's own id being added or taken away.
     function onlyOwnEntryChanges() {
@@ -128,10 +131,11 @@ service cloud.firestore {
       // asking for a record that does not exist reveals nothing
       allow get: if isStaff() && resource == null;
       allow read: if signedIn() && (isMaster() || resource.data.student == request.auth.uid || teaches(resource.data.student));
+      // v59: the owner must still have a student record — a sign-in left over from a removed student can write nothing back
       allow create: if signedIn() && pid == request.resource.data.student + '__' + request.resource.data.course
-                    && (request.resource.data.student == request.auth.uid || teaches(request.resource.data.student));
+                    && ((request.resource.data.student == request.auth.uid && isStudent()) || teaches(request.resource.data.student));
       allow update: if signedIn() && request.resource.data.student == resource.data.student && request.resource.data.course == resource.data.course
-                    && (resource.data.student == request.auth.uid || teaches(resource.data.student));
+                    && ((resource.data.student == request.auth.uid && isStudent()) || teaches(resource.data.student));
       allow delete: if signedIn() && teaches(resource.data.student);
     }
     // ----- teacher grades and comments -----
@@ -206,6 +210,41 @@ service cloud.firestore {
     match /settings/global {
       allow read: if true;
       allow write: if isStaff();
+    }
+
+    // ----- coins, shops and lockers (v60) -----
+    // coins/<student>: the ledger — coins spent, given and refunded, and the items in the student's locker.
+    // Only the student's teachers (and the Headmaster) write it; the student reads it and can never change it.
+    match /coins/{sid} {
+      allow read: if signedIn() && (request.auth.uid == sid || teaches(sid));
+      allow create, update: if signedIn() && teaches(sid) && request.resource.data.student == sid && request.resource.data.entries is list;
+      allow delete: if signedIn() && teaches(sid);
+    }
+    // shops/<staff id>: a teacher's shop. Anyone with a record may look; only its owner (or the Headmaster) changes it.
+    match /shops/{tid} {
+      allow read: if known();
+      allow create, update: if (isMaster() || (isStaff() && request.auth.uid == tid)) && request.resource.data.owner == tid && request.resource.data.items is list && request.resource.data.items.size() <= 40;
+      allow delete: if isMaster() || (isStaff() && request.auth.uid == tid);
+    }
+    // The Headmaster's switch for the whole school. Not secret.
+    match /settings/coins {
+      allow read: if true;
+      allow write: if isMaster();
+    }
+
+    // ----- the school's privacy and retention policy (v59) -----
+    // Not secret: the privacy notice is open to anyone, signed in or not, and reads its periods from here.
+    // Only the Headmaster writes it, in a fixed shape: two switches, a line of plain text and three periods in days.
+    match /settings/policy {
+      allow read: if true;
+      allow create, update: if isMaster()
+                    && request.resource.data.keys().hasOnly(['allowDictation', 'boardReviewed', 'contact', 'shotDays', 'reportDays', 'liveDays', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.allowDictation is bool && request.resource.data.boardReviewed is bool
+                    && request.resource.data.contact is string && request.resource.data.contact.size() <= 200 && !request.resource.data.contact.matches('(?s).*[<>].*')
+                    && request.resource.data.shotDays is int && request.resource.data.shotDays >= 1 && request.resource.data.shotDays <= 365
+                    && request.resource.data.reportDays is int && request.resource.data.reportDays >= 7 && request.resource.data.reportDays <= 730
+                    && request.resource.data.liveDays is int && request.resource.data.liveDays >= 1 && request.resource.data.liveDays <= 90;
+      allow delete: if isMaster();
     }
 
     // ----- change log -----

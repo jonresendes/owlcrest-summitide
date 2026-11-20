@@ -2,6 +2,8 @@
    media.js — voice to text (dictation) and audio recording
    - Dictation uses the browser's speech recognition (Chrome, Edge,
      Safari 14.5+). Text is appended to the field the button belongs to.
+     The browser sends the audio to its maker (Google or Apple) to be turned
+     into text; privacy.js shows that notice before the first use (v59).
    - Recordings use MediaRecorder and are stored in IndexedDB on this
      device under a key like  <studentId>/<course>/<unit>/<lesson>/<slot>.
      Teachers play them back from the Students panel.
@@ -35,11 +37,18 @@
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-dictate]'); if (!b) return;
     const field = document.querySelector(b.dataset.dictate); if (!field) return;
-    if (activeBtn === b) stopDictation(); else startDictation(b, field);
+    if (activeBtn === b) return stopDictation();
+    // v59: dictation is the browser's speech service — the audio leaves the device. The school can switch it off,
+    // and each person is told once, in plain words, before the first use.
+    const P = window.Privacy;
+    if (P && !P.dictationAllowed()) return;
+    if (P && !P.dictationSeen()) { P.askDictation().then(ok => { if (ok && document.contains(b)) startDictation(b, field); }); return; }
+    startDictation(b, field);
   });
   /** Button HTML for a text field (empty string when the browser cannot dictate or the student turned it off). */
   function dictateBtn(selector) {
     if (!canDictate || Settings.get('dictation') === false) return '';
+    if (window.Privacy && !Privacy.dictationAllowed()) return '';   // v59: switched off for the whole school
     return '<button type="button" class="dictate-btn" data-dictate="' + selector + '" title="Dictate" aria-label="Dictate — speak instead of typing">🎤</button>';
   }
 

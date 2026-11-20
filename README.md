@@ -5,6 +5,41 @@
 
 A static learning environment for any number of courses. Each unit is a list of **Lessons** — each lesson has slides, a quiz and assignments — plus a **unit test** and a **Game Room** (7 games), and every achievement lands in **The Display Case**. Everything is plain HTML/CSS/JS — no build step, no server — so it deploys straight to GitHub Pages.
 
+
+
+## Version 60 — coins, teacher shops, Redeem coins and the Locker
+
+**Deploy in this order:** (1) paste `firestore.rules` into Firebase console → Firestore → Rules → Publish; (2) upload the files; (3) sign in as the Headmaster. New file: `coins.js`.
+
+**How it works.** A student earns coins for work in a course and spends them on rewards in their teacher's shop. The student asks for an item (*Redeem* in the shop, after a check of the bag); the teacher hands it over (*Redeem coins* on the section's roster); the item lands in the student's Locker.
+
+- **Switches.** Headmaster: Settings → 🪙 Coins and shops (off = every coin, shop and locker screen, button and mention is hidden for everyone). Teacher: the **Coins: on / off** button on each section card (Sections page) and in *My shop*. Coins start **off** in every section.
+- **Earning** (each counts once): lesson read 2 · quiz passed 3 (+1 at 85%+) · assignment handed in 2 · every lesson in a unit read +5 · unit test 4 / 7 / 10 / 12 at 50 / 70 / 85 / 100% · games 1 per game finished + 1 per 1,000 points, at most 10 a unit. A six-lesson unit is worth about 60 to 90 coins. The numbers are `RATES` at the top of `coins.js`.
+- **Suggested shop** (a new shop starts with these; every teacher edits their own): small 10–15 (5-minute break 10, pick your seat 10, music 12, prize box 15) · bigger 35–45 (sit with a friend 35, extra day 35, homework pass 40, teacher's chair 45) · big 80–110 (lunch with the teacher 80, class game period 90, movie day 100, class snack day 110).
+- **My shop** (staff desk tile, `#/shop`): name, tagline, colours, banner emoji or photo, pattern, a sale on everything, open/closed; per item: name, emoji or uploaded picture, cost, % off, shelf, description, show/hide, delete; a live preview.
+- **Redeem coins** (`#/coins/<section>`): every student's bag; requests with *Hand it over* / *Not this time*; *Redeem coins* (pick any item for the student); *Give coins* (1–50); *mark used*; *refund*.
+- **Student:** Shop and Locker tiles on the desk, a small bag chip on each coin course page, *My coin bag* in Settings → My profile. The **Locker** (`#/locker`) shows the bag, items (used ones crossed out), and every trophy, medal and badge earned, in a locker whose colour the student picks.
+- **The coin picture** is chosen in one place, `Coins.icon(n)`: 🪙 under 10, 💰 10–49, 💎 50–99, 👑 100+. To use your own art set `Coins.art = 'coin.png'` in `coins.js` and add the file to `sw.js`.
+
+**Where it is stored.** `students/<id>.coins` (earned, per course, written by the student's app; only ever goes up) and `.coinReq` (requests); `coins/<id>` (the ledger: spent, given, refunded, used — written only by the student's teachers); `shops/<staff id>`; `settings/coins`; `sections/<id>.coins`. Deleting a student deletes their ledger. Rules v60 add these.
+
+**Limits.** Earned coins are counted by the student's own app from their progress, which a determined student can alter (the same limit as quiz scores); spending always goes through a teacher. Coins do not show in Student View. A bag is one bag across all of a student's teachers.
+
+## Version 59 — privacy notice, dictation notice, retention and deletion, self-hosted fonts
+
+**Deploy in this order:** (1) paste `firestore.rules` into Firebase console → Firestore → Rules → Publish; (2) upload the changed files; (3) sign in as the Headmaster once. New files: `privacy.js`, `nunito.woff2`, `lexend.woff2`, `patrick-hand.woff2`, `fonts-LICENSE.txt`.
+
+- **Privacy notice** (`#/privacy`) — open to anyone, linked from the sign-in screen and from Settings → Privacy. Plain words: what is kept, why, who can see it, where it is stored, the outside services the app can use, how long things are kept, and who to ask. It reads the periods and the dictation line from the school's policy record, so it always matches what the app does. Until the Headmaster switches on *The school board has reviewed this notice*, it says it has not been reviewed.
+- **Settings → 🔏 Privacy and retention** (Headmaster): the contact line for the notice; the *reviewed* switch; **Allow dictation** for the whole school; three periods in days (problem-report screenshots 30, resolved reports 180, Live Class records 7); *Run the clean-up now*; the **end-of-term clean-up**. Stored in `settings/policy` (anyone reads, only the Headmaster writes, fixed shape in the rules).
+- **Dictation** — the browser's speech service sends audio to the browser's maker. Each person sees a notice before the first use (OK / Not now). With the school switch off the 🎤 button disappears for everyone; 🎙️ recording, which stays on the device, still works.
+- **Daily clean-up** — once a day when the Headmaster signs in: screenshots past their date are removed from reports (the message stays), old resolved reports are deleted, Live Class presence records and ended sessions past their date are deleted, and a session left running for 12 hours is ended. A student's app also ignores a session older than 12 hours. Each run that removes something adds a line to the change log.
+- **End-of-term clean-up** — tick archived sections → Preview → type ERASE. Erases the work and teacher grades of those students for that section's course; a student still taking the same course in an active section is left alone. Option: also delete students left in no active section. The records are emptied rather than deleted (`purged: true`), so a device holding an old copy cannot put the work back. Sections, rosters and customisations stay; the section is stamped `purgedAt`.
+- **Deleting one student** — Students → open the student → Remove now also deletes their Live Class record and (Headmaster) the problem reports they sent, clears their recordings from this device, and shows a **receipt**: what was deleted, and what this app cannot delete (the unused sign-in, change-log lines, recordings on other devices, export files).
+- **Fonts** — Nunito, Lexend and Patrick Hand are served from this site (SIL Open Font License, `fonts-LICENSE.txt`). Google Fonts is gone from the page and from the Content-Security-Policy.
+- **Rules (v59)** — new `settings/policy` block; a student may write their own work only while their student record exists (a sign-in left over from a removed student can write nothing back).
+
+Not changed by this version: students still sign in with number + birthday, scores are still written by the student's browser, answer keys are still in the course files, and hosting is unchanged. Those need a server or the board (see the compliance action plan).
+
 ## Version 58 — Live Class Board and Focus Mode (18 November 2026)
 
 **What it is.** A teacher (or the Headmaster) opens **Live Class** on the desk (`#/live`), picks a section, chooses what the class is writing (any work in the course, a unit test, a lesson quiz or an assignment), switches **Focus Mode** on or off and starts the session. The board then shows **one tile per student on the roster**:

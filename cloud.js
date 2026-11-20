@@ -30,6 +30,8 @@
      grades/{uid}__{course}   { student, course, data, updatedAt }   teacher grades; a student can read, not write
      focus/{uid}              { student, data, updatedAt }
      settings/global          { allowSelfSignup, colouringEvery }
+     coins/{uid}              { student, entries }                 v60: the coin ledger — written by the student's teachers only (see coins.js)
+     shops/{staffUid}         a teacher's shop (see coins.js)      settings/coins { enabled }: the Headmaster's switch
      courses/{CODE}, courseChunks/{CODE}__{n}   courses the Headmaster loaded from a file (see courseloader.js)
      audit/{id}               change log: lines added by staff apps, read by the Headmaster, never edited
    `teachers` (on the student record) is the list of staff who have that student. A teacher's app adds its own id
@@ -70,7 +72,7 @@
   }
 
   /* ---------- nothing is left on the device after sign-out ---------- */
-  const DATA_KEYS = /^learnhub\.(students|staff|sections|progress\.|focus\.|grades\.|issues|directory)/;
+  const DATA_KEYS = /^learnhub\.(students|staff|sections|progress\.|focus\.|grades\.|coins\.|shops|issues|directory)/;
   /** Remove every copy of school data from this browser's storage and from the app's memory. */
   function wipeLocal() {
     applying = true;
@@ -217,7 +219,7 @@
      `rev` and stamps who made it, so the same profile version can be checked on any screen. */
   const seenStudents = {};                                                             // id → last cloud copy applied here
   const META = ['updatedAt', 'updatedBy', 'rev', 'id', 'teachers'];   // stamps, and the access list (changed only by claim / unclaim below)
-  const STUDENT_OWN = ['prefs', 'archived', 'suggestions', 'lessonLevels', 'levelLog', 'courseLevels', 'avatar', 'colour', 'notes'];   // a student may change these about themselves
+  const STUDENT_OWN = ['prefs', 'archived', 'suggestions', 'lessonLevels', 'levelLog', 'courseLevels', 'avatar', 'colour', 'notes', 'coins', 'coinReq'];   // a student may change these about themselves
   const PER_COURSE = ['courseLevels', 'levelLog', 'lessonLevels', 'suggestions', 'track'];                                     // maps keyed by course: one course at a time
   const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v);
   const J = v => JSON.stringify(v === undefined ? null : v);
@@ -616,19 +618,59 @@
     window.Students.update(student.id, { dob: newDob });
     log('fix student birthday', student.id, {});
   };
-  /** Remove a student: profile, work, grades, Focus Plan and directory card. (The unused sign-in stays in Firebase
-      Authentication and opens nothing; the Headmaster can delete it in the Firebase console.) */
+  /** Remove a student: profile, work, grades, Focus Plan, directory card, Live Class presence and (Headmaster) the
+      problem reports they sent. Returns a receipt — what was deleted and what this app cannot delete (v59).
+      (The unused sign-in stays in Firebase Authentication and opens nothing; it is deleted in the Firebase console.) */
   Cloud.removeStudent = async id => {
     const was = seenStudents[id] || {};
     const courses = ((window.LearnHub && window.LearnHub.courses) || []).map(c => c.id);
     const ids = new Set(courses.map(c => id + '__' + c)); ['progress', 'grades'].forEach(col => knownDocs[col].forEach(k => { if (k.startsWith(id + '__')) ids.add(k); }));
+    const receipt = { id, name: was.name || '', number: was.number || '', at: now(), deleted: [], kept: [] };
+    let work = 0, grades = 0, reports = 0;
     try {
-      for (const k of ids) { await db.collection('progress').doc(k).delete().catch(() => {}); await db.collection('grades').doc(k).delete().catch(() => {}); }
+      // work and grades the app has not met yet (a course since removed, a record another device made): the Headmaster can ask for them by owner
+      if (Cloud.role === 'master') for (const col of ['progress', 'grades']) { try { const q = await db.collection(col).where('student', '==', id).get(); q.docs.forEach(d => ids.add(d.id)); } catch (e) {} }
+      for (const k of ids) {
+        const had = { p: knownDocs.progress.has(k), g: knownDocs.grades.has(k) };
+        await db.collection('progress').doc(k).delete().then(() => { if (had.p) work++; knownDocs.progress.delete(k); }).catch(() => {});
+        await db.collection('grades').doc(k).delete().then(() => { if (had.g) grades++; knownDocs.grades.delete(k); }).catch(() => {});
+      }
       await db.collection('focus').doc(id).delete().catch(() => {});
+      await db.collection('presence').doc(id).delete().catch(() => {});
+      await db.collection('coins').doc(id).delete().catch(() => {});   // v60: the coin ledger (spent, given, items)
       await db.collection('directory').doc(id).delete().catch(() => {});
+      if (Cloud.role === 'master') { try { const q = await db.collection('issues').where('by', '==', id).get(); for (const d of q.docs) { await d.ref.delete(); reports++; } } catch (e) { console.warn('reports of a removed student', e && e.code); } }
       await db.collection('students').doc(id).delete();
     } catch (e) { throw new Error(rulesHint(e)); }
-    delete seenStudents[id]; log('remove student', id, { name: was.name || '', number: was.number || '' });
+    delete seenStudents[id];
+    receipt.deleted = ['Profile (name, student number, birthday, level, accommodations, notes)', 'Work and results' + (work ? ' (' + work + ' course record' + (work === 1 ? '' : 's') + ')' : ''), 'Teacher grades and comments' + (grades ? ' (' + grades + ' course record' + (grades === 1 ? '' : 's') + ')' : ''), 'Focus Plan', 'Live Class presence record', 'Coin bag, shop requests and locker items', 'Directory card', 'Places on section rosters'];
+    if (Cloud.role === 'master') receipt.deleted.push('Problem reports they sent' + (reports ? ' (' + reports + ')' : ''));
+    receipt.kept = ['The sign-in itself, which now opens nothing: delete it in the Firebase console (Authentication) or with unused-signins.py',
+      'Lines in the change log that name this student (the log cannot be edited)',
+      'Voice recordings and uploads saved in the browser of any device they used',
+      'Export files already downloaded or pushed to Google Drive'];
+    if (Cloud.role !== 'master') receipt.kept.push('Problem reports they sent (only the Headmaster can delete those)');
+    log('remove student', id, { name: was.name || '', number: was.number || '', work, grades, reports });
+    Cloud.lastRemoval = receipt; emit('removed', receipt);
+    return receipt;
+  };
+  /** End-of-term clean-up (v59, Headmaster): erase one student's work and teacher grades for one course.
+      The records are emptied, not deleted: an empty marker stays so that a device still holding an old copy
+      cannot put the work back the next time it saves. */
+  Cloud.eraseCourseWork = async (sid, courseId) => {
+    if (Cloud.role !== 'master') throw new Error('Only the Headmaster can run the end-of-term clean-up.');
+    if (!/^[\w-]{1,80}$/.test(String(courseId || '')) || !sid) throw new Error('Unknown record.');
+    const key = sid + '__' + courseId, stamp = now(), out = { work: false, grades: false };
+    try {
+      const p = await db.collection('progress').doc(key).get();
+      if (p.exists && !p.data().purged) { await db.collection('progress').doc(key).set({ student: sid, course: courseId, data: {}, purged: true, updatedAt: stamp }); out.work = true; }
+      const g = await db.collection('grades').doc(key).get();
+      if (g.exists && !g.data().purged) { await db.collection('grades').doc(key).set({ student: sid, course: courseId, data: {}, purged: true, updatedAt: stamp, updatedBy: whoAmI() }); out.grades = true; }
+    } catch (e) { throw new Error(rulesHint(e)); }
+    // this device's own copy goes at once (the listeners would also bring the empty records back in a moment)
+    ['learnhub.progress.', 'learnhub.grades.'].forEach(pre => { const cur = lsGet(pre + sid); if (cur && cur[courseId] !== undefined) { cur[courseId] = {}; lsSet(pre + sid, cur); } });
+    reloadStores('progress'); reloadStores('grades');
+    return out;
   };
   Cloud.MIN_STAFF_PASSWORD = 10;
   const pwCheck = p => { if (String(p || '').length < Cloud.MIN_STAFF_PASSWORD) throw new Error('The password must be at least ' + Cloud.MIN_STAFF_PASSWORD + ' characters.'); };
