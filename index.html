@@ -18,6 +18,7 @@
   <meta name="description" content="A learning environment with study rooms, tests, games and a display case of achievements.">
   <!-- v59: Nunito, Lexend and Patrick Hand are served from this site (styles.css); nothing loads from Google Fonts. -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="math.css">   <!-- v61: calculator, practice room and Math Lab -->
 </head>
 <body>
   <header class="topbar">
@@ -47,6 +48,7 @@
   <script src="snc1l2l.js"></script>    <!-- SNC1L/2L Science, Locally Developed — loads after colouring.js -->
   <script src="glc2o.js"></script>      <!-- GLC2O Career Studies (5 units) — loads after colouring.js -->
   <script src="eng3u.js"></script>
+  <script src="mth1w.js"></script>      <!-- MTH1W Mathematics, Grade 9 (7 units) -->
   <script src="courseloader.js"></script>  <!-- courses the Headmaster loads from a file (cached copies register here, before the app draws) -->
 
   <!-- ===== CLOUD (Firebase) — accounts and live sync; set enabled:false in cloud-config.js for device-only mode ===== -->
@@ -72,6 +74,8 @@
   <script src="privacy.js"></script>    <!-- v59: privacy notice, dictation disclosure, retention and deletion -->
   <script src="coins.js"></script>      <!-- v60: coins, teacher shops, redemption and the Locker -->
   <script src="app.js"></script>
+  <script src="mathcore.js"></script>   <!-- v61: the math engine (safe expression reader, answer checking, practice generators) -->
+  <script src="mathtools.js"></script>  <!-- v61: calculator, practice room and Math Lab for mathematics courses -->
   <script src="pwa.js"></script>
   <script src="report.js"></script>   <!-- "Found a problem?" button; loads html2canvas.min.js only when it is pressed -->
 </body>

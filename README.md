@@ -7,6 +7,27 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Mathematics: MTH1W, the calculator, the practice room and the Math Lab (v61)
+
+**New files:** `mth1w.js` (the course), `mathcore.js` (the math engine), `mathtools.js` (calculator, practice, Math Lab), `math.css`, `calculator.html` (the pop-out calculator). `index.html` loads `math.css`, `mth1w.js` after `eng3u.js`, and `mathcore.js` + `mathtools.js` after `app.js`; `sw.js` lists the five files. No change to `app.js`, `storage.js`, `cloud.js` or `firestore.rules`: the tools watch the page and add themselves.
+
+**Which courses get the tools.** Any course in the Mathematics area (code starting with M), or any course file with `mathTools: true`. A lesson turns practice on with `practice: { skills: ['int-addsub', …], items: [ … ], tool: 'numberline' }`.
+
+**🧮 Calculator.** A button in the bottom-right corner of every page of a math course. Type or tap; fractions stay exact (`1/2 + 1/3 = 5/6`, with the decimal underneath; **F⇄D** switches fraction, mixed number and decimal); powers, roots, π, percent, brackets, scientific notation; **Scientific** adds cube, cube root, reciprocal, absolute value, sin / cos / tan and their inverses (degrees) and log. The last 12 answers are kept on a tape to reuse. Drag it by its title bar. **⧉ Pop out** opens it in its own window (`calculator.html`).
+- **Teacher switches** (course page → *Math tools*, staff only): per section, *on lesson quizzes* and *on unit tests*. Stored on the section (`calcQuiz`, `calcTest`; absent = on). When off, the button reads *Off for this quiz/test* and the panel is covered.
+- A popped-out calculator **pauses during every quiz and test** (leaving the app window is what Focus Mode records), whatever the switches say; students use the built-in panel when it is allowed.
+- Nothing typed is ever run as code: expressions are read by `MathCore.parse`, a small recursive-descent reader.
+
+**🎯 Practice** (`#/practice/<course>/<unit>/<lesson>`, a tile on the lesson page).
+- *Worksheet questions*: the closed questions from the lesson worksheet, one at a time. Numbers, fractions, mixed numbers, percents, scientific notation, algebraic expressions, points and ordered lists are marked by the app (equivalent forms are accepted; an unfinished calculation, an unreduced fraction or the question typed back is not). Questions that need a sentence show the solution and ask the student to mark themselves.
+- *Skill practice*: endless generated questions per skill (84 skills) with typed answers and a math keypad, tap-to-order, a tappable number line, choose-the-operation and plot-two-points graphing. First miss: a hint and another try. Second miss: the worked steps and *Try a similar one*. 3 / 5 / 8 correct in a row earn ★ / ★★ / ★★★; difficulty steps up after three in a row and down after two misses.
+- *Mixed review* (`#/practice/<course>/mix`): questions from every lesson the student has opened, in mixed order.
+- Saved with the student's progress (`progress/<student>__<course>` → `data.<unit>.practice.<lesson>`), so it follows them between devices. Staff see a **Class practice** table on the practice page for their working section. Practice is not a grade and does not move a level.
+
+**📐 Math Lab** (`#/mathlab/<course>/<tool>`): formula sheet and solver (24 formulas; leave one box empty and it shows the formula rearranged for that letter, the substitution and the answer), line grapher with sliders and a second line (point of intersection), number line, equation balance, fraction bars, data and box plot, interest and growth, unit converter.
+
+**MTH1W - Mathematics.** Seven units, 41 lessons, built from the teacher's decks, worksheets, answer keys, unit tests and challenge assignments by `build.js` (kept with the build notes). Each lesson: 5 slides (Start here · Key ideas · Worked examples · 📝 Write this down · 🧪 Try it), practice, a quiz, *My record*, *Worksheet problems*; the last lesson of each unit carries the optional challenge assignment.
+
 ## Version 60 — coins, teacher shops, Redeem coins and the Locker
 
 **Deploy in this order:** (1) paste `firestore.rules` into Firebase console → Firestore → Rules → Publish; (2) upload the files; (3) sign in as the Headmaster. New file: `coins.js`.

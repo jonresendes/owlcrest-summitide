@@ -1,0 +1,171 @@
+/* Summitide Learning · math.css — calculator, practice room and Math Lab (mathtools.js).
+   Uses the app's own colour tokens, so high-contrast, inverted and the course colour all follow. */
+.mt-frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.05; font-size: 0.86em; margin: 0 0.12em; }
+.mt-frac > span:first-child { border-bottom: 0.09em solid currentColor; padding: 0 0.22em 0.04em; }
+.mt-frac > span:last-child { padding: 0.04em 0.22em 0; }
+.mt-code { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--surface-2); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin: 0.6rem 0 0; font-size: 1rem; white-space: pre; overflow-x: auto; }
+
+/* ----- calculator ----- */
+.mt-fab { position: fixed; right: 1rem; bottom: 1rem; z-index: 60; display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 0.95rem; border-radius: 999px; border: 2px solid var(--primary); background: var(--primary); color: var(--on-primary); font: inherit; font-weight: 800; font-size: 1.15rem; box-shadow: var(--shadow-lg); cursor: pointer; }
+.mt-fab span { font-size: 0.9rem; }
+.mt-fab.off { background: var(--surface); color: var(--muted); border-color: var(--line); }
+.mt-fab[hidden] { display: none; }
+.mt-calc { position: fixed; right: 1rem; bottom: 4.6rem; z-index: 70; width: min(21.5rem, calc(100vw - 1rem)); background: var(--surface); color: var(--text); border: 2px solid var(--primary); border-radius: var(--radius); box-shadow: var(--shadow-lg); overflow: hidden; touch-action: manipulation; }
+.mt-calc[hidden] { display: none; }
+.mt-calc.popout { position: static; width: 100%; min-height: 100vh; border: 0; border-radius: 0; box-shadow: none; }
+.mt-calc-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0.65rem; background: var(--primary); color: var(--on-primary); cursor: move; touch-action: none; user-select: none; }
+.mt-calc.popout .mt-calc-head { cursor: default; }
+.mt-calc-head-btns { display: flex; gap: 0.3rem; }
+.mt-mini { font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.6); background: transparent; color: inherit; cursor: pointer; }
+.mt-mini:hover { background: rgba(255,255,255,0.18); }
+.mt-calc-screen { padding: 0.55rem 0.65rem 0.3rem; background: var(--surface-2); }
+.mt-calc-in { width: 100%; border: 2px solid var(--line); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; font: inherit; font-size: 1.2rem; background: var(--surface); color: var(--text); }
+.mt-calc-in:focus { outline: none; border-color: var(--primary); }
+.mt-calc-out { text-align: right; font-size: 1.55rem; font-weight: 800; min-height: 2.5rem; padding-top: 0.25rem; overflow-wrap: anywhere; }
+.mt-calc-out.err { font-size: 0.95rem; font-weight: 700; color: var(--danger); text-align: left; }
+.mt-calc-alt { text-align: right; color: var(--muted); font-size: 0.9rem; min-height: 1.3rem; }
+.mt-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.3rem; padding: 0.45rem 0.55rem; }
+.mt-keys.sci { grid-template-columns: repeat(6, 1fr); padding-bottom: 0; }
+.mt-key { font: inherit; font-size: 1.1rem; font-weight: 700; min-height: 2.6rem; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+.mt-keys.sci .mt-key { font-size: 0.85rem; min-height: 2.1rem; }
+.mt-key:hover { background: var(--primary-soft); }
+.mt-key:active { transform: scale(0.96); }
+.mt-key.fn { background: var(--surface-2); font-size: 0.95rem; }
+.mt-key.op { background: var(--primary-soft); color: var(--primary); font-size: 1.3rem; }
+.mt-key.del { background: var(--danger-soft); color: var(--danger); font-size: 0.95rem; }
+.mt-key.eq { background: var(--success); color: #fff; border-color: var(--success); font-size: 1.3rem; }
+.mt-tape { max-height: 6.2rem; overflow-y: auto; border-top: 1px solid var(--line); }
+.mt-calc.popout .mt-tape { max-height: none; }
+.mt-tape-row { display: flex; justify-content: space-between; gap: 0.6rem; width: 100%; padding: 0.3rem 0.7rem; font: inherit; font-size: 0.85rem; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); cursor: pointer; text-align: left; }
+.mt-tape-row b { color: var(--text); white-space: nowrap; }
+.mt-tape-row:hover { background: var(--surface-2); }
+.mt-calc-lock { position: absolute; inset: 2.3rem 0 0 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem; background: var(--surface); z-index: 2; }
+.mt-calc-lock[hidden] { display: none; }
+.mt-calc.popout .mt-calc-lock { position: fixed; inset: 0; }
+.mt-lock-icon { font-size: 2.4rem; }
+.mt-calc-lock p { color: var(--muted); margin: 0.4rem 0 0; }
+
+/* ----- course bar and the lesson tile ----- */
+.mt-bar-card { margin-bottom: 1.25rem; padding: 0.8rem 1rem; }
+.mt-bar-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.mt-switches { margin-top: 0.75rem; border-top: 1px solid var(--line); padding-top: 0.6rem; }
+.mt-switch-row { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; padding: 0.3rem 0; }
+.mt-switch-row > span:first-child { min-width: 11rem; }
+.mt-check { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; cursor: pointer; }
+.mt-check input { width: 1.2rem; height: 1.2rem; accent-color: var(--success); }
+.mt-tile { border: 2px solid var(--course, var(--primary)); }
+
+/* ----- practice ----- */
+.mt-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.mt-tab { font: inherit; font-weight: 700; padding: 0.5rem 0.95rem; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; text-decoration: none; }
+.mt-tab[aria-selected="true"] { background: var(--course, var(--primary)); border-color: var(--course, var(--primary)); color: var(--on-course); }
+.mt-count { font-weight: 600; opacity: 0.85; margin-left: 0.3rem; }
+.mt-chips, .mt-dots { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.mt-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; font: inherit; font-size: 0.9rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: var(--radius-sm); border: 2px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; text-align: left; }
+.mt-chip.on { border-color: var(--course, var(--primary)); background: var(--primary-soft); }
+.mt-stars { color: var(--gold); font-size: 0.95rem; letter-spacing: 0.08em; }
+.mt-dot { min-width: 2.4rem; height: 2.4rem; padding: 0 0.4rem; border-radius: var(--radius-sm); border: 2px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.mt-dot.ok { background: var(--success-soft); border-color: var(--success); color: var(--success); }
+.mt-dot.tried { background: var(--accent-soft); border-color: var(--accent-soft); }
+.mt-dot.on { outline: 3px solid var(--course, var(--primary)); outline-offset: 1px; }
+.mt-stage { display: grid; grid-template-columns: minmax(0, 1fr) 15rem; gap: 1rem; align-items: start; }
+.mt-card { padding: 1.25rem 1.4rem; border-top: 6px solid var(--course, var(--primary)); }
+.mt-card.right { border-top-color: var(--success); }
+.mt-card.wrong { animation: mt-shake 0.4s; }
+@keyframes mt-shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .mt-card.wrong { animation: none; } }
+body[data-motion="reduced"] .mt-card.wrong { animation: none; }
+.mt-qhead { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.mt-q { font-size: 1.45rem; font-weight: 700; line-height: 1.5; margin: 0.8rem 0 1rem; overflow-wrap: anywhere; }
+.mt-answer { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.mt-pre { font-weight: 800; font-size: 1.15rem; }
+.mt-in { flex: 1 1 10rem; max-width: 20rem; font-size: 1.3rem; }
+.mt-pad { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.mt-padkey { font: inherit; font-weight: 700; min-width: 2.7rem; min-height: 2.5rem; padding: 0 0.55rem; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--text); cursor: pointer; }
+.mt-padkey:hover { background: var(--primary-soft); }
+.mt-how { margin: 0.5rem 0 0; }
+.mt-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.6rem; }
+.mt-options.ops { grid-template-columns: repeat(4, minmax(3.5rem, 5rem)); }
+.mt-opt { font-size: 1.2rem; justify-content: center; text-align: center; min-height: 3.2rem; }
+.mt-options.ops .mt-opt { font-size: 1.8rem; }
+.mt-order-src, .mt-order-dst { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0.5rem 0; min-height: 3rem; }
+.mt-order-dst { border: 2px dashed var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; }
+.mt-ord { font-size: 1.2rem; }
+.mt-ord-chip { font-weight: 800; font-size: 1.2rem; background: var(--primary-soft); color: var(--primary); border-radius: var(--radius-sm); padding: 0.25rem 0.65rem; }
+.mt-fb { margin-top: 1rem; border-radius: var(--radius-sm); }
+.mt-fb.yes, .mt-fb.no, .mt-fb.close, .mt-fb.hint { padding: 0.8rem 1rem; }
+.mt-fb.yes { background: var(--success-soft); border-left: 6px solid var(--success); }
+.mt-fb.no { background: var(--danger-soft); border-left: 6px solid var(--danger); }
+.mt-fb.close { background: var(--accent-soft); border-left: 6px solid var(--accent); }
+.mt-fb.hint { background: var(--surface-2); border-left: 6px solid var(--gold); }
+.mt-earned { font-weight: 800; color: var(--gold); }
+.mt-steps { margin: 0.5rem 0 0 1.2rem; padding: 0; }
+.mt-steps li { margin: 0.25rem 0; }
+.mt-solution { margin-top: 0.6rem; }
+.mt-ans { margin: 0.5rem 0 0; font-size: 1.1rem; }
+.mt-actions { margin-top: 1rem; justify-content: space-between; }
+.mt-side-card { padding: 1rem; text-align: center; }
+.mt-run { display: flex; flex-direction: column; align-items: center; margin-bottom: 0.6rem; }
+.mt-run-n { font-size: 2.6rem; font-weight: 800; line-height: 1; color: var(--course, var(--primary)); }
+
+/* ----- drawings ----- */
+.mt-line, .mt-box, .mt-chart { width: 100%; max-width: 44rem; height: auto; display: block; margin: 0.5rem 0; }
+.mt-grid { width: 100%; max-width: 24rem; height: auto; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.mt-grid.pick { cursor: crosshair; touch-action: manipulation; }
+.mt-axis { stroke: var(--text); stroke-width: 2; }
+.mt-gridline { stroke: var(--line); stroke-width: 1; }
+.mt-lbl { fill: var(--text); font-size: 15px; font-weight: 700; }
+.mt-lbl.sm { font-size: 11px; font-weight: 600; fill: var(--muted); }
+.mt-hit { fill: transparent; }
+.mt-dotmark { fill: transparent; }
+.mt-tick[role="button"] { cursor: pointer; }
+.mt-tick[role="button"]:hover .mt-dotmark, .mt-tick:focus .mt-dotmark { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+.mt-tick.from .mt-dotmark { fill: var(--surface); stroke: var(--primary); stroke-width: 3; }
+.mt-tick.on .mt-dotmark { fill: var(--success); stroke: var(--success); }
+.mt-hop { fill: none; stroke: var(--accent); stroke-width: 3; }
+.mt-arrowhead { fill: var(--accent); }
+.mt-plotline { stroke: var(--primary); stroke-width: 3; }
+.mt-plotline.two { stroke: var(--accent); stroke-dasharray: 7 4; }
+.mt-point { fill: var(--success); stroke: var(--surface); stroke-width: 2; }
+.mt-boxrect { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+.mt-median { stroke: var(--accent); stroke-width: 4; }
+.mt-key-line { display: inline-block; width: 1.6rem; border-top: 3px solid var(--primary); vertical-align: middle; }
+.mt-key-line.two { border-top: 3px dashed var(--accent); }
+
+/* ----- Math Lab ----- */
+.mt-tool { padding: 1.25rem; }
+.mt-two { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.mt-formulas { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.mt-flist { max-height: 34rem; overflow-y: auto; padding-right: 0.3rem; }
+.mt-fbtn { display: flex; flex-direction: column; width: 100%; text-align: left; gap: 0.1rem; font: inherit; padding: 0.45rem 0.65rem; margin: 0.25rem 0; border-radius: var(--radius-sm); border: 2px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+.mt-fbtn span { color: var(--muted); font-size: 0.85rem; }
+.mt-fbtn.on { border-color: var(--course, var(--primary)); background: var(--primary-soft); }
+.mt-formula { font-size: 1.5rem; font-weight: 800; margin: 0.4rem 0 0.9rem; color: var(--primary); }
+.mt-formula.two { color: var(--accent); }
+.mt-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem; margin-bottom: 0.9rem; }
+.mt-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.92rem; font-weight: 600; }
+.mt-field.wide { margin-bottom: 0.9rem; }
+.mt-forms { margin: 0.5rem 0 0 1.2rem; }
+.mt-slider { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 0.7rem; font-weight: 600; }
+.mt-slider output { font-weight: 800; color: var(--primary); margin-left: 0.3rem; }
+.mt-slider input { width: 100%; accent-color: var(--primary); }
+.mt-balance { display: flex; align-items: stretch; justify-content: center; gap: 0.75rem; margin: 1rem 0; }
+.mt-pan { flex: 1 1 0; max-width: 16rem; text-align: center; font-size: 1.6rem; font-weight: 800; padding: 1rem 0.75rem; background: var(--primary-soft); color: var(--primary); border-radius: var(--radius-sm); border-bottom: 6px solid var(--primary); }
+.mt-balance.solved .mt-pan { background: var(--success-soft); color: var(--success); border-bottom-color: var(--success); }
+.mt-pivot { display: flex; align-items: center; font-size: 2rem; font-weight: 800; }
+.mt-barrow { display: flex; align-items: center; gap: 0.75rem; margin: 0.4rem 0; }
+.mt-barlbl { min-width: 3.2rem; font-weight: 800; font-size: 1.15rem; text-align: center; }
+.mt-bar { display: flex; flex: 1; height: 2.2rem; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; }
+.mt-bar span { flex: 1; border-right: 1px solid var(--text); }
+.mt-bar span:last-child { border-right: 0; }
+.mt-bar span.a { background: var(--primary); }
+.mt-bar span.b { background: var(--accent); }
+
+@media (max-width: 760px) {
+  .mt-stage, .mt-two, .mt-formulas { grid-template-columns: minmax(0, 1fr); }
+  .mt-flist { max-height: 14rem; }
+  .mt-q { font-size: 1.25rem; }
+  .mt-fab span { display: none; }
+  .mt-calc { right: 0.5rem; bottom: 4.2rem; }
+}
+@media print { .mt-fab, .mt-calc, .mt-bar-card { display: none !important; } }
