@@ -95,11 +95,13 @@
       return out;
     },
     /** Record one attempt at a level on a quiz-style record ({ best, attempts, passed, levels }). Keeps the raw fields for awards. */
-    recordAttempt(rec, level, pct, items) {
+    recordAttempt(rec, level, pct, items, away) {
       rec.levels = rec.levels || {}; const r = rec.levels[level] = rec.levels[level] || { best: 0, attempts: 0 };
       r.attempts++; r.best = Math.max(r.best, pct); r.at = new Date().toISOString();
       // v56: the latest attempt's answers — question, right or wrong, what the student answered. The answer key is never stored.
       if (Array.isArray(items) && items.length) r.last = { pct, at: r.at, items: items.slice(0, 30).map(it => ({ q: String(it.q || '').slice(0, 200), ok: !!it.ok, a: String(it.a === undefined || it.a === null ? '' : it.a).slice(0, 120) })) };
+      // v58: Focus Mode — how often and how long the student left the app during this attempt (only when a live session with Focus Mode was running)
+      if (r.last && away && typeof away === 'object') r.last.away = { count: Math.max(0, +away.count || 0), secs: Math.max(0, Math.round(+away.secs || 0)) };
       const b = this.bestOf(rec.levels); if (b) { rec.grade = b.grade; rec.gradeLevel = b.level; rec.gradeRaw = b.raw; }
       return b;
     },

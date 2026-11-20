@@ -1,5 +1,5 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v43 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v58 (free-plan edition: no Cloud Functions).
 // Paste the whole file into Firebase console → Firestore Database → Rules → Publish.
 //
 // The idea in one paragraph: being signed in is not enough. A caller must have a staff record or a
@@ -147,6 +147,34 @@ service cloud.firestore {
     match /focus/{sid} {
       allow read: if signedIn() && (request.auth.uid == sid || teaches(sid));
       allow write: if signedIn() && teaches(sid);
+    }
+
+    // ----- Live Class Board (v58) -----
+    // live/<sectionId>: one running (or last) session per section — what the class is writing, Focus Mode,
+    // who the teacher marked as writing. Written by that section's teacher (or the Headmaster); read by the
+    // teacher and by the students on the section's roster.
+    match /live/{sid} {
+      allow read: if signedIn() && (isMaster()
+                    || (isStaff() && resource.data.teacherId == request.auth.uid)
+                    || (isStudent() && exists(/databases/$(database)/documents/sections/$(sid)) && request.auth.uid in get(/databases/$(database)/documents/sections/$(sid)).data.students));
+      allow create, update: if isMaster()
+                    || (isStaff() && request.resource.data.teacherId == request.auth.uid
+                        && get(/databases/$(database)/documents/sections/$(sid)).data.teacherId == request.auth.uid);
+      allow delete: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid);
+    }
+    // presence/<uid>: where one student is inside Summitide right now, sent only while a session runs.
+    // Written only by that student, in a fixed shape and size; read by the student's own teachers.
+    // It never holds what the student typed or anything from outside the app.
+    match /presence/{sid} {
+      allow read: if signedIn() && (request.auth.uid == sid || teaches(sid));
+      allow create, update: if isStudent() && request.auth.uid == sid
+                    && request.resource.data.keys().hasOnly(['v', 'student', 'live', 'since', 'page', 'label', 'target', 'q', 'n', 'state', 'done', 'at', 'joinedAt', 'leaveCount', 'awaySecs', 'leaves', 'why'])
+                    && request.resource.data.student == sid
+                    && request.resource.data.page is string && request.resource.data.page.size() <= 200
+                    && request.resource.data.label is string && request.resource.data.label.size() <= 120 && !request.resource.data.label.matches('(?s).*[<>].*')
+                    && request.resource.data.state in ['on', 'blur', 'hidden']
+                    && request.resource.data.leaves is list && request.resource.data.leaves.size() <= 20;
+      allow delete: if signedIn() && (request.auth.uid == sid || teaches(sid));
     }
 
     // ----- "Found a problem?" reports -----

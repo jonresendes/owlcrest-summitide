@@ -1,5 +1,5 @@
 {
- "version": "57",
- "date": "2026-11-17",
- "notes": "Fixes the reload loop in version 56 (the page flashing on the sign-in screen) and restores offline use. Also gives the app a new install identity so it can be installed again on devices that reported it as already installed."
+ "version": "58",
+ "date": "2026-11-18",
+ "notes": "Live Class Board and Focus Mode: teachers start a live session for a section, mark on a tiled screen who is writing today, and see who is in Summitide and on the item right now; late arrivals appear on their own. Focus Mode opens quizzes and tests full screen and records every time a student leaves the app."
 }

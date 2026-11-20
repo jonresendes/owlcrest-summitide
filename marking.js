@@ -22,6 +22,7 @@
    ========================================================= */
 (function () {
   const { esc, L, assignmentsFor, lessonQuestions, LEVEL_NAMES, reviewList } = window.LH;
+  const awayFmt = s => { s = Math.round(s || 0); return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min' + (s % 60 ? ' ' + (s % 60) + ' s' : ''); };
   const app = document.getElementById('app');
   const MAX = 10;
   const by = () => (Staff.current || {}).name || 'teacher';
@@ -91,7 +92,7 @@
         body = '<div class="mark-meta">The app\'s mark: <strong>' + g.grade + '</strong> · ' + g.raw + '% at Level ' + g.level + ' · ' + esc(LEVEL_NAMES[g.level] || '') + '</div>' +
           (levels.length ? levels.map(l => { const r = rec.levels[l];
             return '<div class="mark-attempt"><div class="mark-meta">Level ' + l + ' · ' + esc(LEVEL_NAMES[l] || '') + ': best ' + (r.best || 0) + '% → grade ' + Grading.levelled(r.best || 0, +l) + ' · ' + (r.attempts || 0) + ' attempt' + (r.attempts === 1 ? '' : 's') + '</div>' +
-              (r.last ? reviewList(r.last.items, true, 'Latest attempt' + (r.last.at ? ' · ' + when(r.last.at) : '') + ' · ' + r.last.pct + '%') : '<p class="muted small">Answers were not recorded for attempts made before version 56.</p>') + '</div>'; }).join('')
+              (r.last ? reviewList(r.last.items, true, 'Latest attempt' + (r.last.at ? ' · ' + when(r.last.at) : '') + ' · ' + r.last.pct + '%' + (r.last.away ? (r.last.away.count ? ' · 🎯 Focus Mode: left the app ' + r.last.away.count + '× (' + awayFmt(r.last.away.secs) + ')' : ' · 🎯 Focus Mode: stayed in the app') : '')) : '<p class="muted small">Answers were not recorded for attempts made before version 56.</p>') + '</div>'; }).join('')
             : '<p class="muted small">Answers were not recorded for attempts made before version 56.</p>');
       }
       if (set) body = '<div class="mark-meta mark-over">✎ Score set by ' + esc(mark.by || 'the teacher') + ': <strong>' + esc(mark.score) + '%</strong> → grade <strong>' + Grading.levelled(+mark.score, lv) + '</strong>. This replaces the app\'s mark.</div>' + body;

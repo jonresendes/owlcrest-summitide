@@ -1189,3 +1189,68 @@ body[data-contrast="inverted"] .tag.lv { background: #000; color: #fff; outline:
 
 .mark-over { color: var(--accent-text); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; }
 .mark-score .text-input[data-max="100"] { width: 5.6rem; }
+
+/* ===== v58: Live Class Board + Focus Mode ===== */
+.live-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 0 rgba(22,163,74,0.6); animation: livePulse 1.6s infinite; flex: 0 0 auto; }
+@keyframes livePulse { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,0.55); } 70% { box-shadow: 0 0 0 9px rgba(22,163,74,0); } 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); } }
+/* student banner */
+.live-banner { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 1rem; padding: 0.7rem 1rem; border-radius: 12px; background: #e8f7ee; border: 2px solid #16a34a; color: #0f3d22; font-size: 0.95rem; }
+.live-banner.here { background: #f0fdf4; }
+.live-banner > span:nth-child(2) { flex: 1; min-width: 0; }
+.live-banner .live-privacy { display: block; margin-top: 0.15rem; }
+.live-banner .btn { flex: 0 0 auto; }
+.focus-notice { margin: 0 auto 1rem; max-width: 36rem; padding: 0.7rem 1rem; border-radius: 10px; background: var(--accent-soft); color: var(--accent-text); font-size: 0.95rem; text-align: left; }
+.focus-return { position: fixed; inset: 0; z-index: 400; background: rgba(15, 23, 42, 0.72); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.focus-return-card { background: var(--surface); color: var(--text); border-radius: 16px; padding: 1.6rem 1.6rem 1.4rem; max-width: 30rem; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
+.focus-return-icon { font-size: 2.6rem; }
+.focus-return-card h2 { margin: 0.3rem 0 0.5rem; }
+.focus-return-card p { margin: 0 0 1rem; }
+/* teacher board */
+.live-top { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.live-pick { margin: 0; min-width: 16rem; }
+.live-pick select { width: 100%; }
+.live-running { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #15803d; }
+.live-setup h2 { margin: 0 0 0.2rem; }
+.live-focus-opt .live-check { display: flex; gap: 0.5rem; align-items: flex-start; font-weight: 400; font-size: 0.9rem; color: var(--muted); margin-top: 0.4rem; }
+.live-focus-opt input { margin-top: 0.25rem; width: 1.1rem; height: 1.1rem; }
+.live-check { display: inline-flex; align-items: center; gap: 0.35rem; }
+.live-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.8rem 1rem; }
+.live-bar .btn-row { align-items: center; }
+.live-layout { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: 1rem; align-items: start; }
+.live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.7rem; }
+.live-tile { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.8rem 0.6rem 0.6rem; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; font: inherit; text-align: center; min-height: 170px; position: relative; transition: transform 0.12s, box-shadow 0.12s; }
+.live-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+.live-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.live-tile.idle { opacity: 0.6; background: var(--surface-2); border-style: dashed; }
+.live-tile.idle:hover { opacity: 0.9; }
+.live-tile.writing { border-color: #94a3b8; }
+.live-tile.writing.st-writing { border-color: #16a34a; background: #f0fdf4; }
+.live-tile.writing.st-done { border-color: #16a34a; background: #ecfdf5; }
+.live-tile.writing.st-elsewhere { border-color: #2563eb; background: #eff6ff; }
+.live-tile.writing.st-unfocused { border-color: #f59e0b; background: #fffbeb; }
+.live-tile.writing.st-away { border-color: #dc2626; background: #fef2f2; }
+.live-tile.writing.st-off { border-color: #cbd5e1; }
+.live-tile.flash { animation: liveFlash 1s ease-in-out 3; }
+@keyframes liveFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } 50% { box-shadow: 0 0 0 6px rgba(37,99,235,0.35); } }
+.live-ava { width: 46px; height: 46px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; background: color-mix(in srgb, var(--c) 22%, #fff); border: 2px solid var(--c); }
+.live-name { font-weight: 800; line-height: 1.15; }
+.live-state { font-size: 0.85rem; font-weight: 700; }
+.live-where { line-height: 1.2; }
+.live-leaves { font-size: 0.78rem; color: #b91c1c; font-weight: 700; }
+.live-mark { margin-top: auto; padding-top: 0.4rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+.live-tile.writing .live-mark { color: #15803d; }
+.live-side .card { padding: 0.9rem 1rem; }
+.live-side h3 { margin: 0 0 0.4rem; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem; }
+.live-side h3 + ul + h3 { margin-top: 0.8rem; }
+.live-list { list-style: none; margin: 0 0 0.6rem; padding: 0; display: grid; gap: 0.25rem; }
+.live-list li { padding: 0.25rem 0.1rem; border-bottom: 1px dashed var(--line); font-size: 0.93rem; }
+.live-not { margin-top: 0.6rem; }
+.live-not summary { cursor: pointer; font-weight: 800; display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0; }
+.live-key { margin: 0.6rem 0 0; line-height: 1.4; }
+.live-summary h2 { margin: 0 0 0.2rem; }
+.live-table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+.live-table th, .live-table td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); }
+body.focus-mode .topnav, body.focus-mode #installBtn { opacity: 0.85; }
+@media (max-width: 900px) { .live-layout { grid-template-columns: 1fr; } .live-side { order: -1; } .live-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } .live-tile { min-height: 150px; } }
+.btn.danger { background: var(--danger); color: #fff; }
+.live-setup .field, .live-pick { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 700; font-size: 0.92rem; }

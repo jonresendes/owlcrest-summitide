@@ -359,7 +359,8 @@
     students: '<circle cx="17" cy="17" r="6"/><circle cx="33" cy="19" r="5"/><path d="M5 40c0-7 5-12 12-12s12 5 12 12"/><path d="M27 40c0-5 3-9 7-10 5 0 9 4 9 10"/>',
     courses: '<path d="M8 10h14a4 4 0 0 1 4 4v26a4 4 0 0 0-4-4H8z"/><path d="M40 10H26a4 4 0 0 0-4 4v26a4 4 0 0 1 4-4h14z"/>',
     grades: '<path d="M6 42h36"/><rect x="10" y="24" width="7" height="18"/><rect x="21" y="14" width="7" height="28"/><rect x="32" y="30" width="7" height="12"/>',
-    teachers: '<rect x="6" y="8" width="36" height="24" rx="2"/><path d="M14 40h20M24 32v8"/><path d="M14 20l6-6 6 6 8-8"/>'
+    teachers: '<rect x="6" y="8" width="36" height="24" rx="2"/><path d="M14 40h20M24 32v8"/><path d="M14 20l6-6 6 6 8-8"/>',
+    live: '<circle cx="24" cy="26" r="4"/><path d="M24 30v12"/><path d="M15 17a12 12 0 0 1 18 0"/><path d="M9 11a20 20 0 0 1 30 0"/><path d="M18 22a8 8 0 0 1 12 0"/>'
   };
   const chalkIcon = k => '<svg class="chalk-ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CHALK[k] + '</svg>';
   function tile(href, icon, title, detail, extra) { const chalk = /data-chalk/.test(extra || ''); return '<a class="card tile desk-fold' + (chalk ? ' chalk' : '') + '" href="' + href + '"' + (extra || '') + '><span class="tile-icon">' + icon + '</span><span class="tile-text"><h2>' + title + '</h2><span class="muted small">' + detail + '</span></span>' + (chalk ? '<span class="chalk-tray" aria-hidden="true"><i></i><i></i></span>' : '') + '</a>'; }
@@ -526,6 +527,7 @@
       tile('#/students', chalkIcon('students'), 'Students', scope.length + (cur ? ' in ' + esc(cur.name) : s.role === 'master' ? ' in the school' : ' in your sections') + (sugg ? ' · ' + sugg + ' suggestion' + (sugg === 1 ? '' : 's') : ''), ' data-chalk') +
       tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length + ' courses · ' + LH.groupByArea(allCourses()).length + ' area' + (LH.groupByArea(allCourses()).length === 1 ? '' : 's'), ' data-chalk') +
       tile('#/dashboard', chalkIcon('grades'), 'Grades', cur ? esc(cur.name) : 'quizzes · assignments · tests', ' data-chalk') +
+      tile('#/live', chalkIcon('live'), 'Live Class', window.Live ? esc(Live.deskDetail()) : 'who is writing · Focus Mode', ' data-chalk') +
       (s.role === 'master' ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's'), ' data-chalk') : '') +
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageTeacherHome);
@@ -872,13 +874,14 @@
     const qs = o.qs;
     app.innerHTML = o.head + '<div class="card center" style="padding:2.5rem"><div class="card-icon">' + (o.icon || '📝') + '</div><h2>' + esc(o.title || 'Ready?') + '</h2>' +
       '<p class="muted">' + qs.length + ' questions · pass mark ' + Badges.PASS_MARK + '%' + (o.best ? ' · your best: ' + o.best + '%' : '') + '</p>' +
-      '<button class="btn lg" id="startBtn">' + esc(o.start || 'Start') + '</button>' + (o.alt || '') + (o.print ? '<div style="margin-top:0.75rem">' + Print.button(o.print, 'Print a paper copy') + '</div>' : '') + '</div>';
+      (window.Live ? Live.focusNoticeHtml() : '') + '<button class="btn lg" id="startBtn">' + esc(o.start || 'Start') + '</button>' + (o.alt || '') + (o.print ? '<div style="margin-top:0.75rem">' + Print.button(o.print, 'Print a paper copy') + '</div>' : '') + '</div>';
     app.querySelector('#startBtn').addEventListener('click', start);
     function start() {
       let i = 0, score = 0; const items = [];
+      if (window.Live) Live.assessmentStart(qs.length);   // Live Class Board: "started", full screen when Focus Mode is on
       const next = () => {
         if (i >= qs.length) return finish();
-        const q = qs[i];
+        const q = qs[i]; if (window.Live) Live.assessmentStep(i);
         app.innerHTML = o.head + '<div class="score-bar"><span>Question ' + (i + 1) + ' of ' + qs.length + '</span><span>Score: ' + score + '</span></div><div class="question"><div class="q-host"></div></div>';
         const host = app.querySelector('.q-host');
         const done = (ok, given) => { items.push({ q: q.prompt || 'Match each item to its pair.', ok: !!ok, a: given }); if (ok) score++; i++; next(); };
@@ -894,7 +897,8 @@
       next();
       function finish() {
         const pct = Math.round(score / qs.length * 100);
-        const fresh = o.onDone(pct, score, items) || [];
+        const away = window.Live ? Live.assessmentDone() : null;   // leaves during the attempt (Focus Mode), kept on the record
+        const fresh = o.onDone(pct, score, items, away) || [];
         const gl = o.gradeLine ? o.gradeLine(pct) : '';
         app.innerHTML = o.head + '<div class="card result-card"><div class="big-num">' + pct + '%</div>' +
           '<h2>' + (pct === 100 ? 'Perfect!' : pct >= Badges.PASS_MARK ? 'You passed!' : 'Keep practising') + '</h2>' +
@@ -943,12 +947,13 @@
     runAssessment({ head, qs, best: u.testBest, title: level > base ? 'Unit test at Level ' + level + ' · ' + LEVEL_NAMES[level] : 'Ready for the unit test?', start: level > base ? 'Start the Level ' + level + ' test' : 'Start the test', print: '#/print/' + course.id + '/' + unit.id + '/test',
       alt: level > base ? '<p class="muted small" style="margin-top:0.9rem">A rewrite one level up: a higher grade here replaces your Level ' + base + ' grade; a lower one changes nothing.</p>' : rewriteOffer(course, base, '#/test/' + course.id + '/' + unit.id),
       gradeLine: (pct) => gradeLineHtml(level, pct, u.test, 'unit test'),
-      onDone(pct, score, items) {
+      onDone(pct, score, items, away) {
+        if (!u.test) u.test = { levels: {} };   // a cloud echo that arrived during the test may have dropped the empty record made above
         u.testAttempts = (u.testAttempts || 0) + 1;
         u.testBest = Math.max(u.testBest || 0, pct);
         if (pct >= Badges.PASS_MARK) u.testPassed = true; else u.failedOnce = true;
         if (pct === 100) u.testPerfect = true;
-        Grading.recordAttempt(u.test, level, pct, items);
+        Grading.recordAttempt(u.test, level, pct, items, away);
         Progress.save();
         const fresh = Badges.evaluate(course, unit);
         Students.suggest(course.id, unit.title, pct);   // level suggestion for the teacher (never shown to the student)
@@ -974,9 +979,10 @@
     runAssessment({ head, qs, best: rec.best, icon: '❓', title: level > base ? 'Quiz at Level ' + level + ' · ' + LEVEL_NAMES[level] : 'Quick check on this lesson', start: level > base ? 'Start the Level ' + level + ' quiz' : 'Start the quiz', print: '#/print/' + course.id + '/' + unit.id + '/quiz/' + lessonIdx,
       alt: level > base ? '<p class="muted small" style="margin-top:0.9rem">A rewrite one level up: a higher grade here replaces your Level ' + base + ' grade; a lower one changes nothing.</p>' : rewriteOffer(course, base, '#/quiz/' + course.id + '/' + unit.id + '/' + lessonIdx),
       gradeLine: (pct) => gradeLineHtml(level, pct, rec, 'quiz'),
-      onDone(pct, score, items) {
+      onDone(pct, score, items, away) {
+        u.quiz = u.quiz || {}; if (u.quiz[lessonIdx] !== rec) u.quiz[lessonIdx] = rec;   // re-attach: a cloud echo during the quiz may have dropped the empty record made above
         rec.attempts++; rec.best = Math.max(rec.best, pct); if (pct >= Badges.PASS_MARK) rec.passed = true;
-        Grading.recordAttempt(rec, level, pct, items);
+        Grading.recordAttempt(rec, level, pct, items, away);
         Progress.save();
         if (pct >= Badges.PASS_MARK) Students.recordLessonLevel(course.id, lessonIdx, level, pct);
         return Badges.evaluate(course, unit);
@@ -1712,7 +1718,7 @@
   function notFound() { app.innerHTML = '<div class="empty"><h2>Page not found</h2><a class="btn" href="#/">Back to courses</a></div>'; }
 
   /* ---------- router ---------- */
-  function route() { routeInner(); try { cloudNotice(); } catch (e) {} try { studentViewBanner(); } catch (e) { console.warn('banner', e); } }
+  function route() { routeInner(); try { cloudNotice(); } catch (e) {} try { studentViewBanner(); } catch (e) { console.warn('banner', e); } try { if (window.Live) Live.banner(); } catch (e) { console.warn('live banner', e); } }
   function routeInner() {
     const parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').map(decodeURIComponent);   // #/page/a/b?x=y
     window.scrollTo(0, 0);
@@ -1748,6 +1754,7 @@
       case 'work': return pageWork(parts[1], parts[2]);
       case 'test': return pageTest(parts[1], parts[2], parts[3]);
       case 'print': return Print.page(parts[1], parts[2], parts[3], parts[4], parts[5]);
+      case 'live': if (!Students.isStaffSession) return pageHome(); try { return Live.page(); } catch (e) { app.innerHTML = '<div class="empty">The Live Class Board could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
       case 'mark': if (!Students.isStaffSession) return pageHome(); try { return Marking.page(parts.slice(1)); } catch (e) { app.innerHTML = '<div class="empty">The marking screen could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
       case 'dashboard': if (!Students.isStaffSession) return pageHome(); try { return Dashboard.page(); } catch (e) { app.innerHTML = '<div class="empty"><h2>The dashboard could not load</h2><p class="muted small">' + esc(e.message) + '</p><a class="btn" href="#/settings">Settings</a></div>'; return; }
       case 'games': return pageGames(parts[1], parts[2]);
