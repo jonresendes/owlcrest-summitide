@@ -34,10 +34,10 @@
   function cls(g) { return g >= LEVEL_BANDS[4][0] ? 'top' : g >= LEVEL_BANDS[3][0] ? 'pass' : 'low'; }
   function qCell(q, fallbackLevel) {
     const g = gradeOf(q, fallbackLevel);
-    if (!g) return '<td class="d-cell none" title="not tried">–</td>';
+    if (!g) return '<td class="d-cell none" title="not tried" data-export="">–</td>';
     const tries = q.attempts || Object.values(q.levels || {}).reduce((n, r) => n + (r.attempts || 0), 0);
     const perLevel = Object.keys(q.levels || {}).map(l => 'L' + l + ': ' + q.levels[l].best + '% raw → ' + Grading.levelled(q.levels[l].best, +l)).join(' · ');
-    return '<td class="d-cell ' + cls(g.grade) + '" title="' + tries + ' attempt' + (tries === 1 ? '' : 's') + (perLevel ? ' · ' + perLevel : ' · ' + g.raw + '% raw at Level ' + g.level) + (g.teacher ? ' · score set by the teacher' : '') + '"><span class="g-num">' + g.grade + '</span><span class="g-lvl">' + (g.teacher ? '✎ ' : '') + 'L' + g.level + ' · ' + g.raw + '%</span></td>';
+    return '<td class="d-cell ' + cls(g.grade) + '" title="' + tries + ' attempt' + (tries === 1 ? '' : 's') + (perLevel ? ' · ' + perLevel : ' · ' + g.raw + '% raw at Level ' + g.level) + (g.teacher ? ' · score set by the teacher' : '') + '" data-export="' + g.grade + ' (Level ' + g.level + ', ' + g.raw + '% raw' + (g.teacher ? ', set by the teacher' : '') + ')"><span class="g-num">' + g.grade + '</span><span class="g-lvl">' + (g.teacher ? '✎ ' : '') + 'L' + g.level + ' · ' + g.raw + '%</span></td>';
   }
   /** The unit test as a quiz-style record (per-level attempts when present, legacy best otherwise). */
   function testRec(u) { return u.test && u.test.levels && Object.keys(u.test.levels).length ? Object.assign({ best: u.testBest || 0, attempts: u.testAttempts || 1 }, u.test) : (u.testBest ? { best: u.testBest, attempts: u.testAttempts || 0 } : null); }
@@ -52,7 +52,8 @@
       ? '<span class="grade-box"><input class="grade-in" type="number" min="0" step="0.5" value="' + (g && g.score !== undefined && g.score !== null ? g.score : '') + '" placeholder="–" ' + ref + ' title="Score out of ' + (g && g.max || DEFAULT_MAX) + ' · work done at Level ' + lv + '"><span class="grade-max">/' + (g && g.max || DEFAULT_MAX) + '</span></span>' + (lg ? '<span class="g-lvl" title="' + lg.raw + '% at Level ' + lg.level + '">→ ' + lg.grade + ' · L' + lg.level + '</span>' : '<span class="g-lvl">L' + lv + '</span>')
       : (lg ? '<span class="grade-show' + (lg.grade >= LEVEL_BANDS[3][0] ? ' ok' : '') + '" title="' + g.score + '/' + (g.max || DEFAULT_MAX) + ' at Level ' + lg.level + '">' + lg.grade + '</span><span class="g-lvl">' + g.score + '/' + (g.max || DEFAULT_MAX) + ' · L' + lg.level + '</span>' : (w && w.text ? '<span class="g-lvl">L' + lv + '</span>' : ''));
     const note = editable ? '<button class="grade-note-btn' + (g && g.note ? ' has' : '') + '" ' + ref.replace('data-grade=', 'data-note=') + ' title="' + (g && g.note ? esc(g.note) : 'Add a comment') + '">💬</button>' : (g && g.note ? '<span class="grade-note" title="' + esc(g.note) + '">💬</span>' : '');
-    return '<td class="d-cell a-cell' + (w && w.done ? ' handed' : '') + '">' + state + grade + note + '</td>';
+    const said = (!w || !w.text ? 'not started' : w.done ? 'handed in' : 'draft') + (g && g.score !== undefined && g.score !== null ? ' · ' + g.score + '/' + (g.max || DEFAULT_MAX) + (lg ? ' → ' + lg.grade + ' (Level ' + lg.level + ')' : '') : '') + (g && g.note ? ' · comment: ' + g.note : '');
+    return '<td class="d-cell a-cell' + (w && w.done ? ' handed' : '') + '" data-export="' + esc(said) + '">' + state + grade + note + '</td>';
   }
   /** Every levelled grade in a unit for one student (quizzes, assignments, test) → average. */
   function unitAverage(course, unit, lessons, u, fallbackLevel) {
@@ -115,7 +116,7 @@
     const head = '<div class="page-head"><div><h1>📊 Grades</h1><p class="muted">' + (cur ? esc(cur.name) + (cur.term ? ' · ' + esc(cur.term) : '') + (cur.archived ? ' · 📦 archived' : '') : (Staff.isMaster ? 'All students' : 'All my students')) + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's') + '</p></div>' +
       '<div class="btn-row"><select class="text-input" id="dashSection" style="max-width:260px"><option value="">' + (Staff.isMaster ? 'All students' : 'All my students') + '</option>' + sections.map(sec => '<option value="' + sec.id + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + (sec.archived ? '📦 ' : '') + esc(sec.name) + '</option>').join('') + '</select>' +
       (!cur ? '<select class="text-input" id="dashCourse" style="max-width:220px">' + window.LearnHub.courses.map(c => '<option value="' + c.id + '"' + (course && c.id === course.id ? ' selected' : '') + '>' + c.icon + ' ' + esc(c.title) + '</option>').join('') + '</select>' : '') +
-      '<button class="btn secondary" id="dashPrint">🖨️ Print</button><a class="btn ghost" href="#/settings">Settings</a></div></div>';
+      '<button class="btn secondary" id="dashPrint" title="Every unit, every column: wide units are printed in parts so nothing is cut off">🖨️ Print</button><button class="btn secondary" id="dashCsv" title="Every unit in one file for Excel, Google Sheets or Numbers">⬇️ CSV</button><button class="btn secondary" id="dashDocx" title="Every unit in one document for Word, Google Docs or Pages">📄 Word</button><a class="btn ghost" href="#/settings">Settings</a></div></div>';
     if (!course) { app.innerHTML = head + '<div class="empty">No course.</div>'; return; }
     Settings.activeCourse = course.id;
     const tables = course.units.map((un, ui) => {
@@ -132,7 +133,19 @@
       (students.length ? '' : '<div class="empty">No students in this section yet.</div>');
     app.querySelector('#dashSection').addEventListener('change', e => { Sections.setCurrent(sid, e.target.value || null); page(); });
     const dc = app.querySelector('#dashCourse'); if (dc) dc.addEventListener('change', e => { sessionStorage.setItem('learnhub.dashCourse', e.target.value); page(); });
-    app.querySelector('#dashPrint').addEventListener('click', () => { app.querySelectorAll('details.unit-grid').forEach(d => d.open = true); window.print(); });
+    // v63: print and files are made from the data in the tables, not from the scrolling boxes on screen
+    const gridOut = kind => {
+      const Tb = window.Tables; if (!Tb) { app.querySelectorAll('details.unit-grid').forEach(d => d.open = true); window.print(); return; }
+      const secs = Array.from(app.querySelectorAll('details.unit-grid')).map(d => ({ heading: (d.querySelector('summary h2') || {}).textContent || '', table: d.querySelector('table.dash') })).filter(x => x.table);
+      if (!secs.length) { alert('There is nothing to ' + (kind === 'print' ? 'print' : 'download') + ' yet.'); return; }
+      const who = cur ? cur.name + (cur.term ? ' · ' + cur.term : '') : (Staff.isMaster ? 'All students' : 'All my students');
+      const opt = { title: 'Grades · ' + course.title, sub: who + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's'), file: 'grades-' + (cur ? cur.name : course.title),
+        footer: 'Levelled grades: the score earned at the level the work was done, placed inside that level\'s band. Level 1 ' + LEVEL_BANDS[1].join('–') + ' · Level 2 ' + LEVEL_BANDS[2].join('–') + ' · Level 3 ' + LEVEL_BANDS[3].join('–') + ' · Level 4 ' + LEVEL_BANDS[4].join('–') };
+      try { if (kind === 'print') Tb.printSheet(secs, opt); else if (kind === 'csv') Tb.downloadCsv(secs, opt); else Tb.downloadDocx(secs, opt); } catch (e) { console.error(e); alert('That did not work: ' + (e && e.message || e)); }
+    };
+    app.querySelector('#dashPrint').addEventListener('click', () => gridOut('print'));
+    app.querySelector('#dashCsv').addEventListener('click', () => gridOut('csv'));
+    app.querySelector('#dashDocx').addEventListener('click', () => gridOut('docx'));
     app.querySelectorAll('[data-open-student]').forEach(a => a.addEventListener('click', () => sessionStorage.setItem('learnhub.studentOpen', a.dataset.openStudent)));
     bindGrades(course.id);
   }

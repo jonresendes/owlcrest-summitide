@@ -188,7 +188,7 @@
   const staffId = () => { const m = me(); return m && m.staffId; };
   function mySectionsT() { const m = me(); return window.Sections.visible(m.staffId, false).filter(s => s.courseId); }
   function sessionIdFor(sec) { return sec.id; }
-  function stopTeacher() { if (T.unsub) { T.unsub(); T.unsub = null; } Object.keys(T.presUnsub).forEach(k => { T.presUnsub[k](); delete T.presUnsub[k]; }); clearInterval(T.tick); T.tick = null; T.pres = {}; T.ses = null; }
+  function stopTeacher() { T.view = 'board'; if (T.unsub) { T.unsub(); T.unsub = null; } Object.keys(T.presUnsub).forEach(k => { T.presUnsub[k](); delete T.presUnsub[k]; }); clearInterval(T.tick); T.tick = null; T.pres = {}; T.ses = null; }
   function watchSection(sec) {
     stopTeacher(); T.section = sec; if (!sec) return;
     T.unsub = db().collection('live').doc(sessionIdFor(sec)).onSnapshot(d => { T.ses = d.exists ? Object.assign({ id: d.id }, d.data()) : null; Object.keys(T.adding).forEach(k => { if (!T.ses || (T.ses.writing || []).includes(k) || T.adding[k] !== T.ses.startedAt) delete T.adding[k]; }); syncPresence(); draw(); }, err => { console.warn('live', err && err.code); T.err = err && err.message; draw(); });
@@ -267,13 +267,80 @@
     const act = document.activeElement; if (act && a.contains(act) && /^(SELECT|INPUT)$/.test(act.tagName) && !T.ses) return;   // do not redraw under the set-up form while it is being used
     const secs = mySectionsT(), sec = T.section;
     const picker = secs.length ? '<label class="field live-pick">Section<select class="text-input" id="liveSec">' + secs.map(s => '<option value="' + esc(s.id) + '"' + (sec && s.id === sec.id ? ' selected' : '') + '>' + esc(s.name) + (s.courseId ? ' · ' + esc((window.LH.findCourse(s.courseId) || {}).title || s.courseId) : '') + '</option>').join('') + '</select></label>' : '';
+    const report = T.view === 'report' && sec && T.ses;
     let body;
     if (!sec) body = '<div class="empty"><h2>No section yet</h2><p class="muted">Create a section with a course and a roster on the <a href="#/sections">Sections page</a>, then come back.</p></div>';
+    else if (report) body = reportHtml(sec);
     else if (!T.ses || T.ses.endedAt) body = setupHtml(sec) + (T.ses && T.ses.endedAt ? summaryHtml(sec) : '');
     else body = boardHtml(sec);
-    a.innerHTML = head() + '<div class="page-head"><div><h1>📡 Live Class Board</h1><p class="muted">See who is in Summitide and on the item right now · mark who is writing today · Focus Mode for quizzes and tests. The app sees only itself: never other tabs, apps or the screen.</p></div></div>' +
-      '<div class="live-top">' + picker + (T.ses && !T.ses.endedAt ? '<span class="live-running"><span class="live-dot"></span> Running since ' + esc(fmtTime(T.ses.startedAt)) + '</span>' : '') + '</div>' + body;
+    let main = a.querySelector('#liveMain');
+    if (!main) {
+      a.innerHTML = head() + '<div class="page-head"><div><h1>📡 Live Class Board</h1><p class="muted">See who is in Summitide and on the item right now · mark who is writing today · Focus Mode for quizzes and tests. The app sees only itself: never other tabs, apps or the screen.</p></div></div><div id="liveMain"></div><div id="liveNotes"></div>';
+      main = a.querySelector('#liveMain');
+    }
+    main.innerHTML = '<div class="live-top">' + picker + (T.ses && !T.ses.endedAt ? '<span class="live-running"><span class="live-dot"></span> Running since ' + esc(fmtTime(T.ses.startedAt)) + '</span>' : '') + '</div>' + body;
+    drawNotes(sec);
     bind(sec);
+  }
+
+  /* --- session notes and the session report (v63) --- */
+  const keepDays = () => (window.Privacy && Privacy.policy && Privacy.policy.liveDays) || 7;
+  const noteFor = (sec, ses) => (sec && ses && window.Staff && Staff.liveNote) ? Staff.liveNote(sec.id, ses.startedAt) : '';
+  /** The notes box sits outside the part of the page that is redrawn every few seconds, and is only rebuilt when the session changes. */
+  function drawNotes(sec) {
+    const slot = app().querySelector('#liveNotes'); if (!slot) return;
+    const ses = T.ses; const key = sec && ses && window.Staff && Staff.setLiveNote ? sec.id + '|' + ses.startedAt : '';
+    if (slot.dataset.key === key) return;
+    slot.dataset.key = key;
+    if (!key) { slot.innerHTML = ''; return; }
+    slot.innerHTML = '<div class="card live-notes"><h2>📝 Session notes</h2><p class="muted small">Anything worth remembering about this session: who was away and why, a fire drill, extra time given, something to follow up. The notes print on the session report.</p>' +
+      '<textarea class="text-input" id="liveNoteText" maxlength="4000" placeholder="Write here…" aria-label="Session notes"></textarea>' +
+      '<div class="live-notes-foot"><span class="muted small" id="liveNoteState" role="status"></span><span class="muted small">Only you can see these notes. Students never do. They are kept until this section\'s next session.</span></div></div>';
+    const ta = slot.querySelector('#liveNoteText'), state = slot.querySelector('#liveNoteState'); ta.value = noteFor(sec, ses);
+    let timer = null;
+    const persist = () => { timer = null; try { Staff.setLiveNote(sec.id, ses.startedAt, ta.value, keepDays()); state.textContent = 'Saved ' + fmtTime(now()); } catch (e) { state.textContent = 'Could not save: ' + (e.message || e); } if (T.view === 'report') draw(); };
+    ta.addEventListener('input', () => { state.textContent = 'Saving…'; clearTimeout(timer); timer = setTimeout(persist, 700); });
+    ta.addEventListener('blur', () => { if (timer) { clearTimeout(timer); persist(); } });
+  }
+  /** Everything the report says, as plain data: used for the page, the Word file and the CSV file. */
+  function reportData(sec) {
+    const ses = T.ses, rs = roster(sec); const ended = !!ses.endedAt;
+    const inSes = id => { const p = T.pres[id]; return p && p.live === ses.id && p.since === ses.startedAt ? p : null; };
+    const writing = new Set(ses.writing || []);
+    const day = (() => { try { return new Date(ses.startedAt).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { return ''; } })();
+    const students = rs.map(s => { const p = inSes(s.id); const late = (ses.late || {})[s.id];
+      const result = !p ? 'Not signed in to this session' : p.done ? 'Handed in' : p.n ? 'Question ' + (p.q || 0) + ' of ' + p.n + (ended ? ' when the session ended' : '') : (p.target ? 'On the item' : 'In the app: ' + (p.label || 'another page'));
+      return [s.name, writing.has(s.id) ? 'Yes' + (late ? ' · joined late ' + fmtTime(late) : '') : 'No', p && p.joinedAt ? fmtTime(p.joinedAt) : '–', result, p ? String(p.leaveCount || 0) : '–', p && p.leaveCount ? fmtSecs(p.awaySecs) : '–']; });
+    const leaves = []; let cut = 0;
+    rs.forEach(s => { const p = inSes(s.id); if (!p) return; const ls = Array.isArray(p.leaves) ? p.leaves : []; if ((p.leaveCount || 0) > ls.length) cut++;
+      ls.forEach(l => leaves.push([s.name, fmtTime(l.at), fmtSecs(l.secs), l.page || ''])); });
+    const here = rs.filter(s => inSes(s.id)), done = here.filter(s => inSes(s.id).done), left = here.filter(s => inSes(s.id).leaveCount);
+    const facts = [['Section', sec.name], ['Course', ses.courseTitle || ''], ['Item', (ses.target && ses.target.label) || ''], ['Date', day],
+      ['Time', fmtTime(ses.startedAt) + ' to ' + (ended ? fmtTime(ses.endedAt) : 'still running (' + fmtTime(now()) + ')')], ['Focus Mode', ses.focus ? 'On' : 'Off'], ['Teacher', ses.teacherName || (me() && me().name) || ''],
+      ['On the roster', String(rs.length)], ['Marked as writing', String(rs.filter(s => writing.has(s.id)).length)], ['Signed in to the session', String(here.length)], ['Handed in', String(done.length)], ['Left the app at least once', String(left.length)]];
+    return { title: 'Live Class session report', sub: sec.name + ' · ' + ((ses.target && ses.target.label) || '') + ' · ' + day, facts, ended,
+      students: { head: ['Student', 'Writing today', 'Joined at', ended ? 'At the end' : 'Right now', 'Times left the app', 'Time away'], rows: students },
+      leaves: { head: ['Student', 'Left at', 'Away for', 'While on'], rows: leaves }, cut,
+      notes: noteFor(sec, ses), footer: 'Summitide sees only itself: which page a student is on and when the app is hidden or not the window in use. It never sees other tabs, apps or the screen. A leave is a fact to ask about, not proof of anything.' };
+  }
+  const tbl = (t, cls) => '<table class="rep ' + cls + '"><thead><tr>' + t.head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + t.rows.map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+  function reportHtml(sec) {
+    const d = reportData(sec);
+    return '<div class="print-toolbar no-print"><div><strong>📄 Session report</strong> <span class="muted small">' + (d.ended ? 'This session has ended.' : 'The session is still running: this is the report so far.') + ' Live Class records are deleted after ' + keepDays() + ' day' + (keepDays() === 1 ? '' : 's') + ' and replaced by this section\'s next session, so print or download the report if you need to keep it.</span></div>' +
+      '<div class="btn-row"><button class="btn" id="liveRepPrint">🖨️ Print / Save as PDF</button><button class="btn secondary" id="liveRepDocx">📄 Word</button><button class="btn secondary" id="liveRepCsv">⬇️ CSV</button><button class="btn ghost" id="liveRepBack">← Back to the board</button></div></div>' +
+      '<div class="print-doc live-report"><header class="ps-head"><img src="crest.png" alt="" class="ps-crest"><div><div class="ps-brand">Summitide Learning · OwlCrest Academy</div><h1>' + esc(d.title) + '</h1></div></header>' +
+      '<dl class="ps-facts">' + d.facts.map(f => '<div><dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd></div>').join('') + '</dl>' +
+      '<h2>Students</h2><div class="table-wrap no-table-tools">' + tbl(d.students, 'rep-students') + '</div>' +
+      '<h2>Each time a student left the app</h2>' + (d.leaves.rows.length ? '<div class="table-wrap no-table-tools">' + tbl(d.leaves, 'rep-leaves') + '</div>' + (d.cut ? '<p class="small">Only the last 20 leaves of a student are listed; the count in the table above is the full number.</p>' : '') : '<p class="small">Nobody left the app during this session.</p>') +
+      '<h2>Session notes</h2><div class="ps-notes-text">' + (d.notes.trim() ? esc(d.notes) : '<span class="muted">No notes written. Use the box below the report.</span>') + '</div>' +
+      '<footer class="ps-foot">' + esc(d.footer) + ' · Report made ' + esc(new Date().toLocaleString()) + '</footer></div>';
+  }
+  function reportFiles(sec, kind) {
+    const d = reportData(sec); const Tb = window.Tables; if (!Tb) { alert('The file tools did not load. Reload the page and try again.'); return; }
+    const sections = [{ heading: 'Students', model: Tb.modelOf(d.students.head, d.students.rows) }].concat(d.leaves.rows.length ? [{ heading: 'Each time a student left the app', model: Tb.modelOf(d.leaves.head, d.leaves.rows) }] : []);
+    const opt = { title: d.title, sub: d.sub, facts: d.facts, notes: d.notes, notesHeading: 'Session notes', footer: d.footer, file: 'live-session-' + sec.name };
+    if (kind === 'csv') Tb.downloadCsv(sections, opt); else Tb.downloadDocx(sections, opt);
+    if (window.Cloud && Cloud.log) Cloud.log('live.report', sec.id, kind);
   }
   function setupHtml(sec) {
     const c = window.LH.findCourse(sec.courseId); if (!c) return '<div class="empty">This section\'s course is not loaded.</div>';
@@ -288,7 +355,8 @@
     const rows = rs.map(s => { const p = T.pres[s.id]; const was = !!(p && p.since === ses.startedAt);
       return '<tr><td>' + esc(s.avatar || '') + ' ' + esc(s.name) + '</td><td>' + ((ses.writing || []).includes(s.id) ? '✍ writing' + ((ses.late || {})[s.id] ? ' · joined late ' + esc(fmtTime(ses.late[s.id])) : '') : '<span class="muted">not writing</span>') + '</td><td>' + (was ? (p.done ? '✅ handed in' : esc(p.label || '')) : '<span class="muted">—</span>') + '</td><td>' + (was && p.leaveCount ? '🔴 ' + p.leaveCount + '× · ' + esc(fmtSecs(p.awaySecs)) : (was ? '—' : '')) + '</td></tr>'; }).join('');
     return '<div class="card live-summary"><h2>Last session · ' + esc(ses.target && ses.target.label || '') + '</h2><p class="muted small">' + esc(fmtTime(ses.startedAt)) + ' – ' + esc(fmtTime(ses.endedAt)) + (ses.focus ? ' · Focus Mode' : '') + ' · leaves are also on each attempt on the marking screen.</p>' +
-      '<div class="table-wrap"><table class="live-table"><thead><tr><th>Student</th><th>Writing</th><th>Last seen on</th><th>Left the app</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+      '<div class="btn-row" style="margin:0.5rem 0"><button class="btn" data-live-report>📄 Session report</button><span class="muted small">Print it, or download it as a Word or CSV file. Your session notes are on it.</span></div>' +
+      '<div class="table-wrap no-table-tools"><table class="live-table"><thead><tr><th>Student</th><th>Writing</th><th>Last seen on</th><th>Left the app</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
   function boardHtml(sec) {
     const ses = T.ses, rs = roster(sec); const writing = new Set(ses.writing || []);
@@ -307,7 +375,7 @@
         '<span class="live-mark">' + (on ? '✍ writing today' + (late ? ' · late ' + esc(fmtTime(late)) : '') : 'not writing') + '</span></button>';
     }).join('');
     return '<div class="live-bar card"><div><strong>' + esc(ses.target && ses.target.label || '') + '</strong>' + (ses.focus ? ' <span class="tag accent">🎯 Focus Mode</span>' : '') + '<div class="muted small">' + writing.size + ' of ' + rs.length + ' marked as writing · ' + liveNow.length + ' on it now · ' + done.length + ' handed in · click a tile to change who is writing today</div></div>' +
-      '<div class="btn-row"><button class="btn ghost sm" id="liveAll">Everyone is writing</button><button class="btn ghost sm" id="liveHere">Only those here</button><button class="btn ghost sm" id="liveNone">Clear</button><label class="live-check small"><input type="checkbox" id="liveSound"' + (T.sound ? ' checked' : '') + '> 🔔 sound when someone leaves</label><button class="btn danger sm" id="liveEnd">⏹ End the session</button></div></div>' +
+      '<div class="btn-row"><button class="btn ghost sm" id="liveAll">Everyone is writing</button><button class="btn ghost sm" id="liveHere">Only those here</button><button class="btn ghost sm" id="liveNone">Clear</button><label class="live-check small"><input type="checkbox" id="liveSound"' + (T.sound ? ' checked' : '') + '> 🔔 sound when someone leaves</label><button class="btn ghost sm" data-live-report>📄 Session report</button><button class="btn danger sm" id="liveEnd">⏹ End the session</button></div></div>' +
       '<div class="live-layout"><div class="live-grid">' + (tiles || '<div class="empty">No students on this roster.</div>') + '</div>' +
       '<aside class="live-side"><div class="card"><h3>✍ Writing now <span class="tag">' + liveNow.length + '</span></h3>' + (liveNow.length ? '<ul class="live-list">' + liveNow.map(s => '<li>🟢 ' + esc(s.name) + (T.pres[s.id] && T.pres[s.id].n ? ' <span class="muted small">Q' + (T.pres[s.id].q || 0) + '/' + T.pres[s.id].n + '</span>' : '') + '</li>').join('') + '</ul>' : '<p class="muted small">Nobody is on the item yet.</p>') +
       (done.length ? '<h3>✅ Handed in <span class="tag">' + done.length + '</span></h3><ul class="live-list">' + done.map(s => '<li>' + esc(s.name) + '</li>').join('') + '</ul>' : '') +
@@ -318,7 +386,12 @@
     const a = app(); const q = s => a.querySelector(s);
     const sel = q('#liveSec'); if (sel) sel.addEventListener('change', () => { const s = mySectionsT().find(x => x.id === sel.value); if (s) { window.Sections.setCurrent(staffId(), s.id); watchSection(s); draw(); } });
     const start = q('#liveStart'); if (start) start.addEventListener('click', async () => { const c = window.LH.findCourse(sec.courseId); const t = targetsFor(c)[+q('#liveTarget').value] || targetsFor(c)[0]; start.disabled = true; try { await startSession(sec, t, q('#liveFocus').checked); } catch (e) { alert('Could not start: ' + (e.message || e)); start.disabled = false; } });
-    const end = q('#liveEnd'); if (end) end.addEventListener('click', async () => { if (!confirm('End the live session? Students stop sending presence; this summary stays until the next session.')) return; try { await endSession(); } catch (e) { alert('Could not end: ' + (e.message || e)); } });
+    a.querySelectorAll('[data-live-report]').forEach(b => b.addEventListener('click', () => { T.view = 'report'; draw(); window.scrollTo(0, 0); }));
+    const back = q('#liveRepBack'); if (back) back.addEventListener('click', () => { T.view = 'board'; draw(); });
+    const rp = q('#liveRepPrint'); if (rp) rp.addEventListener('click', () => window.print());
+    const rd = q('#liveRepDocx'); if (rd) rd.addEventListener('click', () => reportFiles(sec, 'docx'));
+    const rc = q('#liveRepCsv'); if (rc) rc.addEventListener('click', () => reportFiles(sec, 'csv'));
+    const end = q('#liveEnd'); if (end) end.addEventListener('click', async () => { if (!confirm('End the live session? Students stop sending presence. The summary and the session report stay until this section\'s next session.')) return; try { await endSession(); } catch (e) { alert('Could not end: ' + (e.message || e)); } });
     a.querySelectorAll('[data-tile]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.tile; setWriting(id, b.getAttribute('aria-pressed') !== 'true').catch(e => alert('Could not save: ' + (e.message || e))); }));
     const all = q('#liveAll'); if (all) all.addEventListener('click', () => patchWriting(roster(sec).map(s => s.id)));
     const here = q('#liveHere'); if (here) here.addEventListener('click', () => patchWriting(roster(sec).filter(s => status(s.id) !== 'off').map(s => s.id)));
@@ -341,6 +414,6 @@
   document.addEventListener('visibilitychange', onVis); window.addEventListener('blur', onVis); window.addEventListener('focus', onVis);
   window.addEventListener('pagehide', () => { if (S.active) { try { const doc = presenceDoc('hide'); doc.state = 'hidden'; db().collection('presence').doc(uid()).set(doc); } catch (e) {} } });
   Live.student = { refresh: syncStudentWatch, get active() { return S.active; } };
-  Live.status = status;   // for tests
+  Live.status = status; Live.reportData = () => T.section && T.ses ? reportData(T.section) : null;   // for tests
   setTimeout(syncStudentWatch, 0);
 })();

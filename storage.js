@@ -282,7 +282,18 @@
     save() { save(KEY_STAFF, this.data); },
     /** Sticky notes for the signed-in teacher (private to that teacher, synced to their devices). */
     get notes() { const rec = this.current ? (this.currentId === 'master' ? this.master : this.teachers.find(t => t.id === this.currentId)) : null; return rec ? (rec.notes || null) : null; },
-    setNotes(notes) { const rec = this.currentId === 'master' ? this.master : this.teachers.find(t => t.id === this.currentId); if (!rec) return; notes.updatedAt = new Date().toISOString(); rec.notes = notes; this.save(); },
+    setNotes(notes) { const rec = this.currentId === 'master' ? this.master : this.teachers.find(t => t.id === this.currentId); if (!rec) return; if (rec.notes && rec.notes.live && notes.live === undefined) notes.live = rec.notes.live;   // v63: the sticky-note page does not know about Live Class notes; keep them
+      notes.updatedAt = new Date().toISOString(); rec.notes = notes; this.save(); },
+    /** v63 · Notes a teacher writes about a Live Class session: private to that teacher, kept with their sticky notes (staffNotes/<uid>), one per section, replaced by the next session's. */
+    liveNote(sectionId, since) { const n = this.notes; const r = n && n.live && n.live[sectionId]; return r && r.since === since ? String(r.text || '') : ''; },
+    setLiveNote(sectionId, since, text, keepDays) {
+      const cur = this.notes; const n = cur && typeof cur === 'object' ? Object.assign({}, cur) : { count: 6, items: [] };
+      const live = Object.assign({}, n.live || {}); const cut = Date.now() - Math.max(1, keepDays || 7) * 86400000;
+      Object.keys(live).forEach(k => { if (k !== sectionId && !(new Date(live[k].at).getTime() > cut)) delete live[k]; });   // old sessions' notes go when the sessions do
+      const t = String(text || '').slice(0, 4000);
+      if (t.trim()) live[sectionId] = { since, text: t, at: new Date().toISOString() }; else delete live[sectionId];
+      n.live = live; this.setNotes(n);
+    },
     get master() { return this.data.master; },
     setMaster(name, email, pin) { this.data.master = Object.assign({ avatar: '🧑‍🏫', colour: '#1f5f8b' }, this.data.master || {}, { name, email, pin }); this.save(); },
     get teachers() { return this.data.teachers || (this.data.teachers = []); },

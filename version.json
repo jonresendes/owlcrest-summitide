@@ -1,5 +1,5 @@
 {
- "version": "62",
+ "version": "63",
  "date": "2026-11-20",
- "notes": "Mathematics: tables, value charts, graphs and diagrams now sit beside the questions in MTH1W slides, quizzes, unit tests, practice, assignments and print pages (395 figures, including the 57 graphs and diagrams from the course's own decks and worksheets), plus five new skills for reading graphs, tables, box plots, scatter plots and number lines."
+ "notes": "Printing and reports: every column of a table now prints (wide tables are shrunk or printed in parts, landscape when needed) instead of the scrolling box on screen; Print, CSV and Word buttons on the Grades grid and above data tables; a Live Class session report with private session notes that prints or downloads as Word or CSV."
 }
