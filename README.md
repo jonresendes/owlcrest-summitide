@@ -7,6 +7,14 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 64 — a folder for each course's own pictures (20 November 2026)
+
+Housekeeping; nothing changes on screen. The 57 MTH1W pictures (`mth1w-fig-…`, `mth1w-ws-…`, `mth1w-grid.png`, added in version 62) move from the top folder into **`mth1w/`**. The rule from now on: a course is one file (`<course>.js`); if it ships its own pictures they go in a folder with the course's name (`<course>/`). The other courses have no pictures of their own (they link to outside sites), so they have no folder.
+
+**Changed:** `mth1w.js` (the 59 picture addresses now start `mth1w/`), `mathtools.js` (`figImg` accepts `folder/file`; a picture missing from its folder is tried once in the top folder, so a half-finished move still shows pictures), `sw.js` (`summitide-v64`), `pwa.js`, `version.json`, `README.md`. **Moved:** 57 PNGs. The pictures are not in the install list; each is saved for offline use the first time it is seen.
+
+Version 62 (figures in mathematics: tables, value charts, graphs and diagrams in MTH1W) has no section of its own here; its notes are in the project as `summitide-v62-math-figures.md`.
+
 ## Version 63 — printing every column, CSV and Word files, Live Class session report and notes (20 November 2026)
 
 Built on version 61. Version 62 (figures in mathematics) is a separate package that changes `mth1w.js`, `mathcore.js`, `mathtools.js` and `math.css` and adds pictures; it can be uploaded before or after this one. If it goes up first, upload this version's `sw.js`, `pwa.js`, `version.json` and `README.md` over it (the pictures are then cached the first time each is seen, not at install).

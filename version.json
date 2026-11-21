@@ -1,5 +1,5 @@
 {
- "version": "63",
+ "version": "64",
  "date": "2026-11-20",
- "notes": "Printing and reports: every column of a table now prints (wide tables are shrunk or printed in parts, landscape when needed) instead of the scrolling box on screen; Print, CSV and Word buttons on the Grades grid and above data tables; a Live Class session report with private session notes that prints or downloads as Word or CSV."
+ "notes": "Housekeeping: the 57 MTH1W pictures move from the top folder into mth1w/. A course that ships its own pictures now keeps them in a folder named after the course. Nothing changes for students or teachers."
 }
