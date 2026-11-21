@@ -7,6 +7,14 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 65 — students could not sign in (20 November 2026)
+
+**What happened.** A student typed the right number and birthday, the button said *Signing in…*, and the sign-in screen came back empty with no message. `Cloud.signInStudent` returned as soon as the role was known (`waitForRole`), and `enterCloudSession` then looked for the student's profile with `Students.byId(uid)`. The profile arrives a moment later, in `loadOnce`. On a device with nothing stored, and unless the cloud answered within about 50 ms, the profile was not there yet, so the app set *"Your account exists but your profile could not be found"* and signed out; a student sign-out empties the device and reloads the page, which erased the message. Teachers and the Headmaster were not affected: their entry does not need a record to be present first.
+
+**Fix.** `cloud.js`: `Cloud.loaded` is false from the moment the sign-in state changes until that person's records have been read (or the read has failed); `signInStudent` now waits for it (`waitForLoad`, 20 s at most) before returning. `app.js`: the sign-in message is kept in `sessionStorage` (`summitide.signinMsg`) through the reload, and says which of three things went wrong when a profile really is missing: permission denied (rules), offline, or no profile. **Changed:** `cloud.js`, `app.js`, `sw.js` (`summitide-v65`), `pwa.js`, `version.json`, `README.md`.
+
+**Tested** with a stand-in for Firebase that answers after a delay: version 64 enters at 20 ms but signs in and straight out again at 150 and 600 ms (so it depended on the speed of the connection); version 65 enters the student's home page at all three; a wrong password still says so; an account with no profile shows the message after the reload. **Not tested** against the live Firebase project.
+
 ## Version 64 — a folder for each course's own pictures (20 November 2026)
 
 Housekeeping; nothing changes on screen. The 57 MTH1W pictures (`mth1w-fig-…`, `mth1w-ws-…`, `mth1w-grid.png`, added in version 62) move from the top folder into **`mth1w/`**. The rule from now on: a course is one file (`<course>.js`); if it ships its own pictures they go in a folder with the course's name (`<course>/`). The other courses have no pictures of their own (they link to outside sites), so they have no folder.

@@ -1,5 +1,5 @@
 {
- "version": "64",
+ "version": "65",
  "date": "2026-11-20",
- "notes": "Housekeeping: the 57 MTH1W pictures move from the top folder into mth1w/. A course that ships its own pictures now keeps them in a folder named after the course. Nothing changes for students or teachers."
+ "notes": "Fix: students could not sign in. The app checked for the student's profile before it had finished arriving, did not find it, and signed the student out again with no message. Sign-in now waits for the profile, and a sign-in message is kept through the reload."
 }

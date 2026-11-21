@@ -222,6 +222,8 @@
   /* ----- Cloud sign-in (replaces the welcome tiles when cloud.js is enabled) -----
      Students: student number + birthday (DDMMYYYY). Teachers: teacher ID + password. */
   const signinState = { mode: 'student', busy: false, msg: '', signup: false };
+  // v65: a message that must outlive the reload that follows a sign-out (the device is emptied and the page starts again)
+  try { const kept = sessionStorage.getItem('summitide.signinMsg'); if (kept) { signinState.msg = kept; sessionStorage.removeItem('summitide.signinMsg'); } } catch (e) {}
   function pageCloudSignIn() {
     setCourseColor(null); setNav('');
     const bb = document.getElementById('backBtn'); if (bb) bb.hidden = true;
@@ -323,7 +325,12 @@
     if (!Cloud.user) return;
     const uid = Cloud.user.uid;
     if (Cloud.role === 'student') {
-      if (!Students.byId(uid)) { signinState.msg = 'Your account exists but your profile could not be found. Ask your teacher to add you again.'; Cloud.signOut(); return pageCloudSignIn(); }
+      if (!Students.byId(uid)) { signinState.busy = false;
+        signinState.msg = /permission/i.test(Cloud.loadError || '') ? 'Your number and password are right, but your profile could not be read (permission denied). Tell your teacher: the security rules in the Firebase console may be out of date.'
+          : !Cloud.online ? 'Your number and password are right, but your profile could not be loaded: this device seems to be offline. Check the internet and try again.'
+          : 'Your account exists but your profile could not be found. Ask your teacher to add you again.';
+        try { sessionStorage.setItem('summitide.signinMsg', signinState.msg); } catch (e) {}
+        Cloud.signOut(); return pageCloudSignIn(); }
       Students.setCurrent(uid);
     } else Students.setCurrent(Cloud.role === 'master' ? 'staff:master' : 'staff:' + uid);
     sessionStorage.setItem('learnhub.entered', '1'); renderWho(); goHome();

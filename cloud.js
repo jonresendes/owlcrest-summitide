@@ -444,6 +444,7 @@
   }
   let dataVersion = 0;   // meta/config.version: 43 once the Headmaster's app has run the one-time upgrade
   auth.onAuthStateChanged(async user => {
+    Cloud.loaded = false;   // v65: true once this person's records have arrived (see waitForLoad)
     stopListening(); Object.keys(seenStudents).forEach(k => delete seenStudents[k]); Object.keys(seenStaff).forEach(k => delete seenStaff[k]);
     myRoster = null; claimed.clear(); staffDocs = []; staffLoaded = false; myNotes = null; notesLoaded = false; emails = {}; emailsLoaded = false; Object.keys(knownDocs).forEach(k => knownDocs[k] = new Set());
     if (!user) {
@@ -464,8 +465,9 @@
       if (Cloud.role !== 'student' && dataVersion >= 43) reconcileAccess().catch(e => console.warn('access lists', e));
       if (window.CourseFiles) { try { await CourseFiles.loadAll(); } catch (e) { console.warn('loaded courses', e); } }   // courses the Headmaster added from files
       touch();
+      Cloud.loaded = true;
       Cloud.ready = true; if (Cloud.loadError) setStatus('error', Cloud.loadError); else setStatus(Cloud.online ? 'synced' : 'offline'); readyResolve(); emit('auth');
-    } catch (e) { console.warn('cloud sign-in failed', e); Cloud.ready = true; setStatus('error', e.message); readyResolve(); emit('auth'); }
+    } catch (e) { console.warn('cloud sign-in failed', e); Cloud.loaded = true; Cloud.ready = true; setStatus('error', e.message); readyResolve(); emit('auth'); }
   });
 
   /* ---------- idle sign-out (grace period) ---------- */
@@ -490,6 +492,7 @@
     try { localStorage.setItem(KEY_KEEP, keep ? '1' : '0'); } catch (e) {}
     try { await auth.signInWithEmailAndPassword(studentEmail(number), String(password).replace(/\D/g, '')); } catch (e) { throw new Error(friendly(e)); }
     await waitForRole();
+    await waitForLoad();   // v65: a student is let in only once their own profile has arrived. Before, the app looked for the profile a moment after the password was accepted, did not find it yet, and signed the student straight out again.
   };
   Cloud.signInStaff = async (login, password, keep) => {
     try { localStorage.setItem(KEY_KEEP, keep ? '1' : '0'); } catch (e) {}
@@ -497,6 +500,7 @@
     await waitForRole();
     if (Cloud.role === 'student') { await auth.signOut(); throw new Error('That is a student account — use the student sign-in.'); }
   };
+  function waitForLoad() { return new Promise(res => { const t0 = Date.now(); const t = setInterval(() => { if (!Cloud.user || Cloud.loaded || Date.now() - t0 > 20000) { clearInterval(t); res(); } }, 50); }); }
   function waitForRole() { return new Promise(res => { const t = setInterval(() => { if (Cloud.user && Cloud.role) { clearInterval(t); res(); } }, 50); }); }
   /** Sign out and leave nothing on the device: local copies, session state and the offline database are all emptied.
       One exception: a student whose last changes have not reached the cloud keeps the offline queue (their own work only),
