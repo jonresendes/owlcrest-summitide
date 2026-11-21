@@ -132,6 +132,28 @@ body[data-motion="reduced"] .mt-card.wrong { animation: none; }
 .mt-key-line { display: inline-block; width: 1.6rem; border-top: 3px solid var(--primary); vertical-align: middle; }
 .mt-key-line.two { border-top: 3px dashed var(--accent); }
 
+/* ----- figures (v62) ----- */
+.mt-fig { margin: 0.9rem 0; padding: 0.6rem 0.75rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); max-width: 44rem; font-size: 1rem; font-weight: 400; text-align: left; }
+.mt-fig img { display: block; max-width: 100%; height: auto; margin: 0 auto; background: #fff; border-radius: 6px; }
+.mt-fig figcaption { color: var(--muted); font-size: 0.88rem; margin-top: 0.4rem; }
+.mt-fig-plot, .mt-fig-shape { max-width: 27rem; }
+.mt-figscroll { overflow-x: auto; }
+.mt-figtable { margin: 0; width: auto; min-width: 50%; font-size: 1.02rem; }
+.mt-figtable th, .mt-figtable td { text-align: center; padding: 0.4rem 0.75rem; }
+.mt-figtable th[scope="row"] { text-align: left; background: var(--surface-2); white-space: nowrap; }
+.mt-plot2, .mt-shapefig { width: 100%; height: auto; display: block; }
+.mt-dot2 { fill: var(--primary); stroke: var(--surface); stroke-width: 1; }
+.mt-axis.thin { stroke-width: 1.5; }
+.mt-arrowfill { fill: var(--text); }
+.mt-lbl.strong { fill: var(--accent); font-weight: 800; }
+.mt-shape { fill: var(--primary-soft); stroke: var(--text); stroke-width: 2; stroke-linejoin: round; }
+.mt-shape.two { fill: var(--surface-2); }
+.mt-shape.three { fill: var(--accent-soft); }
+.mt-thin { fill: none; stroke: var(--text); stroke-width: 1.5; }
+.mt-thin.dash { stroke-dasharray: 5 4; }
+.mt-boxrect.two { fill: var(--accent-soft); stroke: var(--accent); }
+@media print { .mt-fig { break-inside: avoid; border-color: #999; } }
+
 /* ----- Math Lab ----- */
 .mt-tool { padding: 1.25rem; }
 .mt-two { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 1.5rem; align-items: start; }

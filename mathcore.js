@@ -616,7 +616,7 @@
     var len = L <= 1 ? 7 : L === 2 ? r.pick([7, 9]) : r.pick([8, 10, 11]), d = []; while (d.length < len) d.push(r.int(2, 40)); d.sort(function (a, b) { return a - b; });
     var med = function (a) { var m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }, half = len >> 1, q1 = med(d.slice(0, half)), q3 = med(d.slice(len - half)), M = med(d), mean = round(d.reduce(function (s, x) { return s + x; }, 0) / len, 1);
     var ask = r.pick(L <= 1 ? ['median', 'range'] : L === 2 ? ['median', 'range', 'Q1', 'Q3'] : ['median', 'Q1', 'Q3', 'IQR', 'mean (one decimal place)']), ans = { median: M, range: d[len - 1] - d[0], Q1: q1, Q3: q3, IQR: q3 - q1 }[ask]; if (ans === undefined) ans = mean;
-    return { q: 'Data: ' + d.join(', ') + '\n\nFind the ' + ask + '.', a: n(ans), kind: 'num', tol: /mean/.test(ask) ? 0.06 : undefined, data: d, wrong: [n(M), n(q1), n(q3), n(d[len - 1] - d[0]), n(mean), n(q3 - q1), n(d[half])].filter(function (w, i, arr) { return w !== n(ans) && arr.indexOf(w) === i; }).slice(0, 3), steps: ['The data is in order. There are ' + len + ' values.', 'Median = ' + n(M) + (len % 2 ? ' (the middle value).' : ' (the mean of the two middle values).'), 'Q1 = median of the lower half = ' + n(q1) + '.   Q3 = median of the upper half = ' + n(q3) + '.', 'IQR = Q3 − Q1 = ' + n(q3 - q1) + '.   Range = ' + d[len - 1] + ' − ' + d[0] + ' = ' + (d[len - 1] - d[0]) + '.' + (/mean/.test(ask) ? '   Mean = sum ÷ ' + len + ' = ' + n(mean) + '.' : '')] };
+    return { q: 'Data: ' + d.join(', ') + '\n\nFind ' + (/^(Q1|Q3|IQR)$/.test(ask) ? ask : 'the ' + ask) + '.', a: n(ans), kind: 'num', tol: /mean/.test(ask) ? 0.06 : undefined, data: d, wrong: [n(M), n(q1), n(q3), n(d[len - 1] - d[0]), n(mean), n(q3 - q1), n(d[half])].filter(function (w, i, arr) { return w !== n(ans) && arr.indexOf(w) === i; }).slice(0, 3), steps: ['The data is in order. There are ' + len + ' values.', 'Median = ' + n(M) + (len % 2 ? ' (the middle value).' : ' (the mean of the two middle values).'), 'Q1 = median of the lower half = ' + n(q1) + '.   Q3 = median of the upper half = ' + n(q3) + '.', 'IQR = Q3 − Q1 = ' + n(q3 - q1) + '.   Range = ' + d[len - 1] + ' − ' + d[0] + ' = ' + (d[len - 1] - d[0]) + '.' + (/mean/.test(ask) ? '   Mean = sum ÷ ' + len + ' = ' + n(mean) + '.' : '')] };
   });
   pool('correlation', 'Describe a correlation', [
     ['height and shoe size', 'positive', ['negative', 'none'], 'Taller people tend to have bigger feet: both go up together.'], ['age of a car and its value', 'negative', ['positive', 'none'], 'As the age goes up, the value goes down.'], ['hours of sleep and the last digit of your phone number', 'none', ['positive', 'negative'], 'There is no relationship between them.'],
@@ -682,11 +682,96 @@
     ['rent', 'fixed', ['variable'], 'Rent is the same amount every month.'], ['entertainment', 'variable', ['fixed'], 'It changes from month to month, and you can choose to change it.'], ['a phone plan', 'fixed', ['variable'], 'A plan costs the same each month.'],
     ['groceries', 'variable', ['fixed'], 'The amount changes with what you buy.'], ['a monthly transit pass', 'fixed', ['variable'], 'A pass is one set price each month.'], ['clothing', 'variable', ['fixed'], 'It changes from month to month.'], ['car insurance', 'fixed', ['variable'], 'The payment is set in advance.'], ['eating out', 'variable', ['fixed'], 'It depends on your choices each month.']], 'In a budget, is this a fixed or a variable expense?  ');
 
+
+  /* ---------- figures (v62) ----------
+     A question may carry fig: plain data that mathtools.js draws — never markup.
+       { t:'table', head:[…], rows:[[…]] }   { t:'plot', xr, yr, xs, ys, xl, yl, lines:[{m,b,l}], pts:[[x,y,label]], dots:[[x,y]] }
+       { t:'nline', lo, hi, den, marks:[{v,l}] }   { t:'box', sets:[{l, five:[…]}], lo, hi, step }   { t:'bars', fr:[[n,d]…] }
+       { t:'shape', k:'rtri'|'tri'|'circle'|'prism'|'cyl'|'cone'|'pyr', … labels }   { t:'img', src, alt } */
+  function niceStep(span) { var raw = span / 8, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+  function autoPlot(lines, pts, o) {
+    o = o || {}; var xs = pts.map(function (p) { return p[0]; }).concat([0]), ys = pts.map(function (p) { return p[1]; }).concat(lines.map(function (l) { return l.b; })).concat([0]);
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    if (!pts.length || o.plane) { x0 = Math.min(x0, -6); x1 = Math.max(x1, 6); y0 = Math.min(y0, -6); y1 = Math.max(y1, 6); }
+    var sx = niceStep(Math.max(1, x1 - x0) * 1.2), sy = niceStep(Math.max(1, y1 - y0) * 1.2);
+    if (sx < 1) sx = 1; if (sy < 1) sy = 1;
+    var f = { t: 'plot', xr: [Math.floor((x0 - sx * 0.5) / sx) * sx, Math.ceil((x1 + sx * 0.5) / sx) * sx], yr: [Math.floor((y0 - sy * 0.5) / sy) * sy, Math.ceil((y1 + sy * 0.5) / sy) * sy], xs: sx, ys: sy, lines: lines, pts: pts };
+    if (x0 >= 0 && !o.plane) f.xr[0] = 0; if (y0 >= 0 && !o.plane) f.yr[0] = 0;
+    return f;
+  }
+  function lineOf(rhs) { var t = parse(rhs), b = val(evaluate(t, { x: 0 })), m = val(evaluate(t, { x: 1 })) - b; return { m: round(m, 6), b: round(b, 6) }; }
+  function eqs(text) { var out = [], re = /y = ([^?.,]*?[x\d])(?=\s*(?:\.|\?|,|$|\s{2}|\sand\s|\sis\s|\sfor\s))/g, m; while ((m = re.exec(text))) { try { out.push(lineOf(m[1])); } catch (e) {} } return out; }
+  function ptsIn(text) { var out = [], re = /\((−?[\d.]+), (−?[\d.]+)\)/g, m; while ((m = re.exec(text))) out.push([+m[1].replace('−', '-'), +m[2].replace('−', '-')]); return out; }
+  function xyTable(q) { var m = /x: (.*)\ny: (.*)\n?/.exec(q.q); if (!m) return null; q.q = q.q.replace(m[0], '').replace(/^\s+|\s+$/g, '').replace(/^A relation is linear\.\s*/, 'The table shows a linear relation. ').replace(/^Is the relation linear\?$/, 'The table shows a relation. Is it linear?');
+    return { t: 'table', head: ['x'].concat(m[1].split(', ')), rows: [['y'].concat(m[2].split(', '))], side: true }; }
+  var planeLine = function (q) { var e = eqs(q.q); return e.length ? { t: 'plot', xr: [-10, 10], yr: [-10, 10], xs: 2, ys: 2, lines: e.slice(0, 1), pts: [] } : null; };
+  var FIG = {
+    'first-diff': xyTable, 'linear-predict': xyTable,
+    'line-equation': function (q) { var t = xyTable(q); if (t) return t; var p = ptsIn(q.q); if (p.length === 2) { var m = (p[1][1] - p[0][1]) / (p[1][0] - p[0][0]); return autoPlot([{ m: m, b: p[0][1] - m * p[0][0] }], p.map(function (x) { return [x[0], x[1], '(' + n(x[0]) + ', ' + n(x[1]) + ')']; })); } return null; },
+    'rate-two-points': function (q) { var p = ptsIn(q.q); if (p.length !== 2) return null; var m = (p[1][1] - p[0][1]) / (p[1][0] - p[0][0]); return autoPlot([{ m: m, b: p[0][1] - m * p[0][0] }], p.map(function (x) { return [x[0], x[1], '(' + n(x[0]) + ', ' + n(x[1]) + ')']; })); },
+    'slope-intercept': planeLine, 'transform-line': planeLine,
+    'point-on-line': function (q, L) { return L <= 2 ? planeLine(q) : null; },
+    'intersection': function (q, L) { if (L > 2) return null; var e = eqs(q.q); if (e.length !== 2) return null; var x = (e[1].b - e[0].b) / (e[0].m - e[1].m), y = e[0].m * x + e[0].b; e[0].l = 'A'; e[1].l = 'B'; var f = autoPlot(e, [[x, y]]); f.pts = []; return f; },
+    'int-addsub': function (q, L) { return { t: 'nline', lo: L <= 2 ? -20 : -30, hi: L <= 2 ? 20 : 30, lab: 5 }; },
+    'int-order': function (q) { var v = q.items.map(function (s) { return +s.replace('−', '-'); }); return { t: 'nline', lo: Math.floor(Math.min.apply(null, v)) - 1, hi: Math.ceil(Math.max.apply(null, v)) + 1, lab: 2 }; },
+    'frac-compare': function (q, L) { if (L > 2) return null; var re = /(\d+)\/(\d+)/g, fr = [], m; while ((m = re.exec(q.q))) fr.push([+m[1], +m[2]]); return fr.length === 2 ? { t: 'bars', fr: fr } : null; },
+    'zero-neg-exp': function (q) { var m = /(\d+)([⁰⁻])/.exec(q.q); if (!m || /\(/.test(q.q)) return null; var b = +m[1]; return { t: 'table', head: ['Power'].concat([3, 2, 1, 0, -1, -2].map(function (e) { return b + sup(e); })), rows: [['Value', String(b * b * b), String(b * b), String(b), '?', '?', '?']], side: true, cap: 'Each step to the right divides by ' + b + '.' }; },
+    'general-term': function (q) { var m = /:\s+(.*), …/.exec(q.q); if (!m) return null; var v = m[1].split(', '); return { t: 'table', head: ['Term number, n'].concat(v.map(function (_, i) { return String(i + 1); })).concat(['n']), rows: [['Term value'].concat(v).concat(['?'])], side: true }; },
+    'five-number': function (q) { return q.data ? { t: 'table', head: ['Position'].concat(q.data.map(function (_, i) { return String(i + 1); })), rows: [['Value'].concat(q.data.map(String))], side: true, cap: 'The data in order, with each position numbered.' } : null; },
+    'bestfit': function (q) { var e = eqs(q.q); if (!e.length) return null; var r = rng(hashStr(q.q)), dots = []; for (var x = 2; x <= 12; x++) dots.push([x, round(e[0].m * x + e[0].b + (r() - 0.5) * e[0].m * 2.4, 1)]); var f = autoPlot(e, dots.concat([[0, e[0].b], [14, e[0].m * 14 + e[0].b]])); f.pts = []; f.dots = dots; return f; },
+    'triangle-angle': function (q) { var m; if ((m = /angles of (\d+)° and (\d+)°/.exec(q.q))) return { t: 'shape', k: 'tri', A: m[1] + '°', B: m[2] + '°', C: '?' }; if ((m = /top angle of (\d+)°/.exec(q.q))) return { t: 'shape', k: 'tri', iso: true, C: m[1] + '°', A: '?', B: '?' }; if ((m = /exterior angle of a triangle is (\d+)°\. One of the opposite interior angles is (\d+)°/.exec(q.q))) return { t: 'shape', k: 'tri', C: m[2] + '°', A: '?', ext: m[1] + '°' }; return null; },
+    'circle-measure': function (q) { var m = /(diameter|radius) of (\d+) cm/.exec(q.q); return m ? { t: 'shape', k: 'circle', r: m[1] === 'radius' ? m[2] + ' cm' : '', d: m[1] === 'diameter' ? m[2] + ' cm' : '' } : null; },
+    'pyth-hyp': function (q) { var m = /legs of (\d+) cm and (\d+) cm/.exec(q.q); return m ? { t: 'shape', k: 'rtri', a: m[1] + ' cm', b: m[2] + ' cm', c: '?' } : null; },
+    'pyth-leg': function (q) { var m = /hypotenuse of (\d+) m and one leg of (\d+) m/.exec(q.q); return m ? { t: 'shape', k: 'rtri', a: m[2] + ' m', b: '?', c: m[1] + ' m' } : null; },
+    'vol-prism': function (q) { var m = /prism (\d+) cm by (\d+) cm by (\d+) cm/.exec(q.q); if (m) return { t: 'shape', k: 'prism', l: m[1] + ' cm', w: m[2] + ' cm', h: m[3] + ' cm' }; if ((m = /base (\d+) cm by (\d+) cm/.exec(q.q))) return { t: 'shape', k: 'prism', l: m[1] + ' cm', w: m[2] + ' cm', h: '?' }; return null; },
+    'vol-pyramid': function (q) { var m = /square base with (\d+) m sides and a height of (\d+) m/.exec(q.q); return m ? { t: 'shape', k: 'pyr', s: m[1] + ' m', h: m[2] + ' m' } : null; },
+    'vol-cylinder': function (q) { var m = /(diameter|radius) of (\d+) cm and a height of (\d+) cm/.exec(q.q); return m ? { t: 'shape', k: 'cyl', r: m[1] === 'radius' ? 'r = ' + m[2] + ' cm' : 'd = ' + m[2] + ' cm', h: m[3] + ' cm' } : null; },
+    'vol-cone': function (q) { var m = /radius of (\d+) cm and a height of (\d+) cm/.exec(q.q); return m ? { t: 'shape', k: 'cone', r: 'r = ' + m[1] + ' cm', h: m[2] + ' cm' } : null; },
+    'convert-metric': function (q, L) { return L <= 2 ? { t: 'table', head: ['Larger unit', 'Smaller unit'], rows: [['1 km', '1000 m'], ['1 m', '100 cm'], ['1 cm', '10 mm'], ['1 kg', '1000 g'], ['1 L', '1000 mL']], cap: 'To a smaller unit: multiply. To a larger unit: divide.' } : null; }
+  };
+
+  // ----- skills that are read from a graph, a table or a plot -----
+  S('read-graph', 'Read a line from its graph', function (L, r) {
+    var m = L >= 3 && r() < 0.4 ? r.pick([-1.5, -0.5, 0.5, 1.5]) : r.nz(L <= 1 ? 1 : -3, 3), b = r.int(-4, 4), ask = L <= 1 ? r.pick(['y-intercept', 'sign']) : L === 2 ? r.pick(['y-intercept', 'slope']) : r.pick(['slope', 'equation', 'y-intercept']);
+    var fig = { t: 'plot', xr: [-8, 8], yr: [-8, 8], xs: 1, ys: 1, lines: [{ m: m, b: b }], pts: [[0, b]].concat(Number.isInteger(m) ? [[1, b + m]] : [[2, b + 2 * m]]) }, mm = fromNum(m), st = ['The line crosses the y-axis at (0, ' + n(b) + '), so the y-intercept is ' + n(b) + '.', 'From one marked point to the next: run ' + (Number.isInteger(m) ? 1 : 2) + ', rise ' + n(Number.isInteger(m) ? m : 2 * m) + '. Slope = rise ÷ run = ' + fr(mm.n, mm.d) + '.'];
+    if (ask === 'sign') return { q: 'Look at the line on the graph. Is its slope positive or negative?', a: m > 0 ? 'positive' : 'negative', kind: 'mc', wrong: [m > 0 ? 'negative' : 'positive'], fig: fig, steps: ['Read the graph from left to right.', m > 0 ? 'The line goes up, so the slope is positive.' : 'The line goes down, so the slope is negative.'] };
+    if (ask === 'equation') return { q: 'Write the equation of the line on the graph:  y = …', a: linear(mm, b), kind: 'expr', pre: 'y =', wrong: [linear(R(-mm.n, mm.d), b), linear(mm, -b || 1), linear(R(b || 1), m)], fig: fig, steps: st.concat(['y = ' + linear(mm, b)]) };
+    return { q: 'What is the ' + ask + ' of the line on the graph?', a: ask === 'slope' ? fr(mm.n, mm.d) : n(b), kind: 'num', wrong: ask === 'slope' ? [fr(-mm.n, mm.d), n(b), fr(mm.d, mm.n)] : [n(-b), fr(mm.n, mm.d), n(b + 1)], fig: fig, steps: ask === 'slope' ? st.slice(1) : st.slice(0, 1) };
+  });
+  S('table-rate', 'Rate and initial value from a table', function (L, r) {
+    var m = r.nz(L <= 2 ? 2 : -8, 9), b = r.int(-5, 30), step = L >= 3 ? r.pick([2, 5]) : 1, x0 = L >= 4 ? step : 0, xs = [0, 1, 2, 3].map(function (i) { return x0 + i * step; }), ask = L <= 1 ? 'rate of change' : r.pick(['rate of change', 'initial value']);
+    var fig = { t: 'table', head: ['x'].concat(xs.map(String)), rows: [['y'].concat(xs.map(function (x) { return n(m * x + b); }))], side: true };
+    return { q: 'The table shows a linear relation. What is its ' + ask + '?', a: n(ask === 'rate of change' ? m : b), kind: 'num', fig: fig, wrong: ask === 'rate of change' ? [n(m * step === m ? -m : m * step), n(b), n(-m), n(m + 1)] : [n(m * x0 + b === b ? m : m * x0 + b), n(m), n(-b), n(b + m)],
+      steps: ['y changes by ' + n(m * step) + ' each time x changes by ' + step + ', so the rate of change is ' + n(m * step) + ' ÷ ' + step + ' = ' + n(m) + '.', x0 === 0 ? 'The initial value is y when x = 0: ' + n(b) + '.' : 'There is no x = 0 column. Work back from x = ' + x0 + ': ' + n(m * x0 + b) + ' − ' + x0 + ' × ' + np(m) + ' = ' + n(b) + '.'] };
+  });
+  S('read-box', 'Read a box plot', function (L, r) {
+    var lo = r.int(2, 12) * 5, q1 = lo + r.int(1, 3) * 5, med = q1 + r.int(1, 3) * (L >= 3 ? 2 : 5), q3 = med + r.int(1, 3) * 5, hi = q3 + r.int(1, 4) * 5, ask = r.pick(L <= 1 ? ['median', 'minimum', 'maximum'] : L === 2 ? ['median', 'range', 'Q1', 'Q3'] : ['IQR', 'range', 'median', 'half']);
+    var fig = { t: 'box', sets: [{ l: '', five: [lo, q1, med, q3, hi] }], lo: Math.floor(lo / 10) * 10 - 10, hi: Math.ceil(hi / 10) * 10 + 10, step: L >= 3 ? 5 : 5 };
+    var st = ['The whiskers end at the minimum (' + lo + ') and the maximum (' + hi + ').', 'The box runs from Q1 (' + q1 + ') to Q3 (' + q3 + '). The line inside it is the median (' + med + ').'];
+    if (ask === 'half') return { q: 'About what percent of the data lies inside the box, between Q1 and Q3?', a: '50%', kind: 'mc', wrong: ['25%', '75%', '100%'], fig: fig, steps: ['The quartiles split the data into four equal parts of about 25% each.', 'Two of those parts are inside the box: about 50%.'] };
+    var ans = { median: med, minimum: lo, maximum: hi, range: hi - lo, Q1: q1, Q3: q3, IQR: q3 - q1 }[ask];
+    return { q: 'Use the box plot. Find ' + (/^(Q1|Q3|IQR)$/.test(ask) ? ask : 'the ' + ask) + '.', a: String(ans), kind: 'num', wrong: uniq([med, q1, q3, hi - lo, q3 - q1, lo, hi].map(String), String(ans)).slice(0, 3), fig: fig, steps: st.concat(ask === 'range' ? ['Range = ' + hi + ' − ' + lo + ' = ' + (hi - lo) + '.'] : ask === 'IQR' ? ['IQR = Q3 − Q1 = ' + q3 + ' − ' + q1 + ' = ' + (q3 - q1) + '.'] : []) };
+  });
+  S('read-scatter', 'Read a scatter plot', function (L, r) {
+    var kind = r.pick(['positive', 'negative', 'none']), strong = L >= 3 ? r() < 0.5 : true, dots = [], noise = kind === 'none' ? 0 : strong ? 8 : 22;
+    for (var i = 0; i < 16; i++) { var x = round(1 + r() * 9, 1), y = kind === 'none' ? 10 + r() * 80 : (kind === 'positive' ? 12 + x * 7.5 : 88 - x * 7.5) + (r() - 0.5) * noise; dots.push([x, round(Math.max(3, Math.min(97, y)))]); }
+    var fig = { t: 'plot', xr: [0, 10], yr: [0, 100], xs: 1, ys: 10, lines: [], pts: [], dots: dots };
+    if (L >= 3 && kind !== 'none' && r() < 0.5) return { q: 'The scatter plot shows a ' + kind + ' correlation. Is it strong or weak?', a: strong ? 'strong' : 'weak', kind: 'mc', wrong: [strong ? 'weak' : 'strong'], fig: fig, steps: ['Picture a line through the middle of the points.', strong ? 'The points sit close to that line: a strong correlation.' : 'The points are spread well away from that line: a weak correlation.'] };
+    return { q: 'What kind of correlation does the scatter plot show?', a: kind, kind: 'mc', wrong: ['positive', 'negative', 'none'].filter(function (k) { return k !== kind; }), fig: fig, steps: ['Read the points from left to right.', kind === 'positive' ? 'They rise: as x increases, y tends to increase. Positive.' : kind === 'negative' ? 'They fall: as x increases, y tends to decrease. Negative.' : 'There is no upward or downward pattern. No correlation.'] };
+  });
+  S('read-nline', 'Read a number line', function (L, r) {
+    var den = L <= 1 ? 1 : L === 2 ? 2 : r.pick([2, 4, 5]), lo = L <= 1 ? -8 : -3, hi = L <= 1 ? 8 : 3, k = r.nz(lo * den, hi * den); if (L >= 2 && k % den === 0) k += 1; if (L >= 2 && k > 0 && r() < 0.6) k = -k;
+    var v = R(k, den);
+    return { q: 'What number is at point A on the number line?' + (den > 1 ? ' Answer as a fraction or a decimal.' : ''), a: fr(v.n, v.d), kind: 'num', lowest: true, fig: { t: 'nline', lo: lo, hi: hi, den: den, lab: 1, marks: [{ v: k / den, l: 'A' }] }, wrong: [fr(-v.n, v.d), fr(k + (k < 0 ? -1 : 1), den), fr(k < 0 ? k + 2 * (Math.abs(k) % den || 1) : k - 1, den), n(Math.trunc(k / den) || 1)],
+      steps: [den > 1 ? 'Each whole is cut into ' + den + ' equal parts, so each small step is 1/' + den + '.' : 'Each tick is 1.', 'A is ' + Math.abs(k) + ' step' + (Math.abs(k) === 1 ? '' : 's') + ' to the ' + (k < 0 ? 'left' : 'right') + ' of 0: ' + fr(v.n, v.d) + (v.d !== 1 && Math.abs(v.n) > v.d ? ' (or ' + mixed(v.n, v.d) + ')' : '') + '.'] };
+  });
+
   /** One practice question. seed keeps it repeatable; level 1–4. */
   function make(id, level, seed) {
     var sk = SK[id]; if (!sk) return null;
     var r = rng(seed === undefined ? Math.floor(Math.random() * 1e9) : seed), q = sk.gen(Math.max(1, Math.min(4, level || 2)), r);
-    q.skill = id; q.wrong = uniq(q.wrong || [], q.a);
+    q.skill = id; if (FIG[id] && !q.fig) { try { var fg = FIG[id](q, Math.max(1, Math.min(4, level || 2))); if (fg) q.fig = fg; } catch (e) {} }
+    q.wrong = uniq(q.wrong || [], q.a);
     if (['num', 'expr', 'pow', 'pt'].indexOf(q.kind) >= 0) q.wrong = q.wrong.filter(function (w) { var c = check(w, q.a, q.kind, { tol: q.tol, quiet: true, form: q.form }); return !c.ok && !(c.close && q.kind !== 'pow' && /can be simplified|lowest|Finish/.test(c.msg || '') ); });
     return q;
   }
@@ -698,7 +783,7 @@
   }
 
   M.R = R; M.gcd = gcd; M.parse = parse; M.evaluate = evaluate; M.val = val; M.show = show; M.dec = dec; M.sci = sci; M.fr = fr; M.mixed = mixed; M.n = n; M.money = money; M.round = round; M.sup = sup; M.linear = linear;
-  M.check = check; M.kindOf = kindOf; M.stripUnits = stripUnits; M.rng = rng; M.hashStr = hashStr; M.SKILLS = SK; M.SKILL_ORDER = ORDER; M.make = make; M.bake = bake; M.varsOf = varsOf; M.clean = clean;
+  M.check = check; M.kindOf = kindOf; M.stripUnits = stripUnits; M.rng = rng; M.hashStr = hashStr; M.SKILLS = SK; M.SKILL_ORDER = ORDER; M.make = make; M.bake = bake; M.varsOf = varsOf; M.clean = clean; M.autoPlot = autoPlot; M.niceStep = niceStep;
   root.MathCore = M;
   if (typeof module !== 'undefined' && module.exports) module.exports = M;
 })(typeof window !== 'undefined' ? window : globalThis);

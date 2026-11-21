@@ -7,6 +7,18 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 62 — figures in mathematics: tables, value charts, graphs and diagrams
+
+Changed: `mth1w.js`, `mathcore.js`, `mathtools.js`, `math.css`, `sw.js`, `pwa.js`, `version.json`. New: 57 pictures named `mth1w-fig-*.png` (from the decks' Visual Model slides), `mth1w-ws-*.png` (from the worksheets) and `mth1w-grid.png`. No change to `app.js` or `firestore.rules`.
+
+**How a figure reaches the page.** A course carries `figs: { id: {…} }`, plain data. Wherever course text contains the marker `[Figure id]`, `mathtools.js` swaps it for the figure as the page is drawn: slides, lesson quizzes, unit tests, assignments, games and print pages. A practice question carries its figure directly. A teacher who edits a question or slide in a section can keep, move or delete the marker like any other text.
+
+**Kinds of figure** (`t`): `img` (a picture file in this folder, with alt text), `table` (tables of values, ratio tables, pattern tables, reference charts), `plot` (lines, marked points and scatter points on labelled axes), `nline` (number lines, including halves, quarters and fifths), `box` (box plots), `bars` (fraction bars), `shape` (right triangle, triangle with angles, circle, rectangular prism, pyramid, cylinder, cone). Drawn figures are SVG in the app's own colours, so high contrast and inverted modes apply, and each has a text description for screen readers. Nothing in a figure is run or inserted as markup.
+
+**In MTH1W** (395 figures): every lesson's *Key ideas* slide has at least one at every level (the deck's own graph or diagram where there is one, a drawn table, number line or fraction bars where there is not); more than 250 quiz and test questions show a table, graph or diagram under the question; 16 *Worksheet problems* assignments show the worksheet's own graph; practice shows a figure for 29 of the 89 skills. Five new skills are read from a figure: *Read a line from its graph*, *Rate and initial value from a table*, *Read a box plot*, *Read a scatter plot*, *Read a number line*.
+
+**Fix:** lesson quizzes for lessons with two practice skills drew their generated questions from only one of them; they now alternate.
+
 ## Mathematics: MTH1W, the calculator, the practice room and the Math Lab (v61)
 
 **New files:** `mth1w.js` (the course), `mathcore.js` (the math engine), `mathtools.js` (calculator, practice, Math Lab), `math.css`, `calculator.html` (the pop-out calculator). `index.html` loads `math.css`, `mth1w.js` after `eng3u.js`, and `mathcore.js` + `mathtools.js` after `app.js`; `sw.js` lists the five files. No change to `app.js`, `storage.js`, `cloud.js` or `firestore.rules`: the tools watch the page and add themselves.

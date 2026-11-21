@@ -170,6 +170,96 @@
   }
 
   /* =====================================================================
+     FIGURES (v62) — tables, value charts, graphs, number lines, box plots and diagrams.
+     A figure is plain data (course.figs[id], or fig on a practice question); everything is escaped as it is drawn.
+     In course text the marker  [Figure id]  is replaced by the figure wherever the app shows that text:
+     slides, quizzes, unit tests, assignments, games and print pages.
+     ===================================================================== */
+  var num = function (v) { return typeof v === 'number' && isFinite(v); };
+  function figHTML(spec, id) {
+    if (!spec || typeof spec !== 'object') return '';
+    var draw = { table: figTable, plot: figPlot, nline: figLine, box: figBox, bars: figBars, shape: figShape, img: figImg }[spec.t], inner = '';
+    try { inner = draw ? draw(spec) : ''; } catch (e) { inner = ''; }
+    if (!inner) return '';
+    return '<figure class="mt-fig mt-fig-' + esc(spec.t) + '"' + (id ? ' data-fig="' + esc(id) + '"' : '') + '>' + inner + (spec.cap ? '<figcaption>' + pretty(spec.cap) + '</figcaption>' : '') + '</figure>';
+  }
+  function figImg(s) { if (!/^[A-Za-z0-9][\w.-]*\.(png|jpe?g|webp)$/.test(String(s.src))) return ''; return '<img src="' + esc(s.src) + '" alt="' + esc(s.alt || 'Figure') + '" loading="lazy"' + (num(s.w) && num(s.h) ? ' width="' + s.w + '" height="' + s.h + '"' : '') + '>'; }
+  function figTable(s) {
+    var cell = function (c, tag, extra) { return '<' + tag + (extra || '') + '>' + pretty(c) + '</' + tag + '>'; };
+    return '<div class="mt-figscroll"><table class="md-table mt-figtable"><thead><tr>' + (s.head || []).map(function (h, i) { return cell(h, 'th', s.side && i === 0 ? ' scope="row"' : ' scope="col"'); }).join('') + '</tr></thead><tbody>' +
+      (s.rows || []).map(function (r) { return '<tr>' + r.map(function (c, i) { return s.side && i === 0 ? cell(c, 'th', ' scope="row"') : cell(c, 'td'); }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function figPlot(s) {
+    var xr = s.xr || [-8, 8], yr = s.yr || [-8, 8], xs = s.xs || 1, ys = s.ys || 1, W0 = 400, H0 = 330, L = 44, Rm = 14, T = 14, B = 38;
+    if (!(xr[1] > xr[0]) || !(yr[1] > yr[0])) return '';
+    var X = function (v) { return L + (v - xr[0]) * (W0 - L - Rm) / (xr[1] - xr[0]); }, Y = function (v) { return H0 - B - (v - yr[0]) * (H0 - T - B) / (yr[1] - yr[0]); }, o = '', f = function (v) { return M.n(M.round(v, 4)); };
+    var ax = xr[0] <= 0 && xr[1] >= 0 ? 0 : xr[0], ay = yr[0] <= 0 && yr[1] >= 0 ? 0 : yr[0], nx = Math.round((xr[1] - xr[0]) / xs), ny = Math.round((yr[1] - yr[0]) / ys), kx = Math.ceil(nx / 10), ky = Math.ceil(ny / 10), i, v;
+    if (nx > 60 || ny > 60) return '';
+    for (i = 0; i <= nx; i++) { v = xr[0] + i * xs; o += '<line x1="' + X(v) + '" y1="' + Y(yr[0]) + '" x2="' + X(v) + '" y2="' + Y(yr[1]) + '" class="mt-gridline"/>'; if (i % kx === 0 && !(v === 0 && ay === 0 && ax === 0 && yr[0] < 0)) o += '<text x="' + X(v) + '" y="' + (Y(ay) + 14) + '" text-anchor="middle" class="mt-lbl sm">' + f(v) + '</text>'; }
+    for (i = 0; i <= ny; i++) { v = yr[0] + i * ys; o += '<line x1="' + X(xr[0]) + '" y1="' + Y(v) + '" x2="' + X(xr[1]) + '" y2="' + Y(v) + '" class="mt-gridline"/>'; if (i % ky === 0 && !(v === 0 && ax === 0 && xr[0] < 0)) o += '<text x="' + (X(ax) - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end" class="mt-lbl sm">' + f(v) + '</text>'; }
+    o += '<line x1="' + X(xr[0]) + '" y1="' + Y(ay) + '" x2="' + X(xr[1]) + '" y2="' + Y(ay) + '" class="mt-axis"/><line x1="' + X(ax) + '" y1="' + Y(yr[0]) + '" x2="' + X(ax) + '" y2="' + Y(yr[1]) + '" class="mt-axis"/>';
+    o += '<text x="' + (W0 - Rm) + '" y="' + (s.xl ? H0 - 6 : Y(ay) - 6) + '" text-anchor="end" class="mt-lbl sm">' + esc(s.xl || 'x') + '</text><text x="' + (s.yl ? 4 : X(ax) + 6) + '" y="' + (T - 2) + '" class="mt-lbl sm">' + esc(s.yl || 'y') + '</text>';
+    var alt = [];
+    (s.lines || []).forEach(function (ln, k) { if (!num(ln.m) || !num(ln.b)) return; var p = [];
+      [xr[0], xr[1]].forEach(function (x) { var y = ln.m * x + ln.b; if (y >= yr[0] - 1e-9 && y <= yr[1] + 1e-9) p.push([x, y]); });
+      if (ln.m !== 0) [yr[0], yr[1]].forEach(function (y) { var x = (y - ln.b) / ln.m; if (x > xr[0] && x < xr[1]) p.push([x, y]); });
+      if (p.length < 2) return; p.sort(function (a, b) { return a[0] - b[0]; }); var a = p[0], z = p[p.length - 1];
+      o += '<line x1="' + X(a[0]) + '" y1="' + Y(a[1]) + '" x2="' + X(z[0]) + '" y2="' + Y(z[1]) + '" class="mt-plotline' + (k % 2 ? ' two' : '') + '"/>';
+      if (ln.l) { var lx = a[0] + (z[0] - a[0]) * 0.8, ly = ln.m * lx + ln.b; o += '<text x="' + (X(lx) + 6) + '" y="' + (Y(ly) + (ln.m >= 0 ? 16 : -8)) + '" class="mt-lbl">' + esc(ln.l) + '</text>'; }
+      var gx0 = Math.ceil(xr[0]), g = []; for (var x = gx0; x <= xr[1] && g.length < 2; x++) { var yy = ln.m * x + ln.b; if (Math.abs(yy - Math.round(yy)) < 1e-9 && yy >= yr[0] && yy <= yr[1]) g.push('(' + f(x) + ', ' + f(yy) + ')'); }
+      alt.push((ln.l ? 'line ' + ln.l : 'a straight line') + (g.length === 2 ? ' through ' + g.join(' and ') : '')); });
+    (s.dots || []).forEach(function (p) { o += '<circle cx="' + X(p[0]) + '" cy="' + Y(p[1]) + '" r="4" class="mt-dot2"/>'; });
+    if (s.dots && s.dots.length) alt.push(s.dots.length + ' points: ' + s.dots.map(function (p) { return '(' + f(p[0]) + ', ' + f(p[1]) + ')'; }).join(', '));
+    (s.pts || []).forEach(function (p) { o += '<circle cx="' + X(p[0]) + '" cy="' + Y(p[1]) + '" r="5" class="mt-point"/>' + (p[2] ? '<text x="' + (X(p[0]) + 8) + '" y="' + (Y(p[1]) - 8) + '" class="mt-lbl sm strong">' + esc(p[2]) + '</text>' : ''); alt.push('a marked point at (' + f(p[0]) + ', ' + f(p[1]) + ')'); });
+    return '<svg class="mt-plot2" viewBox="0 0 ' + W0 + ' ' + H0 + '" role="img" aria-label="' + esc('Graph with x from ' + f(xr[0]) + ' to ' + f(xr[1]) + ' and y from ' + f(yr[0]) + ' to ' + f(yr[1]) + (alt.length ? ': ' + alt.join('; ') : '') + '.') + '">' + o + '</svg>';
+  }
+  function figLine(s) {
+    var lo = s.lo, hi = s.hi, den = s.den || 1, lab = s.lab || 1, w = 640, pad = 26; if (!num(lo) || !num(hi) || hi <= lo || (hi - lo) * den > 140) return '';
+    var X = function (v) { return pad + (v - lo) * (w - 2 * pad) / (hi - lo); }, o = '<line x1="' + (pad - 14) + '" y1="46" x2="' + (w - pad + 14) + '" y2="46" class="mt-axis"/><path d="M' + (pad - 14) + ' 46l8 -5v10z M' + (w - pad + 14) + ' 46l-8 -5v10z" class="mt-arrowfill"/>', alt = [];
+    for (var k = lo * den; k <= hi * den; k++) { var v = k / den, whole = k % den === 0; o += '<line x1="' + X(v) + '" y1="' + (whole ? 36 : 41) + '" x2="' + X(v) + '" y2="' + (whole ? 56 : 51) + '" class="mt-axis' + (whole ? '' : ' thin') + '"/>'; if (whole && (v % lab === 0)) o += '<text x="' + X(v) + '" y="76" text-anchor="middle" class="mt-lbl">' + M.n(v) + '</text>'; }
+    (s.marks || []).forEach(function (m) { if (!num(m.v)) return; o += '<circle cx="' + X(m.v) + '" cy="46" r="7" class="mt-point"/>' + (m.l ? '<text x="' + X(m.v) + '" y="26" text-anchor="middle" class="mt-lbl strong">' + esc(m.l) + '</text>' : ''); var steps = Math.round(m.v * den); alt.push('point ' + (m.l || '') + ' is ' + Math.abs(steps) + ' tick' + (Math.abs(steps) === 1 ? '' : 's') + (steps < 0 ? ' left' : ' right') + ' of zero'); });
+    return '<svg class="mt-line" viewBox="0 0 ' + w + ' 86" role="img" aria-label="' + esc('Number line from ' + M.n(lo) + ' to ' + M.n(hi) + (den > 1 ? ', with each whole split into ' + den + ' equal parts' : '') + (alt.length ? '; ' + alt.join('; ') : '') + '.') + '">' + o + '</svg>';
+  }
+  function figBox(s) {
+    var sets = (s.sets || []).filter(function (b) { return b.five && b.five.length === 5 && b.five.every(num); }); if (!sets.length) return '';
+    var lo = num(s.lo) ? s.lo : Math.min.apply(null, sets.map(function (b) { return b.five[0]; })), hi = num(s.hi) ? s.hi : Math.max.apply(null, sets.map(function (b) { return b.five[4]; })), step = s.step || M.niceStep(hi - lo), w = 640, padL = sets.some(function (b) { return b.l; }) ? 90 : 30, H = 46 * sets.length + 50;
+    var X = function (v) { return padL + (v - lo) * (w - padL - 30) / (hi - lo); }, o = '', alt = [];
+    for (var v = lo; v <= hi + 1e-9; v += step) o += '<line x1="' + X(v) + '" y1="8" x2="' + X(v) + '" y2="' + (H - 34) + '" class="mt-gridline"/><text x="' + X(v) + '" y="' + (H - 10) + '" text-anchor="middle" class="mt-lbl sm">' + M.n(v) + '</text>';
+    o += '<line x1="' + X(lo) + '" y1="' + (H - 30) + '" x2="' + X(hi) + '" y2="' + (H - 30) + '" class="mt-axis"/>';
+    sets.forEach(function (b, i) { var y = 30 + i * 46, f = b.five; o += (b.l ? '<text x="6" y="' + (y + 5) + '" class="mt-lbl">' + esc(b.l) + '</text>' : '') + '<line x1="' + X(f[0]) + '" y1="' + y + '" x2="' + X(f[1]) + '" y2="' + y + '" class="mt-axis"/><line x1="' + X(f[3]) + '" y1="' + y + '" x2="' + X(f[4]) + '" y2="' + y + '" class="mt-axis"/><line x1="' + X(f[0]) + '" y1="' + (y - 9) + '" x2="' + X(f[0]) + '" y2="' + (y + 9) + '" class="mt-axis"/><line x1="' + X(f[4]) + '" y1="' + (y - 9) + '" x2="' + X(f[4]) + '" y2="' + (y + 9) + '" class="mt-axis"/><rect x="' + X(f[1]) + '" y="' + (y - 15) + '" width="' + Math.max(1, X(f[3]) - X(f[1])) + '" height="30" class="mt-boxrect' + (i % 2 ? ' two' : '') + '"/><line x1="' + X(f[2]) + '" y1="' + (y - 15) + '" x2="' + X(f[2]) + '" y2="' + (y + 15) + '" class="mt-median"/>';
+      alt.push((b.l ? b.l + ': ' : '') + 'whiskers from ' + f[0] + ' to ' + f[4] + ', box from ' + f[1] + ' to ' + f[3] + ', line inside the box at ' + f[2]); });
+    return '<svg class="mt-box" viewBox="0 0 ' + w + ' ' + H + '" role="img" aria-label="' + esc('Box plot on a scale from ' + lo + ' to ' + hi + '. ' + alt.join('. ') + '.') + '">' + o + '</svg>';
+  }
+  function figBars(s) { return (s.fr || []).filter(function (f) { return f[1] > 0 && f[1] <= 24 && f[0] >= 0 && f[0] <= f[1]; }).map(function (f, k) { var b = '<div class="mt-bar" role="img" aria-label="A bar cut into ' + f[1] + ' equal pieces with ' + f[0] + ' shaded">'; for (var i = 0; i < f[1]; i++) b += '<span class="' + (i < f[0] ? (k % 2 ? 'b' : 'a') : '') + '"></span>'; return '<div class="mt-barrow"><span class="mt-barlbl">' + pretty(f[0] + '/' + f[1]) + '</span>' + b + '</div></div>'; }).join(''); }
+  function figShape(s) {
+    var t = function (x, y, txt, cls, anchor) { return txt ? '<text x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'middle') + '" class="mt-lbl ' + (cls || '') + '">' + esc(txt) + '</text>' : ''; }, o = '', alt = '';
+    if (s.k === 'rtri') { o = '<path d="M50 30V160H230z" class="mt-shape"/><path d="M50 144h16v16" class="mt-thin"/>' + t(40, 100, s.a, '', 'end') + t(140, 182, s.b) + t(152, 86, s.c, '', 'start'); alt = 'Right triangle. Vertical leg ' + (s.a || '') + ', horizontal leg ' + (s.b || '') + ', hypotenuse ' + (s.c || '') + '.'; }
+    else if (s.k === 'tri') { var ax = s.iso ? 140 : 170; o = '<path d="M30 160H250L' + ax + ' 30z" class="mt-shape"/>' + (s.ext ? '<line x1="250" y1="160" x2="330" y2="160" class="mt-thin dash"/>' + t(268, 150, s.ext, 'strong', 'start') : '') + t(62, 152, s.A) + (s.ext ? '' : t(222, 152, s.B)) + t(ax, 62, s.C);
+      alt = 'Triangle with angles ' + [s.A, s.ext ? '' : s.B, s.C].filter(Boolean).join(', ') + (s.iso ? '; the two sides meeting at the top are equal' : '') + (s.ext ? '; the exterior angle beside the unlabelled base angle is ' + s.ext : '') + '.'; }
+    else if (s.k === 'circle') { o = '<circle cx="140" cy="100" r="78" class="mt-shape"/><circle cx="140" cy="100" r="3" class="mt-point"/>' + (s.d ? '<line x1="62" y1="100" x2="218" y2="100" class="mt-median"/>' + t(140, 92, s.d, 'strong') : '<line x1="140" y1="100" x2="218" y2="100" class="mt-median"/>' + t(180, 92, s.r, 'strong')); alt = 'Circle with ' + (s.d ? 'diameter ' + s.d : 'radius ' + s.r) + '.'; }
+    else if (s.k === 'prism') { o = '<path d="M40 70H190V170H40z" class="mt-shape"/><path d="M40 70l40 -34h150l-40 34z" class="mt-shape two"/><path d="M190 70l40 -34v100l-40 34z" class="mt-shape three"/>' + t(115, 190, s.l) + t(222, 166, s.w, '', 'start') + t(32, 124, s.h, '', 'end'); alt = 'Rectangular prism. Length ' + s.l + ', width ' + s.w + ', height ' + s.h + '.'; }
+    else if (s.k === 'cyl') { o = '<path d="M60 50v110a80 22 0 0 0 160 0v-110" class="mt-shape"/><ellipse cx="140" cy="50" rx="80" ry="22" class="mt-shape two"/><line x1="140" y1="50" x2="' + (/^d/.test(s.r || '') ? 60 : 220) + '" y2="50" class="mt-median"/>' + (/^d/.test(s.r || '') ? '<line x1="140" y1="50" x2="220" y2="50" class="mt-median"/>' : '') + t(140, 22, s.r, 'strong') + t(230, 112, s.h, '', 'start'); alt = 'Cylinder with ' + (s.r || '').replace('r =', 'radius').replace('d =', 'diameter') + ' and height ' + s.h + '.'; }
+    else if (s.k === 'cone') { o = '<path d="M60 160L140 24L220 160a80 22 0 0 1 -160 0" class="mt-shape"/><ellipse cx="140" cy="160" rx="80" ry="22" class="mt-shape two"/><line x1="140" y1="24" x2="140" y2="160" class="mt-thin dash"/><line x1="140" y1="160" x2="220" y2="160" class="mt-median"/>' + t(180, 154, s.r, 'strong') + t(132, 100, s.h, '', 'end'); alt = 'Cone with ' + (s.r || '').replace('r =', 'radius') + ' and height ' + s.h + '.'; }
+    else if (s.k === 'pyr') { o = '<path d="M40 160h130l50 -34h-130z" class="mt-shape two"/><path d="M40 160L130 26L170 160z" class="mt-shape"/><path d="M170 160L130 26L220 126z" class="mt-shape three"/><line x1="130" y1="26" x2="130" y2="143" class="mt-thin dash"/>' + t(105, 180, s.s) + t(124, 100, s.h, '', 'end'); alt = 'Square-based pyramid with base side ' + s.s + ' and height ' + s.h + '.'; }
+    else return '';
+    return '<svg class="mt-shapefig" viewBox="0 0 ' + (s.ext ? 340 : 280) + ' 200" role="img" aria-label="' + esc(alt) + '">' + o + '</svg>';
+  }
+  function findFig(id, course) { if (course && course.figs && course.figs[id]) return course.figs[id]; var all = (W.LearnHub && LearnHub.courses) || []; for (var i = 0; i < all.length; i++) if (all[i].figs && Object.prototype.hasOwnProperty.call(all[i].figs, id) && isMath(all[i])) return all[i].figs[id]; return null; }
+  /** swap every  [Figure id]  in the page's text for its figure */
+  function placeFigures(root, course) {
+    var walker = D.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [], node;
+    while ((node = walker.nextNode())) if (node.nodeValue.indexOf('[Figure ') >= 0 && node.parentNode && !node.parentNode.closest('textarea, script, style, .mt-fig, [contenteditable]')) nodes.push(node);
+    nodes.forEach(function (nd) {
+      var ids = [], text = nd.nodeValue.replace(/\s*\[Figure ([A-Za-z0-9][\w.-]*)\]/g, function (m, id) { if (findFig(id, course)) { ids.push(id); return ''; } return m; });
+      if (!ids.length) return; nd.nodeValue = text;
+      var host = nd.parentNode; while (host !== root && host.parentNode && host.parentNode !== root && /^(SPAN|STRONG|EM|B|I|A|LABEL|MARK)$/.test(host.tagName)) host = host.parentNode;
+      var inside = host.closest('button, .mt-opt, option'), after = inside || host, holder = D.createElement('div'); holder.innerHTML = ids.map(function (id) { return figHTML(findFig(id, course), id); }).join('');
+      var ref = after.nextSibling; while (holder.firstChild) after.parentNode.insertBefore(holder.firstChild, ref);
+      if (!inside && host !== root && !host.textContent.trim() && !host.querySelector('img, svg, table, input')) host.remove();
+    });
+  }
+
+  /* =====================================================================
      PRACTICE ROOM
      ===================================================================== */
   var P = null;   // the open practice session
@@ -228,7 +318,7 @@
   // ----- one question on the card -----
   function showItem() {
     var it = P.items[P.wsAt]; if (!it) return; var r = rec(P.course, P.unit, P.idx);
-    P.q = { q: (it.g ? it.g + '\n' : '') + it.q, a: it.a, kind: it.k || 'self', steps: it.s || [], ws: true, tol: it.tol, part: it.part, form: it.f }; P.tries = 0; P.hinted = 0;
+    P.q = { q: (it.g ? it.g + '\n' : '') + it.q, a: it.a, kind: it.k || 'self', steps: it.s || [], ws: true, tol: it.tol, part: it.part, form: it.f, fig: it.fig }; P.tries = 0; P.hinted = 0;
     card(); side(r.ws[P.wsAt] === 1 ? '<p class="tag ok" style="margin-top:0.6rem">✓ You have done this one</p>' : '');
   }
   function nextSkill(similar) {
@@ -253,7 +343,7 @@
       '<div class="mt-pad" aria-label="Math keys">' + (PADS[q.kind] || PADS.num).map(function (k) { return '<button type="button" class="mt-padkey" data-k="' + esc(k === '␣' ? ' ' : k) + '" aria-label="' + esc({ '−': 'negative or minus', '/': 'fraction bar', '^': 'exponent', '␣': 'space, for a mixed number', '×10^': 'times ten to the power of' }[k] || k) + '">' + esc(k === '/' ? 'a/b' : k === '^' ? 'xʸ' : k === '␣' ? 'space' : k) + '</button>'; }).join('') + '</div>' +
       (q.kind === 'num' ? '<p class="small muted mt-how">Fractions: type 3/4. Mixed numbers: 1 1/2. Negative: −5 or -5.</p>' : q.kind === 'expr' || q.kind === 'pow' ? '<p class="small muted mt-how">Exponents: type x^2 for x². Write 3x for 3 times x.</p>' : q.kind === 'pt' ? '<p class="small muted mt-how">Type the point as (x, y).</p>' : '');
     el.innerHTML = '<div class="mt-qhead"><span class="tag">' + esc(label) + '</span>' + (W.LH && LH.speak ? '<button type="button" class="btn ghost sm" id="mtSpeak" aria-label="Read the question aloud">🔊</button>' : '') + '</div>' +
-      '<div class="mt-q" id="mtQ">' + pretty(q.q) + '</div>' + body + '<div class="mt-fb" id="mtFb" aria-live="polite"></div>' +
+      '<div class="mt-q" id="mtQ">' + pretty(q.q) + '</div>' + (q.fig ? figHTML(typeof q.fig === 'string' ? findFig(q.fig, P.course) : q.fig) : '') + body + '<div class="mt-fb" id="mtFb" aria-live="polite"></div>' +
       '<div class="btn-row mt-actions"><button type="button" class="btn ghost sm" id="mtHint"' + (q.steps && q.steps.length && q.kind !== 'self' ? '' : ' hidden') + '>💡 Hint</button><button type="button" class="btn ghost sm" id="mtSkip">' + (q.ws ? 'Next question →' : 'Skip →') + '</button></div>';
     el.classList.remove('right', 'wrong');
     bindCard();
@@ -544,6 +634,7 @@
         if (ok) { W.scrollTo(0, 0); var cc = ctx.course && ctx.course.color; if (cc && /^#[0-9a-f]{3,8}$/i.test(cc)) D.documentElement.style.setProperty('--course', cc); } }
       return;
     }
+    if (ctx.math || ctx.page === 'print') placeFigures(a, ctx.math ? ctx.course : null);
     if (!ctx.math) return;
     if (ctx.page === 'lesson' && !$('#mtPracticeTile', a)) {
       var unit = LH.findUnit(ctx.course, ctx.parts[2]), les = unit && lessonsOf(unit).find(function (l) { return l._idx === (+ctx.parts[3] || 0); }), grid0 = $('.lesson-parts', a);
@@ -572,11 +663,11 @@
   function schedule() { if (pending) return; pending = true; Promise.resolve().then(function () { pending = false; try { decorate(); } catch (e) { console.error('mathtools', e); } }); }
   function start() {
     var a = app(); if (!a) return;
-    new MutationObserver(schedule).observe(a, { childList: true });
+    new MutationObserver(schedule).observe(a, { childList: true, subtree: true });
     W.addEventListener('hashchange', function () { setTimeout(schedule, 0); });
     W.addEventListener('cloud:change', schedule);
     schedule();
   }
   if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', start); else start();
-  W.MathTools = { calc: calcToggle, popOut: calcPop, isMath: isMath, TOOLS: TOOLS, FORMULAS: FORMULAS, pretty: pretty };
+  W.MathTools = { figure: figHTML, placeFigures: placeFigures, calc: calcToggle, popOut: calcPop, isMath: isMath, TOOLS: TOOLS, FORMULAS: FORMULAS, pretty: pretty };
 })();
