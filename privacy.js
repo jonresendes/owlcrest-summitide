@@ -8,12 +8,21 @@
       from the school's policy record, so the notice always matches what the app actually does.
 
    2. THE SCHOOL'S POLICY — settings/policy (anyone may read it, only the Headmaster may write it):
-        allowDictation  dictation (voice to text) offered at all; off = no 🎤 button for anyone
-        shotDays        a problem report's screenshot is removed after this many days
-        reportDays      a resolved problem report is deleted after this many days
-        liveDays        Live Class presence records and ended sessions are deleted after this many days
+        allowDictation  dictation (voice to text) offered at all; off = no 🎤 button for anyone. v66: OFF until switched on
+        shotDays        a problem report's screenshot is removed after this many days   } only when autoSweep is on
+        reportDays      a resolved problem report is deleted after this many days       } (v66: nothing is deleted
+        liveDays        Live Class presence records and ended sessions, likewise        }  automatically by default)
         contact         who to ask about privacy (a line of plain text shown on the notice)
         boardReviewed   the school board has reviewed the notice (until then the notice says it has not)
+      v66 (pv: 2) adds what Ontario's MFIPPA asks of a notice of collection (s. 29 (2)) and of retention (s. 30):
+        authority       the legal authority for the collection, in the board's words
+        officerTitle, officerAddress, officerPhone   the board officer who answers questions about the collection
+        autoSweep       the daily clean-up runs by itself (off until the board has given its retention schedule)
+        holdAll         a hold on every record in the school: nothing is deleted by anyone until it is lifted
+        allowDrive      exports may be saved to Google Drive
+        allowEmbeds     YouTube videos and Google Slides / Docs / Forms are shown inside lessons
+        allowOutsideMedia   pictures, sound and video kept on other websites are loaded inside lessons
+      A record saved before v66 (no pv) is read with the v66 defaults for every switch above: all off.
       A copy is kept on the device under 'summitide.policy' (not personal, so sign-out leaves it).
 
    3. DICTATION — the browser's speech service sends the audio to the browser's maker (Google or Apple).
@@ -32,8 +41,10 @@
   const app = () => document.getElementById('app');
   const DAY = 86400000;
   const KEY_POLICY = 'summitide.policy', KEY_SEEN = 'summitide.dictationSeen', KEY_SWEEP = 'summitide.sweep';
-  const DEFAULTS = { allowDictation: true, shotDays: 30, reportDays: 180, liveDays: 7, contact: '', boardReviewed: false };
-  const LIMITS = { shotDays: [1, 365], reportDays: [7, 730], liveDays: [1, 90] };
+  const DEFAULTS = { pv: 2, allowDictation: false, shotDays: 30, reportDays: 180, liveDays: 7, contact: '', boardReviewed: false, authority: '', officerTitle: '', officerAddress: '', officerPhone: '', autoSweep: false, holdAll: false, allowDrive: false, allowEmbeds: false, allowOutsideMedia: false };
+  const LIMITS = { shotDays: [1, 3650], reportDays: [7, 3650], liveDays: [1, 3650] };   // v66: up to ten years, so a board's own schedule fits
+  const TEXTS = { contact: 200, authority: 400, officerTitle: 120, officerAddress: 240, officerPhone: 40 };
+  const SWITCHES_V2 = ['allowDictation', 'autoSweep', 'allowDrive', 'allowEmbeds', 'allowOutsideMedia'];   // off unless saved as on by a v66 app
   const MAX_SESSION_HOURS = 12;   // a Live Class session left running is ended after this long
 
   const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
@@ -49,8 +60,10 @@
   /** Make any stored policy safe and complete: known keys only, numbers inside their limits, plain text. */
   function normalise(p) {
     p = p && typeof p === 'object' ? p : {};
-    const out = { allowDictation: p.allowDictation !== false, boardReviewed: p.boardReviewed === true,
-      contact: String(p.contact === undefined || p.contact === null ? '' : p.contact).replace(/[<>]/g, '').trim().slice(0, 200) };
+    const v2 = (+p.pv || 0) >= 2;
+    const out = { pv: 2, boardReviewed: p.boardReviewed === true, holdAll: p.holdAll === true };
+    SWITCHES_V2.forEach(k => { out[k] = v2 && p[k] === true; });
+    Object.keys(TEXTS).forEach(k => { out[k] = String(p[k] === undefined || p[k] === null ? '' : p[k]).replace(/[<>]/g, '').trim().slice(0, TEXTS[k]); });
     Object.keys(LIMITS).forEach(k => { const n = Math.round(+p[k]); const lim = LIMITS[k]; out[k] = isNaN(n) || !p[k] ? DEFAULTS[k] : Math.max(lim[0], Math.min(lim[1], n)); });
     return out;
   }
@@ -68,6 +81,7 @@
     try {
       const d = await Cloud.db.collection('settings').doc('policy').get();
       const next = normalise(d.exists ? d.data() : DEFAULTS);
+      Privacy.needsReview = d.exists && (+d.data().pv || 0) < 2;   // saved before v66: the Headmaster is asked to look at the new settings once
       const changed = JSON.stringify(next) !== JSON.stringify(Privacy.policy);
       Privacy.policy = next; lsSet(KEY_POLICY, next);
       if (changed) redrawIfShown();
@@ -79,16 +93,16 @@
     const next = normalise(Object.assign({}, Privacy.policy, patch));
     if (cloudOn()) {
       try { await Cloud.db.collection('settings').doc('policy').set(Object.assign({}, next, { updatedAt: now(), updatedBy: (Cloud.user && Cloud.user.uid) || '' })); }
-      catch (e) { throw new Error(/permission|insufficient/i.test((e && e.code || '') + ' ' + (e && e.message)) ? 'The cloud refused the change. Check that the version 59 firestore.rules are published (Firebase console → Firestore → Rules), then try again.' : (e && e.message) || 'Could not save.'); }
+      catch (e) { throw new Error(/permission|insufficient/i.test((e && e.code || '') + ' ' + (e && e.message)) ? 'The cloud refused the change. Publish the version 66 firestore.rules (Firebase console → Firestore Database → Rules → Publish), then try again.' : (e && e.message) || 'Could not save.'); }
       if (Cloud.log) Cloud.log('policy.save', 'policy', { fields: Object.keys(patch) });
     }
-    Privacy.policy = next; lsSet(KEY_POLICY, next);
+    Privacy.policy = next; lsSet(KEY_POLICY, next); Privacy.needsReview = false;
     return next;
   }
   Privacy.fetchPolicy = fetchPolicy; Privacy.savePolicy = savePolicy; Privacy.normalise = normalise;
 
   /* ====================== dictation ====================== */
-  Privacy.dictationAllowed = () => Privacy.policy.allowDictation !== false;
+  Privacy.dictationAllowed = () => Privacy.policy.allowDictation === true;   // v66: speech recognition is an automated (AI) service run by the browser's maker; off until the school switches it on
   const seenKey = () => { const m = me(); return (m && m.id) || 'anon'; };
   Privacy.dictationSeen = () => { const s = lsGet(KEY_SEEN) || {}; return !!s[seenKey()]; };
   /** The one-time notice before dictation is first used. Resolves true when the person chooses to go on. */
@@ -120,17 +134,23 @@
       '<div class="page-head"><div><h1>🔏 Privacy notice</h1><p class="muted">What Summitide Learning knows about you, who can see it, and how long it is kept.</p></div>' +
         '<div class="btn-row">' + (signedIn ? '<a class="btn ghost sm" href="#/settings">← Settings</a>' : '<a class="btn ghost sm" href="#/signin" data-privacy-back>← Back to sign in</a>') + '<button class="btn secondary sm" type="button" data-privacy-print>🖨️ Print</button></div></div>' +
       (p.boardReviewed ? '' : '<p class="privacy-flag" role="note">This notice describes how the app works today. It has not yet been reviewed by the school board.</p>') +
+      (p.authority && p.officerTitle && p.officerAddress && p.officerPhone ? '' : '<p class="privacy-flag" role="note">Still to be filled in by the school: ' + [!p.authority && 'the legal authority for collecting this information', !(p.officerTitle && p.officerAddress && p.officerPhone) && 'the title, business address and telephone number of the school board officer who answers questions about it'].filter(Boolean).join('; and ') + '.</p>') +
+      (p.holdAll ? '<p class="privacy-flag" role="note">Every record is on hold at the moment: nothing is being deleted.</p>' : '') +
       sec('Who runs this app', '<p>Summitide Learning is made by OwlCrest Academy and used by your teachers for your classes. Your school decides who has an account.</p>' +
-        '<p><strong>Questions about your information:</strong> ' + (p.contact ? esc(p.contact) : 'ask your teacher or the school office.') + '</p>') +
+        '<p><strong>Legal authority for collecting this information:</strong> ' + (p.authority ? esc(p.authority) : '<em>not yet stated by the school.</em>') + '</p>' +
+        '<p><strong>Who answers questions about the collection:</strong> ' + (p.officerTitle || p.officerAddress || p.officerPhone ? esc([p.officerTitle, p.officerAddress, p.officerPhone].filter(Boolean).join(' · ')) : '<em>the school board officer has not yet been named here.</em>') + '</p>' +
+        '<p><strong>Day-to-day questions:</strong> ' + (p.contact ? esc(p.contact) : 'ask your teacher or the school office.') + '</p>') +
       sec('What the app keeps about a student', ul([
-        '<strong>Who you are:</strong> your first name, your student number, your birthday (used only as your password), and the picture and colours you choose.',
+        '<strong>Who you are:</strong> your first name, your student number, and the picture and colours you choose. The app does not ask for your birthday. (If your record has one from before, it is removed when your teacher gives you a sign-in code.)',
+        '<strong>How you sign in:</strong> a sign-in code your teacher gives you. A copy of the code is kept where only your teachers and the Headmaster can reach it, so that a teacher can replace it if you lose it.',
         '<strong>How you learn:</strong> your level in each course, and any accommodations, modified program or Focus Plan your teacher has set.',
         '<strong>Your work:</strong> the slides you have read, your quiz and test results (including your answers to the latest attempt), your assignments, your awards, and the history of your level changes.',
         '<strong>What your teacher adds:</strong> grades and comments.',
         '<strong>Your own notes:</strong> the sticky notes on your desk.',
         (window.Coins && Coins.on() ? '<strong>Coins:</strong> how many you have earned in each course, what you have asked a shop for, and what your teachers have handed over or given you.' : null),
-        '<strong>During a Live Class session only:</strong> which page of the app you are on, which question, whether the app is the window in front, and the times you left it.',
-        '<strong>If you report a problem:</strong> your message and, if you leave it ticked, a picture of the screen.'
+        '<strong>During a Live Class session only:</strong> which page of the app you are on, which question, whether the app is the window in front, and the times you left it. Your teacher may also write notes about the session; only that teacher can read them.',
+        '<strong>If you report a problem:</strong> your message, the kind of browser and the size of the screen, and, if you leave it ticked, a picture of the screen.',
+        '<strong>If you ask for a correction:</strong> what you asked, the answer, and any statement of disagreement. These stay with your record.'
       ].filter(Boolean)) + '<p>For teachers the app keeps a name, a teacher ID, an optional school e-mail address, sections, and private notes.</p>') +
       sec('Why', '<p>To show you lessons at the right level, to save your work so it follows you to any device, and to let your teachers mark it and help you. Nothing is used for advertising, nothing is sold, and the app has no tracking or analytics.</p>') +
       sec('Who can see it', ul([
@@ -144,29 +164,34 @@
         '<strong>Accounts and records:</strong> Google Firebase (sign-in and database), protected by rules that decide what each account may read and change.',
         '<strong>The app itself:</strong> a website hosted on GitHub Pages. It holds no student records.',
         '<strong>On the device you use:</strong> a working copy, so the app is fast and works offline. It is erased when you sign out or are signed out for being idle.',
-        '<strong>Voice recordings and files a teacher uploads</strong> stay in the browser of the device they were made on. They are never sent to the cloud.'
+        '<strong>Voice recordings and files a teacher uploads</strong> stay in the browser of the device they were made on. They are never sent to the cloud.',
+        '<strong>On paper and in files:</strong> a teacher or the Headmaster can print or download grades, a Live Class session report, sign-in slips and a copy of a student\'s record. Each download or print of these is written in the change log. What happens to the paper or file afterwards is up to the school.'
       ])) +
       sec('Other services the app can use', ul([
-        '<strong>Dictation (🎤):</strong> ' + (p.allowDictation ? 'your browser sends the sound of your voice to its maker (Google, Microsoft or Apple) to turn it into text. You are told before the first time, and you can turn it off in Settings → Accessibility.' : 'switched off for this school.'),
+        '<strong>Dictation (🎤):</strong> ' + (p.allowDictation ? 'your browser sends the sound of your voice to its maker (Google, Microsoft or Apple), whose automated speech-recognition system (a kind of artificial intelligence) turns it into text. You are told before the first time, a person always reads what you hand in, and you can turn it off in Settings → Accessibility.' : 'switched off for this school.'),
         '<strong>Read aloud (🔊):</strong> uses the voices built into your device or browser.',
-        '<strong>Videos and Google files in a lesson:</strong> when a teacher adds a YouTube video or a Google Slides, Docs or Forms file, it is shown inside the lesson and that service can see that you opened it.',
-        '<strong>Google Drive:</strong> only if the Headmaster chooses to save an export file there.',
+        '<strong>Videos and Google files in a lesson:</strong> ' + (p.allowEmbeds ? 'when a teacher adds a YouTube video or a Google Slides, Docs or Forms file, it is shown inside the lesson and that service can see that your device opened it.' : 'not shown inside lessons at this school. A teacher can add a link; the other site sees your device only if you choose to open the link.'),
+        '<strong>Pictures and sound kept on other websites:</strong> ' + (p.allowOutsideMedia ? 'loaded inside the lesson, so the site that keeps them can see that your device asked for them.' : 'not loaded at this school. A link is shown instead. Pictures kept with the app itself, such as the graphs in mathematics, do not go through another site.'),
+        '<strong>Links in a lesson:</strong> open in a new tab. The app tells the other site nothing; the site sees what any website sees when you visit it.',
+        '<strong>Google Drive:</strong> ' + (p.allowDrive ? 'only if the Headmaster chooses to save an export file there.' : 'switched off for this school.'),
         '<strong>Fonts:</strong> served by the app itself. Nothing is loaded from a font service.'
       ])) +
       sec('How long it is kept', ul([
-        '<strong>Work, grades and your profile:</strong> while you are in the class. At the end of a term the Headmaster can erase the work and grades of archived classes, and a student who has left is deleted completely.',
-        '<strong>Live Class records:</strong> deleted after ' + plural(p.liveDays, 'day') + '. A session left running is ended after ' + MAX_SESSION_HOURS + ' hours.',
-        '<strong>Problem-report screenshots:</strong> removed after ' + plural(p.shotDays, 'day') + '.',
-        '<strong>Problem reports that have been dealt with:</strong> deleted after ' + plural(p.reportDays, 'day') + '.',
-        '<strong>The change log</strong> (who added or removed an account, and when) is kept and cannot be edited.'
-      ])) +
+        '<strong>Work, grades and your profile:</strong> while you are in the class, and afterwards for as long as the school board\'s retention rules require. The Headmaster erases the work and grades of finished classes, and deletes a student who has left, by hand, when those rules allow it.',
+        (p.autoSweep ? '<strong>Live Class records:</strong> deleted after ' + plural(p.liveDays, 'day') + '. A session left running is ended after ' + MAX_SESSION_HOURS + ' hours.' : '<strong>Nothing is deleted automatically.</strong> Live Class records, problem reports and screenshots are kept until the Headmaster clears them. A Live Class session left running is ended after ' + MAX_SESSION_HOURS + ' hours.'),
+        (p.autoSweep ? '<strong>Problem-report screenshots:</strong> removed after ' + plural(p.shotDays, 'day') + '.' : null),
+        (p.autoSweep ? '<strong>Problem reports that have been dealt with:</strong> deleted after ' + plural(p.reportDays, 'day') + '.' : null),
+        '<strong>Holds:</strong> when someone has asked to see a record, or something is being looked into, the Headmaster can put a hold on it. Nothing under a hold is deleted.',
+        '<strong>The change log</strong> (who added or removed an account, gave out a sign-in code, placed a hold, or downloaded records, and when) is kept and cannot be edited.'
+      ].filter(Boolean))) +
       sec('Your choices', ul([
-        'Ask your teacher to show you what is recorded about you, or to correct something that is wrong.',
+        'Ask your teacher for a copy of everything that is recorded about you. The school can make one file with all of it.',
+        'If something is wrong, ask for it to be corrected: Settings → Privacy → <em>Ask for a correction</em>. If the school does not change it, you can have a statement of disagreement attached to your record.',
         'Turn off dictation, voice recording or read-aloud in Settings → Accessibility.',
         'Untick the screenshot when you report a problem.',
         'Ask the school to delete your account when you leave. Your school board\'s privacy office can explain your rights under Ontario\'s privacy law for schools (MFIPPA).'
       ])) +
-      '<p class="muted small center">Summitide Learning · version ' + esc((window.PWA && PWA.APP_VERSION) || '59') + ' · this notice changes when the app does.</p></div>';
+      '<p class="muted small center">Summitide Learning · version ' + esc((window.PWA && PWA.APP_VERSION) || '66') + ' · this notice changes when the app does.</p></div>';
   }
   Privacy.noticeHtml = noticeHtml;
   Privacy.page = function () {
@@ -184,7 +209,8 @@
     const p = Privacy.policy;
     return '<p class="muted small">Your teachers see your work in their own course; other students see nothing of yours. The copy on this device is erased when you sign out.</p>' +
       '<div class="setting-row"><div><label>Privacy notice</label><div class="help">What is kept, who can see it, the outside services the app can use and how long things are kept.</div></div><a class="btn secondary sm" href="#/privacy">Read the notice</a></div>' +
-      '<div class="setting-row"><div><label>Dictation</label><div class="help">' + (p.allowDictation ? 'Dictation sends the sound of your voice to the maker of your browser (Google, Microsoft or Apple) to turn it into text. Voice recording does not: a recording stays on this device.' : 'Dictation is switched off for the whole school. Voice recording still works and stays on this device.') + '</div></div><span class="tag">' + (p.allowDictation ? 'On for this school' : 'Off for this school') + '</span></div>';
+      (window.Records ? Records.askRowHtml() : '') +
+      '<div class="setting-row"><div><label>Dictation</label><div class="help">' + (p.allowDictation ? 'Dictation sends the sound of your voice to the maker of your browser (Google, Microsoft or Apple), whose automated speech recognition turns it into text. Voice recording does not: a recording stays on this device.' : 'Dictation is switched off for the whole school. Voice recording still works and stays on this device.') + '</div></div><span class="tag">' + (p.allowDictation ? 'On for this school' : 'Off for this school') + '</span></div>';
   };
 
   /* ====================== Settings: the Headmaster ====================== */
@@ -219,13 +245,16 @@
   /** Carry out a plan made by termPlan. Returns counts. */
   async function termRun(plan, onStep) {
     if (!isHead()) throw new Error('Only the Headmaster can run the end-of-term clean-up.');
+    if (Privacy.policy.holdAll) throw new Error('Every record in the school is on hold. Lift the hold (above) before any clean-up.');
     const out = { work: 0, grades: 0, students: 0, failed: [] };
+    const heldWhy = async sid => (window.Records ? await Records.heldReason(sid) : '');
     const removing = new Set(plan.remove.map(r => r.sid));
     let n = 0; const total = plan.erase.filter(e => !removing.has(e.sid)).length + plan.remove.length;
     for (const e of plan.erase) {
       if (removing.has(e.sid)) continue;                                    // the whole student goes below, work included
       if (onStep) onStep(++n, total, e.name);
       try {
+        { const why = await heldWhy(e.sid); if (why) { out.failed.push(e.name + ': on hold, left alone'); continue; } }
         if (cloudOn() && Cloud.eraseCourseWork) { const r = await Cloud.eraseCourseWork(e.sid, e.courseId); if (r.work) out.work++; if (r.grades) out.grades++; }
         else if (eraseLocal(e.sid, e.courseId)) out.work++;
       } catch (err) { out.failed.push(e.name + ': ' + (err && err.message || err)); }
@@ -235,6 +264,7 @@
       for (const r of plan.remove) {
         if (onStep) onStep(++n, total, r.name);
         try {
+          { const why = await heldWhy(r.sid); if (why) { out.failed.push(r.name + ': on hold, left alone'); continue; } }
           if (cloudOn() && Cloud.removeStudent) {
             // the roster entries and this device's copy first (as the Students page does), then the cloud records, one student at a time
             const S = window.Students; S.data.list = S.data.list.filter(s => s.id !== r.sid);
@@ -269,13 +299,19 @@
   async function sweep(force) {
     if (!isHead()) return null;
     const last = lsGet(KEY_SWEEP);
+    const p = Privacy.policy;
+    // v66: nothing is deleted by itself unless the Headmaster has switched the automatic clean-up on, and never under a school-wide hold
+    if (p.holdAll) return Object.assign({}, last || {}, { held: true });
+    if (!force && !p.autoSweep) { if (cloudOn()) { try { await endForgottenSessions(); } catch (e) {} } return last; }
     if (!force && last && last.at && ageDays(last.at) < 20 / 24) return last;
-    const p = Privacy.policy, out = { at: now(), shots: 0, reports: 0, presence: 0, sessions: 0, ended: 0, errors: 0 };
+    const out = { at: now(), shots: 0, reports: 0, presence: 0, sessions: 0, ended: 0, errors: 0, skipped: 0 };
     if (cloudOn()) {
       const db = Cloud.db;
+      let held = new Set(); try { const h = await db.collection('holds').get(); held = new Set(h.docs.map(d => d.id)); } catch (e) {}   // students whose records are on hold are passed over
       try {
         const q = await db.collection('issues').get();
         for (const d of q.docs) { const i = d.data() || {}, age = ageDays(i.at);
+          if (held.has(i.by)) { out.skipped++; continue; }
           try {
             if (i.status === 'resolved' && age > p.reportDays) { await d.ref.delete(); out.reports++; }
             else if (i.shot && age > p.shotDays) { await d.ref.update({ shot: '' }); out.shots++; }
@@ -283,7 +319,7 @@
       } catch (e) { out.errors++; console.warn('retention: reports', e && e.code); }
       try {
         const q = await db.collection('presence').get();
-        for (const d of q.docs) { const pr = d.data() || {}; if (ageDays(pr.at || pr.since) > p.liveDays) { try { await d.ref.delete(); out.presence++; } catch (e) { out.errors++; } } }
+        for (const d of q.docs) { const pr = d.data() || {}; if (held.has(d.id)) { out.skipped++; continue; } if (ageDays(pr.at || pr.since) > p.liveDays) { try { await d.ref.delete(); out.presence++; } catch (e) { out.errors++; } } }
       } catch (e) { out.errors++; console.warn('retention: presence', e && e.code); }
       try {
         const q = await db.collection('live').get();
@@ -306,7 +342,12 @@
     return out;
   }
   Privacy.sweep = sweep;
-  const sweepLine = s => !s ? 'Not run on this device yet.' : 'Last run ' + esc(when(s.at)) + ': ' + (s.shots + s.reports + s.presence + s.sessions + (s.ended || 0) ? [s.shots && plural(s.shots, 'screenshot') + ' removed', s.reports && plural(s.reports, 'resolved report') + ' deleted', s.presence && plural(s.presence, 'Live Class record') + ' deleted', s.sessions && plural(s.sessions, 'old session') + ' deleted', s.ended && plural(s.ended, 'forgotten session') + ' ended'].filter(Boolean).join(', ') : 'nothing was past its date') + (s.errors ? ' · ⚠️ ' + plural(s.errors, 'step') + ' could not finish (check that the version 59 rules are published)' : '') + '.';
+  /** A Live Class session someone forgot to end is closed after 12 hours even when nothing is being deleted (it stops students sending presence). */
+  async function endForgottenSessions() {
+    const q = await Cloud.db.collection('live').get();
+    for (const d of q.docs) { const x = d.data() || {}; if (!x.endedAt && ageDays(x.startedAt) > MAX_SESSION_HOURS / 24) { try { await d.ref.update({ endedAt: now(), updatedAt: now(), endedBy: 'retention' }); } catch (e) {} } }
+  }
+  const sweepLine = s => !s || !s.at ? 'Not run on this device yet.' : 'Last run ' + esc(when(s.at)) + ': ' + (s.shots + s.reports + s.presence + s.sessions + (s.ended || 0) ? [s.shots && plural(s.shots, 'screenshot') + ' removed', s.reports && plural(s.reports, 'resolved report') + ' deleted', s.presence && plural(s.presence, 'Live Class record') + ' deleted', s.sessions && plural(s.sessions, 'old session') + ' deleted', s.ended && plural(s.ended, 'forgotten session') + ' ended'].filter(Boolean).join(', ') : 'nothing was past its date') + (s.skipped ? ' · ' + plural(s.skipped, 'record') + ' on hold left alone' : '') + (s.errors ? ' · ⚠️ ' + plural(s.errors, 'step') + ' could not finish (check that the version 66 rules are published)' : '') + '.';
 
   Privacy.settingsHtml = function () {
     const p = Privacy.policy, arch = sections().filter(s => s.archived);
@@ -327,39 +368,55 @@
                   '<div class="btn-row"><input class="text-input privacy-word" id="pvWord" placeholder="Type ERASE to confirm" autocomplete="off"' + (ui.busy ? ' disabled' : '') + '><button class="btn danger sm" type="button" data-pv-run' + (ui.busy ? ' disabled' : '') + '>' + (ui.busy ? 'Working…' : 'Erase now') + '</button></div><p class="small muted" id="pvStep"></p>'
               : '<p class="muted small">Nothing to erase: ' + (plan.sections.length ? 'every student in the chosen sections is still taking the course in an active section, or the sections are empty.' : 'tick at least one archived section.') + '</p>') + '</div>' : '') +
         (ui.result ? '<p class="small" role="status"><strong>Done.</strong> Work erased for ' + plural(ui.result.work, 'course record') + ', grades for ' + plural(ui.result.grades, 'course record') + ', ' + plural(ui.result.students, 'student') + ' deleted.' + (ui.result.failed.length ? ' ⚠️ Could not finish: ' + esc(ui.result.failed.slice(0, 5).join('; ')) : '') + '</p>' : '');
+    const txt = (key, label, help, ph) => '<div class="setting-row"><div><label for="pv_' + key + '">' + label + '</label><div class="help">' + help + '</div></div><input class="text-input" id="pv_' + key + '" data-pv-text="' + key + '" maxlength="' + TEXTS[key] + '" value="' + esc(p[key]) + '" placeholder="' + esc(ph || '') + '" style="max-width:340px"></div>';
     return '<p class="muted small">What the school tells people, what it keeps and for how long. The privacy notice reads these settings, so it always says what the app actually does.</p>' +
       (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') +
-      '<h3>Privacy notice</h3>' +
+      (Privacy.needsReview ? '<p class="privacy-flag" role="note"><strong>Version 66 changed the starting position.</strong> Until you choose otherwise: dictation is off, nothing is deleted automatically, saving to Google Drive is off, and videos, Google files and pictures from other sites are shown as links. Switch on only what your school board allows. This note goes when you save any setting here.</p>' : '') +
+      '<h3>Notice of collection</h3><p class="muted small">Ontario\'s privacy law for school boards (MFIPPA, s. 29 (2)) asks that people be told the legal authority for the collection, what the information is for, and the title, business address and telephone number of an officer who can answer questions. Your board\'s privacy office supplies these words.</p>' +
+      txt('authority', 'Legal authority for the collection', 'In the board\'s own words, for example the section of the Education Act it relies on.', 'ask your board\'s privacy office') +
+      txt('officerTitle', 'Board officer: title', 'The position, not a person\'s name, for example "Freedom of Information and Privacy Coordinator".', '') +
+      txt('officerAddress', 'Board officer: business address', '', '') +
+      txt('officerPhone', 'Board officer: business telephone', '', '') +
+      '<div class="btn-row"><button class="btn secondary sm" type="button" data-pv-texts>Save the notice details</button></div>' +
+      '<h3 style="margin-top:1rem">Privacy notice</h3>' +
       '<div class="setting-row"><div><label>The notice</label><div class="help">Shown to everyone from the sign-in screen and from Settings.</div></div><a class="btn secondary sm" href="#/privacy">Open the notice</a></div>' +
       '<div class="setting-row"><div><label for="pvContact">Who to ask about privacy</label><div class="help">One line shown on the notice, for example a name and a school e-mail address or phone number. Leave it empty for "ask your teacher or the school office".</div></div><span class="btn-row"><input class="text-input" id="pvContact" maxlength="200" value="' + esc(p.contact) + '" style="max-width:320px"><button class="btn secondary sm" type="button" data-pv-contact>Save</button></span></div>' +
       sw('data-pv-switch="boardReviewed"', 'The school board has reviewed this notice', 'Off: the notice says it has not yet been reviewed by the school board.', p.boardReviewed) +
       '<h3 style="margin-top:1rem">Dictation</h3>' +
-      sw('data-pv-switch="allowDictation"', 'Allow dictation (voice to text)', 'Dictation uses the browser\'s speech service, which sends the audio to Google, Microsoft or Apple. Each person is told this before the first use. Off: the 🎤 button disappears for everyone; voice recording, which stays on the device, still works.', p.allowDictation) +
-      '<h3 style="margin-top:1rem">How long things are kept</h3>' +
+      sw('data-pv-switch="allowDictation"', 'Allow dictation (voice to text)', 'Dictation uses the browser\'s speech service, which sends the audio to Google, Microsoft or Apple, where an automated speech-recognition system (artificial intelligence) turns it into text. Leave it off until your board allows it. On: each person is told before the first use. Off: the 🎤 button disappears for everyone; voice recording, which stays on the device, still works.', p.allowDictation) +
+      '<h3 style="margin-top:1rem">Other sites and services</h3><p class="muted small">Each of these lets another organisation see that a device at your school opened something. All are off until you switch them on.</p>' +
+      sw('data-pv-switch="allowEmbeds"', 'Show YouTube videos and Google files inside lessons', 'Off: a link that opens in a new tab is shown instead, so nothing is loaded from YouTube or Google unless a person chooses to open it.', p.allowEmbeds) +
+      sw('data-pv-switch="allowOutsideMedia"', 'Load pictures, sound and video kept on other websites', 'Off: a link is shown instead. Files a teacher uploads and pictures kept with the app (a folder beside the course file) are not affected and always show.', p.allowOutsideMedia) +
+      sw('data-pv-switch="allowDrive"', 'Allow exports to be saved to Google Drive', 'Off: the Push and Pull buttons under Google Drive &amp; exports do nothing. Downloading an export to this computer still works and is written in the change log.', p.allowDrive) +
+      '<h3 style="margin-top:1rem">Hold</h3>' +
+      sw('data-pv-switch="holdAll"', 'Hold every record in the school', 'On: nothing is deleted by anyone: not by the clean-up, not at the end of term, not by removing a student. Use it during an incident or a legal request, until the board says otherwise. One student\'s records can be held from the Students page (open the student → record tools).', p.holdAll) +
+      '<h3 style="margin-top:1rem">How long things are kept</h3><p class="muted small">MFIPPA (s. 30 (1)) requires personal information that has been used to be kept for the period the regulations prescribe, so that the person can ask to see it. The app therefore deletes nothing by itself unless you switch that on. Ask your board for its retention schedule before you do, and set the periods to match it.</p>' +
+      sw('data-pv-switch="autoSweep"', 'Delete automatically after the periods below', 'Off (the starting position): nothing is deleted automatically; a forgotten Live Class session is still ended after ' + MAX_SESSION_HOURS + ' hours. On: the clean-up runs once a day when the Headmaster signs in.', p.autoSweep) +
       num('shotDays', 'Problem-report screenshots', 'A screenshot can show a gradebook or a student\'s work. It is removed from the report after this long; the message stays.') +
       num('reportDays', 'Resolved problem reports', 'A report marked resolved is deleted after this long.') +
       num('liveDays', 'Live Class records', 'Where each student was during a session, and ended sessions, are deleted after this long. A session left running is ended after ' + MAX_SESSION_HOURS + ' hours.') +
       '<div class="btn-row"><button class="btn secondary sm" type="button" data-pv-save>Save these periods</button><button class="btn ghost sm" type="button" data-pv-sweep>Run the clean-up now</button></div>' +
-      '<p class="muted small" id="pvSweep">The clean-up runs by itself once a day when the Headmaster signs in. ' + sweepLine(lsGet(KEY_SWEEP)) + '</p>' +
+      '<p class="muted small" id="pvSweep">' + (p.holdAll ? 'Every record is on hold: the clean-up does nothing. ' : p.autoSweep ? 'The clean-up runs by itself once a day when the Headmaster signs in. ' : 'The clean-up does not run by itself. "Run the clean-up now" applies the periods above once. ') + sweepLine(lsGet(KEY_SWEEP)) + '</p>' +
       '<h3 style="margin-top:1rem">End-of-term clean-up</h3><p class="muted small">Erases the work (slides read, quiz and test results, assignments) and the teacher grades of students in archived sections, for that section\'s course. A student who is still taking the same course in an active section is left alone.</p>' + termBody +
-      '<h3 style="margin-top:1rem">Deleting one student</h3><p class="muted small">Students page → open the student → <strong>Remove</strong>. Their profile, work, grades, Focus Plan, Live Class record and problem reports are deleted and you are shown a receipt, including the things this app cannot delete for you (the unused sign-in, recordings on other devices, export files).</p>' +
+      '<h3 style="margin-top:1rem">Deleting one student</h3><p class="muted small">Students page → open the student → <strong>Remove</strong>. Their profile, work, grades, Focus Plan, Live Class record, problem reports, sign-in code record and, where the app can, the sign-in itself are deleted and you are shown a receipt, including the things this app cannot delete for you (recordings on other devices, export files, paper). A student whose records are on hold cannot be removed.</p>' +
       (Privacy.lastReceipt ? '<div class="btn-row"><button class="btn ghost sm" type="button" data-pv-receipt>Show the last receipt</button></div>' : '');
   };
   /** Wire the Headmaster group. `redraw` redraws the Settings page. */
   Privacy.bind = function (root, redraw) {
     if (!root || !root.querySelector('[data-pv-save]')) return;
     const keepOpen = () => { try { sessionStorage.setItem('learnhub.sg.privacy', '1'); } catch (e) {} };
-    sweep(false).then(r => { const el = root.querySelector('#pvSweep'); if (el && r) el.innerHTML = 'The clean-up runs by itself once a day when the Headmaster signs in. ' + sweepLine(r); }).catch(() => {});   // device-only mode has no sign-in event
+    sweep(false).catch(() => {});   // device-only mode has no sign-in event
     const again = () => { keepOpen(); if (redraw) redraw(); };
     const say = m => { ui.msg = m; again(); };
     root.querySelectorAll('[data-pv-switch]').forEach(b => b.addEventListener('click', async () => { const k = b.dataset.pvSwitch; try { await savePolicy({ [k]: !Privacy.policy[k] }); ui.msg = ''; } catch (e) { ui.msg = '⚠️ ' + e.message; } again(); }));
+    const tx = root.querySelector('[data-pv-texts]'); if (tx) tx.addEventListener('click', async () => { const patch = {}; root.querySelectorAll('[data-pv-text]').forEach(i => { patch[i.dataset.pvText] = i.value; }); try { await savePolicy(patch); say('Saved. The privacy notice now shows these details.'); } catch (e) { say('⚠️ ' + e.message); } });
     const c = root.querySelector('[data-pv-contact]'); if (c) c.addEventListener('click', async () => { try { await savePolicy({ contact: root.querySelector('#pvContact').value }); say('Saved.'); } catch (e) { say('⚠️ ' + e.message); } });
     const s = root.querySelector('[data-pv-save]'); if (s) s.addEventListener('click', async () => {
       const patch = {}; let bad = '';
       Object.keys(LIMITS).forEach(k => { const v = Math.round(+root.querySelector('#pv_' + k).value), lim = LIMITS[k]; if (isNaN(v) || v < lim[0] || v > lim[1]) bad = 'Each period must be a whole number of days inside the range shown.'; patch[k] = v; });
       if (bad) return say('⚠️ ' + bad);
       try { await savePolicy(patch); say('Saved. The privacy notice now shows these periods.'); } catch (e) { say('⚠️ ' + e.message); } });
-    const w = root.querySelector('[data-pv-sweep]'); if (w) w.addEventListener('click', async () => { w.disabled = true; w.textContent = 'Working…'; try { await sweep(true); ui.msg = ''; } catch (e) { ui.msg = '⚠️ ' + (e && e.message); } again(); });
+    const w = root.querySelector('[data-pv-sweep]'); if (w) w.addEventListener('click', async () => { if (Privacy.policy.holdAll) return say('Every record is on hold: nothing was deleted.'); if (!confirm('Delete everything that is past the periods shown (screenshots, resolved reports, Live Class records)? Records of students on hold are left alone. This cannot be undone.')) return; w.disabled = true; w.textContent = 'Working…'; try { await sweep(true); ui.msg = ''; } catch (e) { ui.msg = '⚠️ ' + (e && e.message); } again(); });
     root.querySelectorAll('[data-pv-term]').forEach(b => b.addEventListener('change', () => { ui.termPick[b.dataset.pvTerm] = b.checked; ui.preview = null; ui.result = null; }));
     const al = root.querySelector('[data-pv-also]'); if (al) al.addEventListener('change', () => { ui.termAlso = al.checked; ui.preview = null; ui.result = null; });
     const pv = root.querySelector('[data-pv-preview]'); if (pv) pv.addEventListener('click', () => { ui.preview = termPlan(Object.keys(ui.termPick).filter(k => ui.termPick[k]), ui.termAlso); ui.result = null; ui.msg = ''; again(); });

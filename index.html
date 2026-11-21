@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <!-- Only this site's own scripts may run (plus Google sign-in for the optional Drive export): injected markup cannot execute. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://accounts.google.com; frame-src 'self' blob: https://docs.google.com https://drive.google.com https://www.youtube-nocookie.com https://www.youtube.com https://accounts.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://accounts.google.com; frame-src 'self' blob: https://docs.google.com https://drive.google.com https://www.youtube-nocookie.com https://accounts.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#1b2f5e">
@@ -73,6 +73,7 @@
   <script src="marking.js"></script>    <!-- v56: mark one item for the whole class -->
   <script src="live.js"></script>       <!-- v58: Live Class Board + Focus Mode -->
   <script src="privacy.js"></script>    <!-- v59: privacy notice, dictation disclosure, retention and deletion -->
+  <script src="records.js"></script>     <!-- v66: sign-in codes and slips, a copy of everything held about a student, corrections, holds -->
   <script src="coins.js"></script>      <!-- v60: coins, teacher shops, redemption and the Locker -->
   <script src="app.js"></script>
   <script src="mathcore.js"></script>   <!-- v61: the math engine (safe expression reader, answer checking, practice generators) -->

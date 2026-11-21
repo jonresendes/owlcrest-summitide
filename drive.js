@@ -62,8 +62,9 @@
     const csv = rows.map(r => r.map(cell).join(',')).join('\r\n');
     return { json: JSON.stringify(data, null, 1), csv, students: students.length, stamp: new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') };
   }
+  const logOut = (how, e) => { try { if (window.Cloud && Cloud.log && Cloud.user) Cloud.log('export.' + how, '', { students: e.students, role: (Staff.current || {}).role || '' }); } catch (x) {} };   // v66: every export leaves a line in the change log
   function download() {
-    const e = build();
+    const e = build(); logOut('download', e);
     const save = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
     save('summitide-export-' + e.stamp + '.json', e.json, 'application/json');
     save('summitide-summary-' + e.stamp + '.csv', e.csv, 'text/csv');
@@ -129,6 +130,7 @@
   }
   /** Push the export to Drive. Returns { files: [{name, webViewLink}], students }. */
   async function push(onStatus) {
+    if (window.Privacy && !Privacy.policy.allowDrive) throw new Error('Saving to Google Drive is switched off for this school. The Headmaster can switch it on in Settings → Privacy and retention, if the school board allows it.');   // v66
     const clientId = Settings.get('googleClientId');
     if (!clientId) throw new Error('No Google Client ID yet. The master account adds it in Settings → Teacher Lock → Google Drive.');
     const say = m => { if (onStatus) onStatus(m); };
@@ -139,12 +141,13 @@
     say('Uploading summary (CSV)…'); const f1 = await upload(tok, folder, 'summitide-summary-' + e.stamp + '.csv', e.csv, 'text/csv');
     say('Uploading full export (JSON)…'); const f2 = await upload(tok, folder, 'summitide-export-' + e.stamp + '.json', e.json, 'application/json');
     const log = Settings.get('driveLog') || []; log.unshift({ at: new Date().toISOString(), by: (Staff.current || {}).name, students: e.students, files: [f1.name, f2.name] });
-    Settings.set('driveLog', log.slice(0, 10));
+    Settings.set('driveLog', log.slice(0, 10)); logOut('drive', e);
     return { files: [f1, f2], students: e.students };
   }
 
   /** Pull the newest JSON export from the Drive folder and import it. Returns { file, students }. */
   async function pull(onStatus) {
+    if (window.Privacy && !Privacy.policy.allowDrive) throw new Error('Saving to Google Drive is switched off for this school. The Headmaster can switch it on in Settings → Privacy and retention, if the school board allows it.');   // v66
     const clientId = Settings.get('googleClientId');
     if (!clientId) throw new Error('No Google Client ID yet. The master account adds it in Settings → Teacher Lock → Google Drive.');
     const say = m => { if (onStatus) onStatus(m); };

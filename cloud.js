@@ -2,7 +2,7 @@
    cloud.js — Firebase sync layer (accounts + live data on every device)
 
    The app keeps working exactly as before on localStorage. This file:
-     • signs people in with Firebase Auth (student number + birthday password,
+     • signs people in with Firebase Auth (student number + a sign-in code issued by a teacher; v66: no longer a birthday,
        teacher ID + password) and tells storage.js who is signed in;
      • mirrors every local save to Firestore (students, staff, sections,
        progress per course, Focus Plans, shared settings);
@@ -23,7 +23,9 @@
      staff/{uid}              { id, name, role, login, avatar, colour, prefs, archived, createdAt }   — public part
      staffNotes/{uid}         { notes }                            that teacher only
      staffPrivate/{uid}       { email, authEmail, gen }            that teacher and the Headmaster
-     students/{uid}           profile (same shape as storage.js) + number, dob, createdAt, teachers
+     students/{uid}           profile (same shape as storage.js) + number, createdAt, teachers (v66: no birthday; an old `dob` is removed when a code is issued)
+     signin/{uid}             v66 · { student, code, issuedAt, issuedBy }: the student's current sign-in code, readable only by the student's teachers and the Headmaster, so a code can be replaced (a browser can only change a password it knows)
+     holds/{uid}              v66 · { student, reason, at, by }: a hold on one student's records (access request, incident): nothing of theirs is deleted while it exists
      directory/{uid}          { name, number, avatar }             staff only: who can be added to a section
      sections/{id}            section (same shape as storage.js)
      progress/{uid}__{course} { student, course, data, updatedAt }
@@ -72,7 +74,7 @@
   }
 
   /* ---------- nothing is left on the device after sign-out ---------- */
-  const DATA_KEYS = /^learnhub\.(students|staff|sections|progress\.|focus\.|grades\.|coins\.|shops|issues|directory)/;
+  const DATA_KEYS = /^learnhub\.(students|staff|sections|progress\.|focus\.|grades\.|coins\.|shops|issues|directory|corrections|holds)/;
   /** Remove every copy of school data from this browser's storage and from the app's memory. */
   function wipeLocal() {
     applying = true;
@@ -255,7 +257,7 @@
   Cloud.onLocalRemove = async function (key) {
     if (applying || !Cloud.user || Cloud.role === 'student') return;
     try {
-      if (key.startsWith('learnhub.progress.')) { const sid = key.slice('learnhub.progress.'.length); for (const id of [...knownDocs.progress].filter(x => x.startsWith(sid + '__'))) { await db.collection('progress').doc(id).delete(); knownDocs.progress.delete(id); } }
+      if (key.startsWith('learnhub.progress.')) { const sid = key.slice('learnhub.progress.'.length); if (await Cloud.heldReason(sid)) { console.warn('on hold: the cloud copy was kept'); return; } for (const id of [...knownDocs.progress].filter(x => x.startsWith(sid + '__'))) { await db.collection('progress').doc(id).delete(); knownDocs.progress.delete(id); } }
       else if (key.startsWith('learnhub.focus.')) await db.collection('focus').doc(key.slice('learnhub.focus.'.length)).delete().catch(() => {});
     } catch (e) { console.warn('cloud delete failed', e); }
   };
@@ -346,7 +348,7 @@
     reloadStores('progress');
   }
   function applyFocus(docs) { knownDocs.focus = new Set(docs.map(d => d.id)); docs.forEach(d => { const f = d.data(); lsSet('learnhub.focus.' + d.id, tidy(f.data || { enabled: false, courses: {} })); }); reloadStores('focus'); }
-  function applySettings(doc) { const g = doc.exists ? doc.data() : {}; const s = lsGet('learnhub.settings') || {}; s.allowSelfSignup = g.allowSelfSignup === true;   /* self sign-up is on only when the school has saved it as on (the rules agree) */ if (g.colouringEvery !== undefined) s.colouringEvery = g.colouringEvery; lsSet('learnhub.settings', s); reloadStores('settings'); }
+  function applySettings(doc) { const g = doc.exists ? doc.data() : {}; const s = lsGet('learnhub.settings') || {}; s.allowSelfSignup = g.allowSelfSignup === true; s.legacyBirthday = g.legacyBirthday !== false;   /* self sign-up is on only when the school has saved it as on (the rules agree) */ if (g.colouringEvery !== undefined) s.colouringEvery = g.colouringEvery; lsSet('learnhub.settings', s); reloadStores('settings'); }
   /** Update an object tree in place so pages holding references keep seeing current data. */
   function mergeInPlace(target, src) {
     Object.keys(target).forEach(k => { if (!(k in src)) delete target[k]; });
@@ -444,6 +446,7 @@
   }
   let dataVersion = 0;   // meta/config.version: 43 once the Headmaster's app has run the one-time upgrade
   auth.onAuthStateChanged(async user => {
+    Cloud.forgetIssued();
     Cloud.loaded = false;   // v65: true once this person's records have arrived (see waitForLoad)
     stopListening(); Object.keys(seenStudents).forEach(k => delete seenStudents[k]); Object.keys(seenStaff).forEach(k => delete seenStaff[k]);
     myRoster = null; claimed.clear(); staffDocs = []; staffLoaded = false; myNotes = null; notesLoaded = false; emails = {}; emailsLoaded = false; Object.keys(knownDocs).forEach(k => knownDocs[k] = new Set());
@@ -485,12 +488,32 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && Cloud.user && idleExpired()) Cloud.signOut(); });
 
   /* ---------- public API ---------- */
-  const friendly = e => ({ 'auth/user-not-found': 'The number or password is not right.', 'auth/wrong-password': 'The number or password is not right. Students: your birthday as DDMMYYYY, e.g. 12011986.', 'auth/invalid-credential': 'The number or password is not right.', 'auth/invalid-login-credentials': 'The number or password is not right.', 'auth/too-many-requests': 'Too many tries — wait a minute and try again.', 'auth/network-request-failed': 'No internet connection.', 'auth/email-already-in-use': 'An account with that number already exists.', 'auth/weak-password': 'That password is too short.', 'auth/operation-not-allowed': 'Creating accounts from this screen is turned off.', 'auth/admin-restricted-operation': 'Creating accounts from this screen is turned off.', 'auth/user-disabled': 'This account has been turned off. Ask your teacher.' }[e.code] || e.message);
+  const friendly = e => ({ 'auth/user-not-found': 'The number or sign-in code is not right.', 'auth/wrong-password': 'The number or sign-in code is not right.', 'auth/invalid-credential': 'The number or password is not right.', 'auth/invalid-login-credentials': 'The number or password is not right.', 'auth/too-many-requests': 'Too many tries — wait a minute and try again.', 'auth/network-request-failed': 'No internet connection.', 'auth/email-already-in-use': 'An account with that number already exists.', 'auth/weak-password': 'That password is too short.', 'auth/operation-not-allowed': 'Creating accounts from this screen is turned off.', 'auth/admin-restricted-operation': 'Creating accounts from this screen is turned off.', 'auth/user-disabled': 'This account has been turned off. Ask your teacher.' }[e.code] || e.message);
+  /* ---------- sign-in codes (v66) ----------
+     A student signs in with their student number and a code a teacher gives them: three everyday words and two digits,
+     chosen at random on the teacher's device ("maple-river-stone-42"). It replaces the birthday, which was personal
+     information used as a password and could be guessed by anyone who knew it. Capitals, spaces and hyphens do not matter
+     when it is typed. The code is the Firebase password; a copy sits in signin/<uid>, which only that student's teachers
+     and the Headmaster can read, because a browser cannot replace a password it does not know. A server could do without
+     the copy; this free-plan edition has none. Students whose record still holds a birthday keep signing in with it
+     until a teacher issues a code, which also removes the birthday. */
+  const CODE_WORDS = 'acorn alder amber anchor apple arrow aspen atlas autumn badge baker bamboo banjo basil beach bead beam berry birch bison bloom board boat bonus brave bread breeze brick bridge bright brook brush cabin cable cactus camel candle candy canoe canyon carrot cedar chalk cherry chess cider cliff clock cloud clover coast cobalt cocoa comet coral cotton crane creek crisp crown daisy dawn delta denim desk dew dial dolphin dove dream drift drum eagle echo elm ember falcon fawn fern ferry field fig finch flame flint float flute forest fossil fox frost garden gem ginger glade globe gold goose grain grape grove gull harbor harp hawk hazel hedge heron hill honey horn igloo ivory ivy jade jasper jelly jewel juniper kayak kelp kettle kite koala lake lamp lantern larch lark leaf lemon lemur light lilac lime linen llama lotus lunar lynx magnet mango maple marble maze meadow melon mint mist moon moose moss nectar nest noble north oak oasis ocean olive onyx opal orbit orca otter owl oyster paddle palm panda paper parrot peach pearl pebble pecan pepper piano pine pixel planet plum polar pond poppy prism puffin quartz quest quill rabbit radar rain raven reef ridge river robin rocket rose ruby saddle sage sail salmon sand scarf scout seal shell shore silver sky slate snow solar spark spruce star stone storm sugar summit sun swan table tango thistle tiger timber topaz trail tulip tundra turtle umber valley velvet violet vista wagon walnut water wave whale wheat willow wind winter wolf wren yacht yarrow yodel zebra zephyr'.split(' ');
+  function newCode() {
+    const r = new Uint32Array(4); (window.crypto || window.msCrypto).getRandomValues(r);
+    return [CODE_WORDS[r[0] % CODE_WORDS.length], CODE_WORDS[r[1] % CODE_WORDS.length], CODE_WORDS[r[2] % CODE_WORDS.length], String(10 + r[3] % 90)].join('-');
+  }
+  /** What is actually sent as the password: an old birthday stays eight digits; a code loses capitals, spaces and hyphens. */
+  const normCode = v => { v = String(v === undefined || v === null ? '' : v).trim(); return /^[\d\s./-]+$/.test(v) ? v.replace(/\D/g, '') : v.toLowerCase().replace(/[^a-z0-9]/g, ''); };
+  const issued = {};   // codes made in this session, so the page can show each one once: { uid: code }. Emptied when the sign-in state changes.
+  Cloud.issuedCode = uid => issued[uid] || '';
+  Cloud.forgetIssued = uid => { if (uid) delete issued[uid]; else Object.keys(issued).forEach(k => delete issued[k]); };
+  Cloud.normCode = normCode; Cloud.newCode = newCode;
+  const rules66 = e => /permission|insufficient/i.test((e && (e.code || '')) + ' ' + (e && e.message)) ? 'The cloud refused this. Publish the version 66 firestore.rules (Firebase console → Firestore Database → Rules → Publish), then try again.' : describe(e);
   const dobPassword = dob => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob); return m ? m[3] + m[2] + m[1] : String(dob).replace(/\D/g, ''); };   // 2008-01-12 → 12012008
 
   Cloud.signInStudent = async (number, password, keep) => {
     try { localStorage.setItem(KEY_KEEP, keep ? '1' : '0'); } catch (e) {}
-    try { await auth.signInWithEmailAndPassword(studentEmail(number), String(password).replace(/\D/g, '')); } catch (e) { throw new Error(friendly(e)); }
+    try { await auth.signInWithEmailAndPassword(studentEmail(number), normCode(password)); } catch (e) { throw new Error(friendly(e)); }
     await waitForRole();
     await waitForLoad();   // v65: a student is let in only once their own profile has arrived. Before, the app looked for the profile a moment after the password was accepted, did not find it yet, and signed the student straight out again.
   };
@@ -499,6 +522,7 @@
     try { await auth.signInWithEmailAndPassword(await emailForLogin(login), password); } catch (e) { throw new Error(friendly(e)); }
     await waitForRole();
     if (Cloud.role === 'student') { await auth.signOut(); throw new Error('That is a student account — use the student sign-in.'); }
+    await waitForLoad();   // v66: as for students (v65). Entering before the staff record had arrived made the app call itself until the browser stopped it (an error in the console, then a late recovery).
   };
   function waitForLoad() { return new Promise(res => { const t0 = Date.now(); const t = setInterval(() => { if (!Cloud.user || Cloud.loaded || Date.now() - t0 > 20000) { clearInterval(t); res(); } }, 50); }); }
   function waitForRole() { return new Promise(res => { const t = setInterval(() => { if (Cloud.user && Cloud.role) { clearInterval(t); res(); } }, 50); }); }
@@ -572,7 +596,7 @@
   /** Undo a sign-in that was created for a record the cloud then refused (keeps the number / teacher ID free). */
   async function dropAuthUser(email, password) {
     const sec = fb.initializeApp(CFG.firebase, 'secondary-' + Date.now());
-    try { const cred = await sec.auth().signInWithEmailAndPassword(email, password); await cred.user.delete(); } catch (e) {}
+    try { const cred = await sec.auth().signInWithEmailAndPassword(email, password); await cred.user.delete(); return true; } catch (e) { return false; }
     finally { setTimeout(() => sec.delete().catch(() => {}), 500); }
   }
   const rulesHint = e => /permission|insufficient/i.test((e && (e.code || '')) + ' ' + (e && e.message)) ? 'The cloud refused the change. Check that the v43 firestore.rules are published (Firebase → Firestore → Rules), then try again.' : describe(e);
@@ -584,10 +608,10 @@
     await db.collection('students').doc(rec.id).set(full); seenStudents[rec.id] = full; log('demo student', rec.id, {});
     return full;
   };
-  Cloud.createStudent = async ({ name, number, dob, level, courses }) => {
+  Cloud.createStudent = async ({ name, number, level, courses }) => {
     number = String(number || '').trim(); if (!/^[A-Za-z0-9._-]{3,}$/.test(number)) throw new Error('Enter the student number (letters and digits only).');
     name = String(name || '').replace(/[<>]/g, '').trim().slice(0, 30); if (!name) throw new Error('Enter the first name.');
-    const pw = dobPassword(dob); if (!/^\d{8}$/.test(pw)) throw new Error('Enter the birthday.');
+    const code = newCode(), pw = normCode(code);   // v66: no birthday is asked for or kept
     const S = window.Students, email = studentEmail(number);
     if (!Cloud.user) {
       // Self sign-up: the new account writes its own plain profile (level 2, no courses, nobody's student yet); the rules allow nothing more.
@@ -595,38 +619,65 @@
       try {
         let cred; try { cred = await sec.auth().createUserWithEmailAndPassword(email, pw); } catch (e) { throw new Error(friendly(e)); }
         const uid = cred.user.uid;
-        const profile = S.add(name, { id: uid, number, dob, level: 2, courses: [] });
+        const profile = S.add(name, { id: uid, number, level: 2, courses: [] });
         const full = clean(Object.assign({}, profile, { level: 2, courses: [], teachers: [], updatedAt: now(), updatedBy: name, rev: 1 }));
-        try { await sec.firestore().collection('students').doc(uid).set(full); await sec.firestore().collection('directory').doc(uid).set(Object.assign(card(full), { updatedAt: now() })).catch(() => {}); }
-        catch (e) { try { await cred.user.delete(); } catch (x) {} S.data.list = S.data.list.filter(x => x.id !== uid); S.save();
+        // the code's reset copy first (a student may create and delete only their own, and never read it), then the profile
+        try { await sec.firestore().collection('signin').doc(uid).set({ student: uid, code, issuedAt: now(), issuedBy: uid }); await sec.firestore().collection('students').doc(uid).set(full); await sec.firestore().collection('directory').doc(uid).set(Object.assign(card(full), { updatedAt: now() })).catch(() => {}); issued[uid] = code; }
+        catch (e) { try { await sec.firestore().collection('signin').doc(uid).delete(); } catch (x) {} try { await cred.user.delete(); } catch (x) {} S.data.list = S.data.list.filter(x => x.id !== uid); S.save();
           throw new Error(/permission|insufficient/i.test((e.code || '') + ' ' + e.message) ? 'Your school has turned off self sign-up. Ask your teacher to add you.' : describe(e)); }
         return profile;
       } finally { try { await sec.auth().signOut(); } catch (x) {} setTimeout(() => sec.delete().catch(() => {}), 500); }
     }
     if (Cloud.role === 'student') throw new Error('Only a teacher can add students.');
     const uid = await createAuthUser(email, pw);
-    const profile = S.add(name, { id: uid, number, dob, level: level || 2, courses: courses === undefined ? null : courses });
+    const profile = S.add(name, { id: uid, number, level: level || 2, courses: courses === undefined ? null : courses });
     const full = clean(Object.assign({}, profile, { teachers: Cloud.role === 'master' ? [] : [Cloud.user.uid], updatedAt: now(), updatedBy: whoAmI(), rev: 1 }));
     try { await db.collection('students').doc(uid).set(full); }
     catch (e) { S.data.list = S.data.list.filter(x => x.id !== uid); S.save(); await dropAuthUser(email, pw); throw new Error(rulesHint(e)); }
+    // the code's reset copy; without it nobody could ever replace the code, so a refusal undoes the whole student
+    try { await db.collection('signin').doc(uid).set({ student: uid, code, issuedAt: now(), issuedBy: Cloud.user.uid }); }
+    catch (e) { S.data.list = S.data.list.filter(x => x.id !== uid); S.save(); try { await db.collection('students').doc(uid).delete(); } catch (x) {} await dropAuthUser(email, pw); throw new Error(rules66(e)); }
+    issued[uid] = code;
     seenStudents[uid] = full; Object.assign(profile, { teachers: full.teachers, rev: 1, updatedAt: full.updatedAt, updatedBy: full.updatedBy });
     db.collection('directory').doc(uid).set(Object.assign(card(full), { updatedAt: now() })).catch(e => console.warn('directory', e));
     log('add student', uid, { number });
     return profile;
   };
-  /** Fix a student's birthday (and therefore their password). Needs the birthday on record to be the current password. */
-  Cloud.fixStudentBirthday = async (student, newDob) => {
-    const oldPw = dobPassword(student.dob), newPw = dobPassword(newDob);
-    if (!/^\d{8}$/.test(newPw)) throw new Error('Enter the new birthday.');
-    await changeAuthPassword(studentEmail(student.number), oldPw, newPw);
-    window.Students.update(student.id, { dob: newDob });
-    log('fix student birthday', student.id, {});
+  /** v66 · Give a student a new sign-in code (also how a student who still signs in with a birthday is moved to a code:
+      the birthday is then removed from their record). Returns the code, to be shown or printed once.
+      Order matters: the reset copy is written first, so a refusal by the cloud leaves the old sign-in working. */
+  Cloud.resetStudentCode = async student => {
+    if (!db || !Cloud.user || Cloud.role === 'student') throw new Error('Only a teacher can give out sign-in codes.');
+    if (!student || !student.number || student.demo) throw new Error('This student has no sign-in.');
+    const ref = db.collection('signin').doc(student.id); let old = null;
+    try { const d = await ref.get(); if (d.exists && d.data().code) old = d.data(); } catch (e) { throw new Error(rules66(e)); }
+    const oldPw = old ? normCode(old.code) : (student.dob ? dobPassword(student.dob) : '');
+    if (!oldPw) throw new Error('There is no reset record for this student, so the app cannot change their code. Delete the sign-in ' + studentEmail(student.number) + ' in the Firebase console (Authentication → Users), remove the student here and add them again.');
+    const code = newCode();
+    try { await ref.set({ student: student.id, code, issuedAt: now(), issuedBy: Cloud.user.uid }); } catch (e) { throw new Error(rules66(e)); }
+    try { await changeAuthPassword(studentEmail(student.number), oldPw, normCode(code)); }
+    catch (e) { try { if (old) await ref.set(old); else await ref.delete(); } catch (x) {} throw new Error('The sign-in could not be changed (' + e.message + '). The old ' + (old ? 'code' : 'birthday') + ' still works.'); }
+    if (student.dob !== undefined) window.Students.update(student.id, { dob: undefined });   // the birthday is no longer needed: remove it from the record
+    issued[student.id] = code;
+    log('student sign-in code', student.id, { number: student.number || '', was: old ? 'code' : 'birthday' });
+    return code;
+  };
+  /** v66 · Is anything of this student's on hold (their own hold, or the school-wide one)? Deletion and clean-up ask first. */
+  Cloud.heldReason = async id => {
+    if (window.Privacy && Privacy.policy && Privacy.policy.holdAll) return 'Every record in the school is on hold (Settings → Privacy and retention).';
+    if (!db || !id || /^demo__/.test(id)) return '';
+    try { const d = await db.collection('holds').doc(id).get(); if (d.exists) return 'This student\'s records are on hold' + (d.data().reason ? ' (' + String(d.data().reason).slice(0, 120) + ')' : '') + '. Only the Headmaster can lift a hold.'; } catch (e) {}
+    return '';
   };
   /** Remove a student: profile, work, grades, Focus Plan, directory card, Live Class presence and (Headmaster) the
       problem reports they sent. Returns a receipt — what was deleted and what this app cannot delete (v59).
       (The unused sign-in stays in Firebase Authentication and opens nothing; it is deleted in the Firebase console.) */
   Cloud.removeStudent = async id => {
     const was = seenStudents[id] || {};
+    { const why = await Cloud.heldReason(id); if (why) throw new Error(why + ' Nothing was deleted.'); }
+    // v66: the sign-in itself can now be deleted too, because the app holds the code (or, for an older record, the birthday)
+    let dropPw = ''; try { const d = await db.collection('signin').doc(id).get(); if (d.exists && d.data().code) dropPw = normCode(d.data().code); } catch (e) {}
+    if (!dropPw && was.dob) dropPw = dobPassword(was.dob);
     const courses = ((window.LearnHub && window.LearnHub.courses) || []).map(c => c.id);
     const ids = new Set(courses.map(c => id + '__' + c)); ['progress', 'grades'].forEach(col => knownDocs[col].forEach(k => { if (k.startsWith(id + '__')) ids.add(k); }));
     const receipt = { id, name: was.name || '', number: was.number || '', at: now(), deleted: [], kept: [] };
@@ -643,18 +694,22 @@
       await db.collection('presence').doc(id).delete().catch(() => {});
       await db.collection('coins').doc(id).delete().catch(() => {});   // v60: the coin ledger (spent, given, items)
       await db.collection('directory').doc(id).delete().catch(() => {});
+      await db.collection('signin').doc(id).delete().catch(() => {});
+      await db.collection('correctionRequests').doc(id).delete().catch(() => {});
+      if (Cloud.role === 'master') await db.collection('corrections').doc(id).delete().catch(() => {});
       if (Cloud.role === 'master') { try { const q = await db.collection('issues').where('by', '==', id).get(); for (const d of q.docs) { await d.ref.delete(); reports++; } } catch (e) { console.warn('reports of a removed student', e && e.code); } }
       await db.collection('students').doc(id).delete();
     } catch (e) { throw new Error(rulesHint(e)); }
     delete seenStudents[id];
-    receipt.deleted = ['Profile (name, student number, birthday, level, accommodations, notes)', 'Work and results' + (work ? ' (' + work + ' course record' + (work === 1 ? '' : 's') + ')' : ''), 'Teacher grades and comments' + (grades ? ' (' + grades + ' course record' + (grades === 1 ? '' : 's') + ')' : ''), 'Focus Plan', 'Live Class presence record', 'Coin bag, shop requests and locker items', 'Directory card', 'Places on section rosters'];
+    const dropped = was.number && dropPw ? await dropAuthUser(studentEmail(was.number), dropPw) : false;
+    receipt.deleted = ['Profile (name, student number, level, accommodations, notes)', 'Work and results' + (work ? ' (' + work + ' course record' + (work === 1 ? '' : 's') + ')' : ''), 'Teacher grades and comments' + (grades ? ' (' + grades + ' course record' + (grades === 1 ? '' : 's') + ')' : ''), 'Focus Plan', 'Live Class presence record', 'Coin bag, shop requests and locker items', 'Directory card', 'Places on section rosters', 'Sign-in code record and correction requests' + (Cloud.role === 'master' ? ', and the record of corrections' : '')];
+    if (dropped) receipt.deleted.push('The sign-in itself (student number ' + was.number + ' can be used again)');
     if (Cloud.role === 'master') receipt.deleted.push('Problem reports they sent' + (reports ? ' (' + reports + ')' : ''));
-    receipt.kept = ['The sign-in itself, which now opens nothing: delete it in the Firebase console (Authentication) or with unused-signins.py',
-      'Lines in the change log that name this student (the log cannot be edited)',
+    receipt.kept = (dropped ? [] : ['The sign-in itself, which now opens nothing: delete it in the Firebase console (Authentication) or with unused-signins.py']).concat(['Lines in the change log that name this student (the log cannot be edited)',
       'Voice recordings and uploads saved in the browser of any device they used',
-      'Export files already downloaded or pushed to Google Drive'];
-    if (Cloud.role !== 'master') receipt.kept.push('Problem reports they sent (only the Headmaster can delete those)');
-    log('remove student', id, { name: was.name || '', number: was.number || '', work, grades, reports });
+      'Export files, printed pages and sign-in slips already downloaded, printed or pushed to Google Drive']);
+    if (Cloud.role !== 'master') receipt.kept.push('Problem reports they sent and the record of corrections (only the Headmaster can delete those)');
+    log('remove student', id, { name: was.name || '', number: was.number || '', work, grades, reports, signin: dropped });
     Cloud.lastRemoval = receipt; emit('removed', receipt);
     return receipt;
   };
@@ -664,6 +719,7 @@
   Cloud.eraseCourseWork = async (sid, courseId) => {
     if (Cloud.role !== 'master') throw new Error('Only the Headmaster can run the end-of-term clean-up.');
     if (!/^[\w-]{1,80}$/.test(String(courseId || '')) || !sid) throw new Error('Unknown record.');
+    { const why = await Cloud.heldReason(sid); if (why) throw new Error(why); }
     const key = sid + '__' + courseId, stamp = now(), out = { work: false, grades: false };
     try {
       const p = await db.collection('progress').doc(key).get();
@@ -822,5 +878,7 @@
   Cloud.touch = touch;
   Cloud.keepSignedIn = () => localStorage.getItem(KEY_KEEP) === '1';
   Cloud.dobPassword = dobPassword;
+  /** v66 · Tell the sign-in screen whether any student still signs in with a birthday (it drops the hint when none does). */
+  Cloud.setLegacyBirthday = async on => { if (!db || Cloud.role !== 'master') return; try { await db.collection('settings').doc('global').set({ legacyBirthday: !!on, updatedAt: now() }, { merge: true }); const st = lsGet('learnhub.settings') || {}; st.legacyBirthday = !!on; lsSet('learnhub.settings', st); } catch (e) {} };
   Cloud.db = db; Cloud.auth = auth; Cloud.log = log;
 })();

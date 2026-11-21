@@ -115,7 +115,7 @@
     if (opt.notes) { lines.push(''); lines.push(csvCell(opt.notesHeading || 'Notes')); String(opt.notes).split(/\r?\n/).forEach(l => lines.push(csvCell(l))); }
     return '﻿' + lines.join('\r\n') + '\r\n';     // the mark at the front makes Excel read accents and symbols correctly
   }
-  function downloadCsv(what, opt) { opt = opt || {}; save(fileName(opt.file || opt.title, 'csv'), new Blob([csvText(what, opt)], { type: 'text/csv;charset=utf-8' })); }
+  function downloadCsv(what, opt) { opt = opt || {}; logOut('csv', opt); save(fileName(opt.file || opt.title, 'csv'), new Blob([csvText(what, opt)], { type: 'text/csv;charset=utf-8' })); }
 
   /* ---------- Word (.docx) ---------- */
   const xml = s => String(s === undefined || s === null ? '' : s).replace(/[^\x09\x0A\x0D\x20-퟿-�\u{10000}-\u{10FFFF}]/gu, '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -171,7 +171,7 @@
     const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
     return new Blob([zip([['[Content_Types].xml', types], ['_rels/.rels', rels], ['word/document.xml', doc], ['word/_rels/document.xml.rels', docRels], ['word/styles.xml', styles]])], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   }
-  function downloadDocx(what, opt) { opt = opt || {}; save(fileName(opt.file || opt.title, 'docx'), docxBlob(what, opt)); }
+  function downloadDocx(what, opt) { opt = opt || {}; logOut('docx', opt); save(fileName(opt.file || opt.title, 'docx'), docxBlob(what, opt)); }
 
   /* A .docx is a zip of a few XML files. This writes one without compression: small, and no library needed. */
   let crcTable = null;
@@ -332,7 +332,16 @@
     document.body.appendChild(sheet); document.body.classList.add('sheet-printing'); pageStyle(landscape);
     return sheet;
   }
+  const logOut = (kind, opt) => { try { if (window.Cloud && Cloud.log && Cloud.user) Cloud.log('export.table', '', { kind, title: String((opt && opt.title) || '').slice(0, 120) }); } catch (e) {} };   // v66: every print or download of records leaves a line in the change log
+  /** Print one ready-made piece of the page by itself (v66: sign-in slips). */
+  function printNode(node, landscape) {
+    cleanup();
+    const sheet = document.createElement('div'); sheet.id = 'printSheet'; sheet.className = 'print-sheet'; sheet.appendChild(node);
+    document.body.appendChild(sheet); document.body.classList.add('sheet-printing'); pageStyle(!!landscape);
+    setTimeout(() => { try { window.print(); } finally { if (!('onafterprint' in window)) cleanup(); } }, 60);
+  }
   function printSheet(what, opt) {
+    logOut('print', opt);
     buildSheet(what, opt);
     // let the crest load and the layout settle, then print; the sheet is taken away when printing ends
     setTimeout(() => { try { window.print(); } finally { if (!('onafterprint' in window)) cleanup(); } }, 60);
@@ -365,5 +374,5 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
 
-  window.Tables = { model, modelOf, cellText, csvText, downloadCsv, docxBlob, downloadDocx, printSheet, buildSheet, prepare, cleanup, decorate, titleFor, PORTRAIT, LANDSCAPE };
+  window.Tables = { model, modelOf, cellText, csvText, downloadCsv, docxBlob, downloadDocx, printSheet, printNode, buildSheet, prepare, cleanup, decorate, titleFor, PORTRAIT, LANDSCAPE };
 })();

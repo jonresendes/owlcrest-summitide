@@ -1,5 +1,7 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v60 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v66 (free-plan edition: no Cloud Functions).
+// v66 adds: sign-in codes (signin), holds, corrections, the longer policy record, and two refusals:
+// nothing of a student on hold can be deleted, and a device holding an old copy cannot write over a record that was cleaned up.
 // Paste the whole file into Firebase console → Firestore Database → Rules → Publish.
 //
 // The idea in one paragraph: being signed in is not enough. A caller must have a staff record or a
@@ -20,6 +22,16 @@ service cloud.firestore {
     // May the caller manage this student? The Headmaster, or a teacher on the student's access list.
     function teaches(sid) { return isMaster() || (isStaff() && request.auth.uid in get(/databases/$(database)/documents/students/$(sid)).data.teachers); }
     function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    // v66 · HOLDS. A hold on one student (holds/<student>) or on the whole school (settings/policy.holdAll) means
+    // nothing of theirs may be deleted by anyone, the Headmaster included, until the Headmaster lifts it.
+    function schoolHold() { return exists(/databases/$(database)/documents/settings/policy) && 'holdAll' in get(/databases/$(database)/documents/settings/policy).data && get(/databases/$(database)/documents/settings/policy).data.holdAll == true; }
+    function held(sid) { return schoolHold() || exists(/databases/$(database)/documents/holds/$(sid)); }
+    // v66 · A record emptied by the end-of-term clean-up carries purged: true and the time. A later write must be newer than that:
+    // a device that was offline (or kept signed in) with the old work cannot put it back.
+    function isPurged(d) { return 'purged' in d && d.purged == true; }
+    function notStale() { return !isPurged(resource.data) || (request.resource.data.updatedAt is string && request.resource.data.updatedAt > resource.data.updatedAt); }
+    // ... and the clean-up itself (purged: true) is refused while the student is on hold.
+    function notPurgingHeld(sid) { return !isPurged(request.resource.data) || !held(sid); }
 
     // ----- who is the Headmaster -----
     match /meta/master {
@@ -78,7 +90,7 @@ service cloud.firestore {
     // Self sign-up, only while the school's switch is saved as on: a plain profile with nothing granted.
     function selfSignupOpen() { return get(/databases/$(database)/documents/settings/global).data.allowSelfSignup == true; }
     function plainNewProfile() {
-      return request.resource.data.keys().hasOnly(['id', 'name', 'createdAt', 'avatar', 'colour', 'level', 'courseLevels', 'courses', 'coursesLocked', 'accommodations', 'prefs', 'suggestions', 'track', 'archived', 'levelLog', 'lessonLevels', 'number', 'dob', 'teachers', 'updatedAt', 'updatedBy', 'rev'])
+      return request.resource.data.keys().hasOnly(['id', 'name', 'createdAt', 'avatar', 'colour', 'level', 'courseLevels', 'courses', 'coursesLocked', 'accommodations', 'prefs', 'suggestions', 'track', 'archived', 'levelLog', 'lessonLevels', 'number', 'teachers', 'updatedAt', 'updatedBy', 'rev'])   // v66: no birthday
           && request.resource.data.name is string && request.resource.data.name.size() <= 40 && !request.resource.data.name.matches('(?s).*[<>].*')
           && request.resource.data.number is string && request.resource.data.number.size() <= 40
           && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 16 && !request.resource.data.avatar.matches('(?s).*[<>].*')
@@ -106,7 +118,7 @@ service cloud.firestore {
                     || (isStaff() && request.auth.uid in resource.data.teachers && onlyOwnEntryChanges() && !changed().hasAny(['id', 'number']))
                     || (isStaff() && changed().hasOnly(['teachers']) && onlyOwnEntryChanges())
                     || (request.auth.uid == sid && changed().hasOnly(studentOwnFields()) && tidyOwnFields()));
-      allow delete: if signedIn() && (isMaster() || (isStaff() && request.auth.uid in resource.data.teachers));
+      allow delete: if signedIn() && (isMaster() || (isStaff() && request.auth.uid in resource.data.teachers)) && !held(sid);
     }
     // Name, number and picture of every student, so a teacher can add an existing student to a section. Staff only.
     match /directory/{sid} {
@@ -135,8 +147,9 @@ service cloud.firestore {
       allow create: if signedIn() && pid == request.resource.data.student + '__' + request.resource.data.course
                     && ((request.resource.data.student == request.auth.uid && isStudent()) || teaches(request.resource.data.student));
       allow update: if signedIn() && request.resource.data.student == resource.data.student && request.resource.data.course == resource.data.course
-                    && ((resource.data.student == request.auth.uid && isStudent()) || teaches(resource.data.student));
-      allow delete: if signedIn() && teaches(resource.data.student);
+                    && ((resource.data.student == request.auth.uid && isStudent() && notStale() && !isPurged(request.resource.data))
+                        || (teaches(resource.data.student) && notPurgingHeld(resource.data.student)));
+      allow delete: if signedIn() && teaches(resource.data.student) && !held(resource.data.student);
     }
     // ----- teacher grades and comments -----
     // Kept apart from the student's work so that a student can read them but never write them.
@@ -144,13 +157,14 @@ service cloud.firestore {
       allow get: if isStaff() && resource == null;
       allow read: if signedIn() && (isMaster() || resource.data.student == request.auth.uid || teaches(resource.data.student));
       allow create: if signedIn() && gid == request.resource.data.student + '__' + request.resource.data.course && teaches(request.resource.data.student);
-      allow update: if signedIn() && request.resource.data.student == resource.data.student && request.resource.data.course == resource.data.course && teaches(resource.data.student);
-      allow delete: if signedIn() && teaches(resource.data.student);
+      allow update: if signedIn() && request.resource.data.student == resource.data.student && request.resource.data.course == resource.data.course && teaches(resource.data.student) && notPurgingHeld(resource.data.student);
+      allow delete: if signedIn() && teaches(resource.data.student) && !held(resource.data.student);
     }
     // ----- Focus Plans -----
     match /focus/{sid} {
       allow read: if signedIn() && (request.auth.uid == sid || teaches(sid));
-      allow write: if signedIn() && teaches(sid);
+      allow create, update: if signedIn() && teaches(sid);
+      allow delete: if signedIn() && teaches(sid) && !held(sid);
     }
 
     // ----- Live Class Board (v58) -----
@@ -164,7 +178,7 @@ service cloud.firestore {
       allow create, update: if isMaster()
                     || (isStaff() && request.resource.data.teacherId == request.auth.uid
                         && get(/databases/$(database)/documents/sections/$(sid)).data.teacherId == request.auth.uid);
-      allow delete: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid);
+      allow delete: if (isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid)) && !schoolHold();
     }
     // presence/<uid>: where one student is inside Summitide right now, sent only while a session runs.
     // Written only by that student, in a fixed shape and size; read by the student's own teachers.
@@ -178,7 +192,7 @@ service cloud.firestore {
                     && request.resource.data.label is string && request.resource.data.label.size() <= 120 && !request.resource.data.label.matches('(?s).*[<>].*')
                     && request.resource.data.state in ['on', 'blur', 'hidden']
                     && request.resource.data.leaves is list && request.resource.data.leaves.size() <= 20;
-      allow delete: if signedIn() && (request.auth.uid == sid || teaches(sid));
+      allow delete: if signedIn() && (request.auth.uid == sid || teaches(sid)) && !held(sid);
     }
 
     // ----- "Found a problem?" reports -----
@@ -191,7 +205,8 @@ service cloud.firestore {
                     && request.resource.data.shot is string && request.resource.data.shot.size() <= 750000
                     && (request.resource.data.shot == '' || request.resource.data.shot.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]*$'))
                     && request.resource.data.status == 'open';
-      allow read, update, delete: if isMaster();
+      allow read, update: if isMaster();
+      allow delete: if isMaster() && !held(resource.data.by);
     }
 
     // ----- courses loaded from a file by the Headmaster -----
@@ -218,7 +233,7 @@ service cloud.firestore {
     match /coins/{sid} {
       allow read: if signedIn() && (request.auth.uid == sid || teaches(sid));
       allow create, update: if signedIn() && teaches(sid) && request.resource.data.student == sid && request.resource.data.entries is list;
-      allow delete: if signedIn() && teaches(sid);
+      allow delete: if signedIn() && teaches(sid) && !held(sid);
     }
     // shops/<staff id>: a teacher's shop. Anyone with a record may look; only its owner (or the Headmaster) changes it.
     match /shops/{tid} {
@@ -232,23 +247,80 @@ service cloud.firestore {
       allow write: if isMaster();
     }
 
-    // ----- the school's privacy and retention policy (v59) -----
-    // Not secret: the privacy notice is open to anyone, signed in or not, and reads its periods from here.
-    // Only the Headmaster writes it, in a fixed shape: two switches, a line of plain text and three periods in days.
+    // ----- the school's privacy and retention policy (v59, longer in v66) -----
+    // Not secret: the privacy notice is open to anyone, signed in or not, and reads its words and periods from here.
+    // Only the Headmaster writes it, in a fixed shape: switches, lines of plain text and three periods in days.
+    function plainLine(v, max) { return v is string && v.size() <= max && !v.matches('(?s).*[<>].*'); }
     match /settings/policy {
       allow read: if true;
       allow create, update: if isMaster()
-                    && request.resource.data.keys().hasOnly(['allowDictation', 'boardReviewed', 'contact', 'shotDays', 'reportDays', 'liveDays', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.keys().hasOnly(['pv', 'allowDictation', 'boardReviewed', 'contact', 'authority', 'officerTitle', 'officerAddress', 'officerPhone', 'autoSweep', 'holdAll', 'allowDrive', 'allowEmbeds', 'allowOutsideMedia', 'shotDays', 'reportDays', 'liveDays', 'updatedAt', 'updatedBy'])
+                    && request.resource.data.pv == 2
                     && request.resource.data.allowDictation is bool && request.resource.data.boardReviewed is bool
-                    && request.resource.data.contact is string && request.resource.data.contact.size() <= 200 && !request.resource.data.contact.matches('(?s).*[<>].*')
-                    && request.resource.data.shotDays is int && request.resource.data.shotDays >= 1 && request.resource.data.shotDays <= 365
-                    && request.resource.data.reportDays is int && request.resource.data.reportDays >= 7 && request.resource.data.reportDays <= 730
-                    && request.resource.data.liveDays is int && request.resource.data.liveDays >= 1 && request.resource.data.liveDays <= 90;
+                    && request.resource.data.autoSweep is bool && request.resource.data.holdAll is bool
+                    && request.resource.data.allowDrive is bool && request.resource.data.allowEmbeds is bool && request.resource.data.allowOutsideMedia is bool
+                    && plainLine(request.resource.data.contact, 200) && plainLine(request.resource.data.authority, 400)
+                    && plainLine(request.resource.data.officerTitle, 120) && plainLine(request.resource.data.officerAddress, 240) && plainLine(request.resource.data.officerPhone, 40)
+                    && request.resource.data.shotDays is int && request.resource.data.shotDays >= 1 && request.resource.data.shotDays <= 3650
+                    && request.resource.data.reportDays is int && request.resource.data.reportDays >= 7 && request.resource.data.reportDays <= 3650
+                    && request.resource.data.liveDays is int && request.resource.data.liveDays >= 1 && request.resource.data.liveDays <= 3650;
+      allow delete: if false;
+    }
+
+    // ----- sign-in codes (v66) -----
+    // signin/<student>: the student's current sign-in code. A browser can only replace a password it knows, so the
+    // code is kept here for the student's teachers and the Headmaster, and for nobody else: the student cannot read it.
+    // A student who signs themselves up (only while the school allows it) writes their own once, before their profile exists.
+    function codeRecord(sid) {
+      return request.resource.data.keys().hasOnly(['student', 'code', 'issuedAt', 'issuedBy'])
+          && request.resource.data.student == sid
+          && request.resource.data.code is string && request.resource.data.code.size() >= 8 && request.resource.data.code.size() <= 80 && request.resource.data.code.matches('^[a-z0-9-]+$');
+    }
+    match /signin/{sid} {
+      allow get: if signedIn() && teaches(sid);
+      allow list: if isMaster();
+      allow create: if signedIn() && codeRecord(sid)
+                    && (teaches(sid) || (request.auth.uid == sid && selfSignupOpen() && !exists(/databases/$(database)/documents/students/$(sid))));
+      allow update: if signedIn() && codeRecord(sid) && teaches(sid);
+      allow delete: if signedIn() && (teaches(sid) || (request.auth.uid == sid && !exists(/databases/$(database)/documents/students/$(sid))));
+    }
+
+    // ----- holds (v66) -----
+    // holds/<student>: placed and lifted only by the Headmaster; the student's teachers can see that one exists.
+    // While it exists the delete rules above refuse (see held()).
+    match /holds/{sid} {
+      allow get: if signedIn() && teaches(sid);
+      allow list: if isMaster();
+      allow create, update: if isMaster()
+                    && request.resource.data.keys().hasOnly(['student', 'reason', 'at', 'by', 'byName'])
+                    && request.resource.data.student == sid && plainLine(request.resource.data.reason, 200);
       allow delete: if isMaster();
     }
 
+    // ----- corrections (v66) -----
+    // correctionRequests/<student>: what the student has asked to have corrected. Their own record: they write it, their teachers read it.
+    // corrections/<student>: what the school did about it — corrected, not corrected (with the reason), statements of
+    // disagreement. Written by the student's teachers, never shorter than before; the student reads it and cannot change it.
+    match /correctionRequests/{sid} {
+      allow get: if signedIn() && (request.auth.uid == sid || teaches(sid));
+      allow list: if isMaster();
+      allow create, update: if isStudent() && request.auth.uid == sid
+                    && request.resource.data.keys().hasOnly(['student', 'items', 'updatedAt'])
+                    && request.resource.data.student == sid && request.resource.data.items is list && request.resource.data.items.size() <= 30;
+      allow delete: if signedIn() && teaches(sid) && !held(sid);
+    }
+    match /corrections/{sid} {
+      allow get: if signedIn() && (request.auth.uid == sid || teaches(sid));
+      allow list: if isMaster();
+      allow create: if signedIn() && teaches(sid) && request.resource.data.student == sid && request.resource.data.items is list && request.resource.data.items.size() <= 300;
+      allow update: if signedIn() && teaches(sid) && request.resource.data.student == sid && request.resource.data.items is list
+                    && request.resource.data.items.size() <= 300 && request.resource.data.items.size() >= resource.data.items.size();
+      allow delete: if isMaster() && !held(sid);
+    }
+
     // ----- change log -----
-    // Staff apps add a line when they create, remove or take on a student or change an account.
+    // Staff apps add a line when they create, remove or take on a student, change an account, give out a sign-in code,
+    // place or lift a hold, record a correction, or print or download records (v66).
     // Lines cannot be edited or removed by anyone; only the Headmaster can read them.
     match /audit/{id} {
       allow create: if isStaff() && request.resource.data.by == request.auth.uid;

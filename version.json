@@ -1,5 +1,5 @@
 {
- "version": "65",
- "date": "2026-11-20",
- "notes": "Fix: students could not sign in. The app checked for the student's profile before it had finished arriving, did not find it, and signed the student out again with no message. Sign-in now waits for the profile, and a sign-in message is kept through the reload."
+ "version": "66",
+ "date": "2026-11-21",
+ "notes": "Privacy and compliance build. Students sign in with a code a teacher gives them, not a birthday; birthdays are no longer collected. Nothing is deleted automatically unless the Headmaster switches that on. New: holds, a copy of everything held about a student, corrections, notice-of-collection fields. Off until switched on: dictation, Google Drive, videos and pictures from other sites. THE NEW firestore.rules MUST BE PUBLISHED."
 }

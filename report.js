@@ -11,6 +11,14 @@
    The screenshot is a JPEG shrunk to fit inside one cloud record (under ~700 KB).
    ========================================================= */
 (function () {
+  /** v66 · Which browser on which kind of device, in a few words ("Chrome on Windows"). The full identification string a browser
+      sends says more about the device than a problem report needs, so it is no longer kept. */
+  function browserKind() {
+    const u = navigator.userAgent || '';
+    const b = /Edg\//.test(u) ? 'Edge' : /OPR\//.test(u) ? 'Opera' : /Firefox\//.test(u) ? 'Firefox' : /CriOS|Chrome\//.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : 'Other browser';
+    const o = /CrOS/.test(u) ? 'Chromebook' : /Android/.test(u) ? 'Android' : /iPhone|iPad|iPod/.test(u) ? 'iPhone or iPad' : /Windows/.test(u) ? 'Windows' : /Mac OS X/.test(u) ? 'Mac' : /Linux/.test(u) ? 'Linux' : 'other device';
+    return b + ' on ' + o;
+  }
   const KEY = 'learnhub.issues', MAX_SHOT = 700000;
   const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   /** The screenshot of a stored report, only if it really is a JPEG picture (anything else is dropped, never put into the page). */
@@ -92,7 +100,7 @@
       const t = text.value.trim(); if (!t) { msg.textContent = 'Type a few words about the problem first.'; msg.style.color = 'var(--danger)'; text.focus(); return; }
       const inc = d.querySelector('#reportInclude'); const s = me() || {};
       const issue = { id: 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), by: cloud() && Cloud.user ? Cloud.user.uid : String(s.id || ''), name: String(s.name || ''), role: s.role === 'master' ? 'Headmaster' : s.isStaff ? 'Teacher' : 'Student', number: String(s.number || ''),
-        page, title, text: t, shot: shot && (!inc || inc.checked) ? shot : '', at: new Date().toISOString(), status: 'open', version: (window.PWA && PWA.APP_VERSION) || '', screen: window.innerWidth + '×' + window.innerHeight, agent: navigator.userAgent.slice(0, 200) };
+        page, title, text: t, shot: shot && (!inc || inc.checked) ? shot : '', at: new Date().toISOString(), status: 'open', version: (window.PWA && PWA.APP_VERSION) || '', screen: window.innerWidth + '×' + window.innerHeight, agent: browserKind() };
       send.disabled = true; msg.style.color = ''; msg.textContent = 'Sending…';
       try { await submit(issue); d.querySelector('.report-card').innerHTML = '<h2>✅ Sent</h2><p>Thank you — the Headmaster will see your report.</p><div class="btn-row"><button class="btn" id="reportDone">Close</button></div>'; d.querySelector('#reportDone').addEventListener('click', close); d.querySelector('#reportDone').focus(); }
       catch (e) { send.disabled = false; msg.style.color = 'var(--danger)'; msg.textContent = 'Not sent: ' + ((e && e.code === 'permission-denied') ? 'the cloud refused it. Ask the Headmaster to publish the latest firestore.rules.' : !navigator.onLine ? 'you are offline. Try again when you are connected.' : (e && e.message) || e); }

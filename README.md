@@ -7,6 +7,47 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 66 — privacy and compliance build (21 November 2026)
+
+Written against `claude/compliance-checklist.md` (MFIPPA and the Enhancing Digital Security and Trust Act, as uploaded to the project). Both Acts bind the school board, not the app: this build makes the app ready for a board to review. It is not a legal opinion.
+
+### Do these after uploading
+
+1. **Publish `firestore.rules`** (Firebase console → Firestore Database → Rules → paste the whole file → Publish). Until then: adding a student, saving any privacy setting, holds and corrections are refused with a message that says so. Signing in keeps working either way.
+2. **Students page → "Give codes to these students and print the slips."** Each student who still signs in with a birthday gets a sign-in code and the birthday is removed from their record. Hand out the slips before they next sign in: the birthday stops working at once.
+3. **Settings → Privacy and retention:** fill in the legal authority and the board officer's title, address and telephone (your board's privacy office supplies the words), then switch on only what the board allows.
+
+### What changed
+
+- **Sign-in codes, not birthdays.** `cloud.js` makes a random code on the teacher's device (three words from a list of 256 and two digits, about two billion possibilities; Firebase limits guessing). It is the Firebase password. Capitals, spaces and hyphens are ignored when typed. No birthday is asked for anywhere; an old `dob` is deleted from the record when a code is issued. Staff are shown a code once, when it is made, with a printable slip; never the birthday or a derived password.
+  - `signin/<uid>` holds the current code, readable only by the student's teachers and the Headmaster. It exists because a browser cannot replace a password it does not know; with a server it would not be needed. This is a stored, recoverable credential and is listed as a remaining risk.
+  - Removing a student now also deletes the sign-in itself (the app knows the code), so the number can be reused and nothing is left in Firebase Authentication.
+- **Nothing is deleted automatically** unless the Headmaster switches *Delete automatically* on. Periods can be set up to ten years. A forgotten Live Class session is still ended after 12 hours.
+- **Holds.** One student (`holds/<uid>`, from the record tools) or the whole school (`settings/policy.holdAll`). The rules refuse deletion of a held student's profile, work, grades, Focus Plan, presence, coins, reports and corrections, for everyone including the Headmaster; the clean-up, the end-of-term erase and *Remove* check first and say why.
+- **A copy of everything held about one student** (Students → open the student → record tools): a Word file to read and a complete JSON file. Profile, sections, level history, quizzes and tests, answers on the latest attempts, assignments with teacher scores and comments, Focus Plan, coin ledger, Live Class presence and sessions, problem reports, corrections, hold, sign-in record (not the code), change-log lines. Problem reports and change-log lines need the Headmaster.
+- **Corrections.** A student asks from Settings → Privacy (`correctionRequests/<uid>`). Staff record what was corrected, what was not and why, and statements of disagreement (`corrections/<uid>`, which only grows; the student reads it).
+- **Notice of collection.** New policy fields: legal authority, board officer's title, address, telephone. The notice says what is still missing, and now names sign-in codes, session notes, paper and files, corrections, holds and each outside service as it is actually set.
+- **Off until switched on:** dictation (an automated speech-recognition service run by the browser's maker), saving to Google Drive, YouTube and Google files inside lessons, pictures and sound kept on other websites. Off means a plain link the person may choose to open. A policy record saved before v66 is read with all of these off, and the Headmaster is shown a note once.
+- **Every print and download is in the change log:** tables (print, CSV, Word), the export, Drive, sign-in slips, student copies, holds, corrections, codes.
+- **A cleaned-up record cannot be written over by an old device:** the rules refuse a student write to a record marked `purged` unless it is newer than the clean-up.
+- **Problem reports** keep "Chrome on Windows", not the browser's full identification string.
+- **Content policy:** `https://www.youtube.com` removed from `frame-src` (only the no-cookie player was ever used).
+- **Fixed on the way:** staff sign-in on an empty device entered before the staff record had arrived and called itself until the browser stopped it (an error in the console, then a late recovery). Staff sign-in now waits for the records, as student sign-in has since v65.
+
+### Files
+
+New: `records.js`. Changed: `firestore.rules`, `cloud.js`, `app.js`, `privacy.js`, `tables.js`, `drive.js`, `report.js`, `styles.css`, `index.html`, `sw.js` (`summitide-v66`), `pwa.js`, `version.json`, `README.md`. Checked and left as they are: `storage.js`, `live.js`, `coins.js`, `media.js`, `overlay.js`, `dashboard.js`, `marking.js`, `print.js`, `util.js`, `games.js`, `badges.js`, `colouring.js`, `courseloader.js`, `mathtools.js`, `mathcore.js`, `calculator.html`, the course files and media guides (no course file loads anything from another site; their outside addresses are links).
+
+### Tested, and not
+
+Headless Chrome with a stand-in for Firebase (accounts and records in memory, **no security rules**): 63 checks across sign-in with an old birthday, creating a student, the slip, moving a student from birthday to code, holds (one student and school-wide) against removal, erase and clean-up, corrections both ways, both copies, privacy settings and notice, media switches on and off, a student signing in with a code typed in capitals with spaces, sign-out emptying the device, removal deleting the sign-in, self sign-up. Device-only mode: record tools, holds, settings, notice; the v63 printing tests again; no reload loop with the service worker on.
+
+**Not tested:** `firestore.rules` itself. The Firebase emulator could not be downloaded in the build environment, so the rules were neither compiled nor run. The Firebase console refuses to publish rules that do not compile and keeps the old ones, so a mistake there cannot break the live site, but the new refusals (holds, stale writes, who may read `signin`) are unproven until they are published and tried. Also not tested: the live Firebase project, two real devices, Safari and Firefox.
+
+### Still needs a server or the board
+
+Multi-factor or single sign-on; a code store nobody can read; marks and coins computed on a server (they are written by the student's browser); answer keys out of the public repository; a change log written and watched by a server; hosting ownership and storage region; the board's retention schedule, privacy impact assessment and breach procedure.
+
 ## Version 65 — students could not sign in (20 November 2026)
 
 **What happened.** A student typed the right number and birthday, the button said *Signing in…*, and the sign-in screen came back empty with no message. `Cloud.signInStudent` returned as soon as the role was known (`waitForRole`), and `enterCloudSession` then looked for the student's profile with `Students.byId(uid)`. The profile arrives a moment later, in `loadOnce`. On a device with nothing stored, and unless the cloud answered within about 50 ms, the profile was not there yet, so the app set *"Your account exists but your profile could not be found"* and signed out; a student sign-out empties the device and reloads the page, which erased the message. Teachers and the Headmaster were not affected: their entry does not need a record to be present first.

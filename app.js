@@ -220,7 +220,8 @@
     if (app.querySelector('#suFont')) { preview(); const c = app.querySelector('#welcomeCancel'); if (c) c.addEventListener('click', () => Settings.apply()); }
   }
   /* ----- Cloud sign-in (replaces the welcome tiles when cloud.js is enabled) -----
-     Students: student number + birthday (DDMMYYYY). Teachers: teacher ID + password. */
+     Students: student number + the sign-in code a teacher gave them (v66; a student whose record still holds a
+     birthday types it as before until a code is issued). Teachers: teacher ID + password. */
   const signinState = { mode: 'student', busy: false, msg: '', signup: false };
   // v65: a message that must outlive the reload that follows a sign-out (the device is emptied and the page starts again)
   try { const kept = sessionStorage.getItem('summitide.signinMsg'); if (kept) { signinState.msg = kept; sessionStorage.removeItem('summitide.signinMsg'); } } catch (e) {}
@@ -232,14 +233,21 @@
     const canSelf = Settings.get('allowSelfSignup') !== false;
     const field = (id, label, type, ph, extra) => '<label class="signin-field">' + label + '<input class="text-input" id="' + esc(id) + '" type="' + type + '" placeholder="' + ph + '" autocomplete="off" ' + (extra || '') + '></label>';
     let form;
-    if (st.signup && student) {
+    if (st.made && student) {   // v66: the account was just made; show the sign-in code once, then sign in with it
+      form = '<div class="card signin-card"><h3>Your account is ready</h3><p>Your student number is <strong>' + esc(st.made.number) + '</strong>. Your sign-in code is:</p>' +
+        '<p class="signin-code" id="suCode">' + esc(st.made.code) + '</p>' +
+        '<p class="muted small"><strong>Write it down now.</strong> You need it every time you sign in, and it is not shown again. Capital letters, spaces and hyphens do not matter. If you lose it, your teacher can give you a new one.</p>' +
+        '<div class="btn-row" style="margin-top:0.75rem"><button class="btn lg" id="suDone"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? 'Signing in…' : 'I have written it down: sign in') + '</button></div></div>';
+    } else if (st.signup && student) {
       form = '<div class="card signin-card"><div class="btn-row between"><h3>Create my student account</h3><button class="btn ghost sm" id="siBack">✕</button></div>' +
-        '<p class="muted small">Your teacher will add you to your classes. Your password is your birthday written as <strong>DDMMYYYY</strong> (12 January 2008 → 12012008).</p>' +
-        field('suNumber', 'Student number', 'text', 'e.g. 123456', 'inputmode="numeric"') + field('suName', 'First name', 'text', 'First name', 'maxlength="30"') + field('suDob', 'Birthday', 'date', '') +
+        '<p class="muted small">Your teacher will add you to your classes. You will be given a sign-in code to write down.</p>' +
+        field('suNumber', 'Student number', 'text', 'e.g. 123456', 'inputmode="numeric"') + field('suName', 'First name', 'text', 'First name', 'maxlength="30"') +
         '<div class="btn-row" style="margin-top:0.75rem"><button class="btn lg" id="suGo"' + (st.busy ? ' disabled' : '') + '>Create account</button></div></div>';
     } else {
       form = '<div class="card signin-card"><div class="seg signin-seg"><button class="' + (student ? 'on' : '') + '" data-si-mode="student">🎒 Student</button><button class="' + (!student ? 'on' : '') + '" data-si-mode="staff">🧑‍🏫 Teacher</button></div>' +
-        (student ? field('siUser', 'Student number', 'text', 'Student number', 'inputmode="numeric"') + field('siPass', 'Password (birthday DDMMYYYY)', 'password', '12012008', 'inputmode="numeric" maxlength="8"')
+        (student ? field('siUser', 'Student number', 'text', 'Student number', 'inputmode="numeric"') + field('siPass', 'Sign-in code', 'password', 'the code your teacher gave you', 'maxlength="60" autocapitalize="none" spellcheck="false"') +
+                   '<label class="chk small"><input type="checkbox" id="siShow"> Show what I type</label>' +
+                   (Settings.get('legacyBirthday') !== false ? '<p class="muted small" style="margin:0.35rem 0 0">Not been given a code yet? Type your birthday as eight digits (day, month, year), as before.</p>' : '')
                  : field('siUser', 'Teacher ID', 'text', 'Teacher ID') + field('siPass', 'Password', 'password', 'Password')) +
         '<label class="chk" style="margin-top:0.5rem"><input type="checkbox" id="siKeep"' + (keep ? ' checked' : '') + '> Keep me signed in on this device <span class="muted small">(untick on shared computers)</span></label>' +
         '<div class="btn-row" style="margin-top:0.75rem"><button class="btn lg" id="siGo"' + (st.busy ? ' disabled' : '') + '>' + (st.busy ? 'Signing in…' : 'Sign in') + '</button>' +
@@ -253,7 +261,7 @@
     const fail = m => { st.busy = false; st.msg = m; st.msgOk = false; pageCloudSignIn(); };
     const go = async () => {
       if (st.busy) return; const u = (app.querySelector('#siUser').value || '').trim(), pw = app.querySelector('#siPass').value || '', keepMe = app.querySelector('#siKeep').checked;
-      if (!u || !pw) return fail('Type your ' + (student ? 'student number and birthday' : 'teacher ID and password') + '.');
+      if (!u || !pw) return fail('Type your ' + (student ? 'student number and sign-in code' : 'teacher ID and password') + '.');
       st.busy = true; st.msg = ''; pageCloudSignIn();
       try { if (student) await Cloud.signInStudent(u, pw, keepMe); else await Cloud.signInStaff(u, pw, keepMe); st.busy = false; enterCloudSession(); }
       catch (e) { fail(e.message); }
@@ -261,12 +269,18 @@
     on('#siGo', go); const pw = app.querySelector('#siPass'); if (pw) pw.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     on('#siSignup', () => { st.signup = true; st.msg = ''; pageCloudSignIn(); });
     on('#siBack', () => { st.signup = false; st.msg = ''; pageCloudSignIn(); });
+    const show = app.querySelector('#siShow'); if (show) show.addEventListener('change', () => { const f = app.querySelector('#siPass'); if (f) f.type = show.checked ? 'text' : 'password'; });
     on('#suGo', async () => {
-      if (st.busy) return; const number = app.querySelector('#suNumber').value.trim(), name = app.querySelector('#suName').value.trim(), dob = app.querySelector('#suDob').value;
-      if (!number || !name || !dob) return fail('Fill in your student number, first name and birthday.');
+      if (st.busy) return; const number = app.querySelector('#suNumber').value.trim(), name = app.querySelector('#suName').value.trim();
+      if (!number || !name) return fail('Fill in your student number and first name.');
       st.busy = true; pageCloudSignIn();
-      try { await Cloud.createStudent({ name, number, dob, level: 2, courses: [] }); await Cloud.signInStudent(number, Cloud.dobPassword(dob), false); st.busy = false; st.signup = false; enterCloudSession(); }
+      try { const made = await Cloud.createStudent({ name, number, level: 2, courses: [] }); st.made = { number, code: Cloud.issuedCode(made.id) }; st.busy = false; st.signup = false; st.msg = ''; pageCloudSignIn(); }
       catch (e) { fail(e.message); }
+    });
+    on('#suDone', async () => {
+      if (st.busy || !st.made) return; const made = st.made; st.busy = true; pageCloudSignIn();
+      try { await Cloud.signInStudent(made.number, made.code, false); st.busy = false; st.made = null; enterCloudSession(); }
+      catch (e) { st.busy = false; st.msg = e.message; st.msgOk = false; pageCloudSignIn(); }
     });
     const first = app.querySelector('#siUser, #suNumber'); if (first) first.focus();
   }
@@ -333,6 +347,7 @@
         Cloud.signOut(); return pageCloudSignIn(); }
       Students.setCurrent(uid);
     } else Students.setCurrent(Cloud.role === 'master' ? 'staff:master' : 'staff:' + uid);
+    if (!Students.current) return;   // v66: the person's own record is not on the device yet; the 'cloud:auth' event comes back here when it is (going home now would only come straight back, without end)
     sessionStorage.setItem('learnhub.entered', '1'); renderWho(); goHome();
   }
   /** "Profile v7 · saved 11 Nov, 11:38 p.m. by Mr. Resendes" — the same stamp on every device once they agree. */
@@ -800,6 +815,13 @@
       if (m.src) {
         const cap = esc(m.title) + (m.source ? ' <span class="muted">· ' + esc(m.source) + '</span>' : '');
         const g = googleEmbed(m.src);
+        // v66: nothing from another site is loaded unless the school has switched it on. Showing a YouTube video, a Google file or a
+        // picture kept on another site tells that site who opened it (address of the device, time, page). Off: a plain link the
+        // person may choose to follow. Files a teacher uploads (idb:) and pictures kept with the app are not affected.
+        const pol = (window.Privacy && Privacy.policy) || {}, outside = /^https?:/i.test(m.src);
+        const linkOnly = (icon, why) => '<p class="media-link media-off">' + icon + ' <a href="' + esc((g && g.open) || m.src) + '" target="_blank" rel="noopener noreferrer">' + esc(m.title || 'Open') + '</a>' + (m.source ? ' <span class="muted small">· ' + esc(m.source) + '</span>' : '') + ' <span class="muted small">· opens in a new tab (' + why + ')</span></p>';
+        if (outside && (g || embedUrl(m.src)) && !pol.allowEmbeds) return linkOnly(g ? g.icon : '🎬', 'videos and Google files are not shown inside lessons at this school');
+        if (outside && !g && !embedUrl(m.src) && (m.type === 'image' || m.type === 'audio' || m.type === 'video') && !pol.allowOutsideMedia) return linkOnly(m.type === 'image' ? '🖼️' : m.type === 'audio' ? '🔊' : '🎬', 'pictures and sound kept on other sites are not loaded at this school');
         if (g) return '<div class="media-google' + (g.tall ? ' tall' : '') + '">' + (g.embed ? '<iframe src="' + esc(g.embed) + '" title="' + esc(m.title) + '" allowfullscreen loading="lazy"></iframe>' : '<p class="small muted">This short link opens in a new tab.</p>') +
           '<div class="btn-row between"><span class="small muted">' + g.icon + ' ' + esc(m.title) + (m.source ? ' · ' + esc(m.source) : '') + '</span><a class="btn secondary sm" href="' + esc(g.open) + '" target="_blank" rel="noopener">' + g.icon + ' Open in ' + g.label + '</a></div></div>';
         if (/^idb:/.test(m.src)) { const id = esc(m.src.slice(4));
@@ -1080,7 +1102,7 @@
       '<div class="setting-row avatar-row"><div><label>My picture</label><div class="help">Pick any picture you like' + (me.role === 'master' ? ' — the owl is yours alone as Headmaster.' : '.') + '</div></div><details class="avatar-details"><summary><span class="avatar-current">' + esc(me.avatar) + '</span> Change picture</summary>' + avatarPickerHtml(me.avatar, 'data-avatar', me.role === 'master') + '</details></div>' +
       (window.Coins ? Coins.profileRow() : '') +
       (Cloud.enabled
-        ? '<div class="setting-row"><div><label>Account</label><div class="help">' + (staff ? 'Teacher ID <strong>' + esc((Staff.current || {}).login || '') + '</strong>. ' : 'Student number <strong>' + esc(me.number || '') + '</strong>. Your password is your birthday (DDMMYYYY). ') + (Cloud.keepSignedIn() ? 'You stay signed in on this device.' : 'You are signed out after ' + ((window.CLOUD_CONFIG || {}).idleMinutes || 30) + ' minutes without activity.') + '</div></div><div class="btn-row">' + (staff ? '<button class="btn secondary sm" id="changePw">Change password</button>' : '') + '<button class="btn ghost sm" id="signOutBtn">Sign out</button></div></div>'
+        ? '<div class="setting-row"><div><label>Account</label><div class="help">' + (staff ? 'Teacher ID <strong>' + esc((Staff.current || {}).login || '') + '</strong>. ' : 'Student number <strong>' + esc(me.number || '') + '</strong>. You sign in with the code your teacher gave you; ask your teacher if you need a new one. ') + (Cloud.keepSignedIn() ? 'You stay signed in on this device.' : 'You are signed out after ' + ((window.CLOUD_CONFIG || {}).idleMinutes || 30) + ' minutes without activity.') + '</div></div><div class="btn-row">' + (staff ? '<button class="btn secondary sm" id="changePw">Change password</button>' : '') + '<button class="btn ghost sm" id="signOutBtn">Sign out</button></div></div>'
         : staff ? '<div class="setting-row"><div><label>Security</label><div class="help">Your 6-digit PIN signs you in from the welcome screen.</div></div><div class="btn-row"><button class="btn secondary sm" id="changePin">Change my PIN</button><a class="btn ghost sm" href="#/welcome">Sign out</a></div></div>'
              : '<div class="setting-row"><div><label>Switch profile</label><div class="help">Go back to the welcome screen.</div></div><a class="btn secondary sm" href="#/welcome">Welcome screen</a></div>');
     const hm = staff && me.role === 'master', mi = Cloud.masterInfo || null, myLogin = (Staff.current || {}).login || '';
@@ -1230,7 +1252,7 @@
                     fld('Add a student who already has an account', '<select class="text-input" data-tsec-enrol="' + esc(sec.id) + '"><option value="">Choose a student…</option>' + rest.map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + (s.number ? ' (#' + esc(s.number) + ')' : '') + '</option>').join('') + '</select>') + '</div>' +
                   '<div class="plan-label" style="margin-top:0.75rem">Or create a new student in this section</div><div class="hm-grid">' +
                     fld('First name', '<input class="text-input" id="hmStName" maxlength="30" autocomplete="off">') +
-                    (cloud ? fld('Student number', '<input class="text-input" id="hmStNumber" inputmode="numeric" autocomplete="off">') + fld('Birthday <span class="muted">(their password)</span>', '<input class="text-input" id="hmStDob" type="date">') : '') +
+                    (cloud ? fld('Student number', '<input class="text-input" id="hmStNumber" inputmode="numeric" autocomplete="off">') : '') +
                   '</div><div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" data-tsec-newstudent="' + esc(sec.id) + '">＋ Add student</button><span class="small muted" id="hmStMsg"></span></div></div>' : '') + '</div>';
             }).join('') : '<p class="muted small">No sections yet. Assign one below or create a new one.</p>') +
             '<div class="hm-grid" style="margin-top:0.75rem">' + fld('Assign an existing section to ' + esc(t.name), '<select class="text-input" data-t-assign="' + esc(t.id) + '"><option value="">Choose a section…</option>' + others.map(sec => '<option value="' + esc(sec.id) + '">' + esc(sec.name) + ' · ' + esc(courseTitle(sec)) + ' (now: ' + esc(owner(sec)) + ')</option>').join('') + '</select>') + '</div>' +
@@ -1285,7 +1307,7 @@
       if (!name) return fail('Enter the student\'s first name.');
       if (!cloud) { const s = Students.add(name, { courses: [sec.courseId] }); Sections.enrol(sec.id, s.id, true); return done(s.name + ' was added to "' + sec.name + '".'); }
       btn.disabled = true; msg.style.color = ''; msg.textContent = 'Creating the account…';
-      try { const s = await Cloud.createStudent({ name, number: val('#hmStNumber'), dob: val('#hmStDob'), level: 2, courses: [sec.courseId] }); Sections.enrol(sec.id, s.id, true); done(s.name + ' was added to "' + sec.name + '". They sign in with their student number and birthday (DDMMYYYY).'); }
+      try { const s = await Cloud.createStudent({ name, number: val('#hmStNumber'), level: 2, courses: [sec.courseId] }); Sections.enrol(sec.id, s.id, true); const code = Cloud.issuedCode(s.id); done(s.name + ' was added to "' + sec.name + '". Sign-in code: ' + code + ' (shown once: write it down, or print the slip from the Students page before you leave it).'); }
       catch (err) { fail(err.message); }
     });
     on('[data-t-reset]', 'click', async e => {
@@ -1318,7 +1340,7 @@
   /* ----- Google Drive / export (master only) ----- */
   function driveHtml() {
     const log = Settings.get('driveLog') || [];
-    return '<h3>☁️ Google Drive &amp; exports</h3><p class="muted small">Push student work and achievement to the school\'s Google Drive (a folder called <strong>' + esc(Drive.FOLDER) + '</strong>): a CSV summary (quiz/test scores, assignments handed in, level changes per lesson) and a full JSON export. <strong>Pull</strong> on another device fetches the newest export and merges it in — push at the end of a class on one device, pull on the next, and rosters, levels and work follow you. One-time setup: create an OAuth Client ID in Google Cloud Console (Web application, with this site\'s address as an authorized JavaScript origin) and paste it here.</p>' +
+    return (window.Privacy && !Privacy.policy.allowDrive ? '<p class="privacy-flag" role="note">Saving to Google Drive is switched off for this school (Settings → Privacy and retention → Other sites and services). Downloading an export to this computer still works. Every export is written in the change log.</p>' : '') + '<h3>☁️ Google Drive &amp; exports</h3><p class="muted small">Push student work and achievement to the school\'s Google Drive (a folder called <strong>' + esc(Drive.FOLDER) + '</strong>): a CSV summary (quiz/test scores, assignments handed in, level changes per lesson) and a full JSON export. <strong>Pull</strong> on another device fetches the newest export and merges it in — push at the end of a class on one device, pull on the next, and rosters, levels and work follow you. One-time setup: create an OAuth Client ID in Google Cloud Console (Web application, with this site\'s address as an authorized JavaScript origin) and paste it here.</p>' +
       '<div class="btn-row"><input class="text-input" id="gClientId" placeholder="Google OAuth Client ID (….apps.googleusercontent.com)" value="' + esc(Settings.get('googleClientId') || '') + '" style="max-width:420px"><button class="btn secondary sm" id="gSave">Save</button></div>' +
       '<div class="btn-row" style="margin-top:0.6rem"><button class="btn" id="gPush">☁️ Push to Google Drive now</button><button class="btn secondary" id="gPull">⬇️ Pull latest from Google Drive</button><button class="btn secondary" id="gDownload">⬇️ Download export (CSV + JSON)</button><label class="btn ghost" for="gImport">📥 Import JSON…</label><input type="file" id="gImport" accept="application/json" hidden></div>' +
       '<p class="small muted" id="gStatus" style="margin:0.5rem 0 0"></p>' +
@@ -1452,6 +1474,7 @@
     const pending = list.filter(s => Object.keys(s.suggestions || {}).length);
     return '<h3>👥 Students' + (cur ? ' · ' + esc(cur.name) : '') + '</h3><p class="muted small">Each student has their own progress, awards and Focus Plan. Set the achievement level, accommodations or Modified band a student works at, choose which courses they see, review level changes and read or listen to their work.</p>' +
       '<div class="level-legend">' + [1, 2, 3, 4].map(l => '<span><strong>Level ' + l + ' · ' + LEVEL_NAMES[l] + '</strong> <span class="muted">' + LEVELS[l].band + ' · ' + LEVELS[l].short + '</span></span>').join('') + '</div>' +
+      (window.Records && !onlyId ? Records.legacyBannerHtml(studentsInScope()) : '') +
       (pending.length ? '<div class="plan-banner">💡 <strong>Level suggestions waiting:</strong> ' + pending.map(s => esc(s.name)).join(', ') + ' — based on recent test results. Open the student to apply or dismiss.</div>' : '') +
       (words.length && !list.length ? '<p class="muted">No student matches “' + esc(q) + '”' + (Staff.isMaster ? '.' : ' in your sections.') + '</p>' : '') +
       '<div class="student-list">' + list.map(s => {
@@ -1462,7 +1485,7 @@
           (sugg.length ? '<span class="tag accent">💡 ' + sugg.length + '</span>' : '') + '<span class="muted">' + (isOpen ? '▾' : '▸') + '</span>' + (Cloud.enabled ? '<span class="small muted row-stamp">' + profileStamp(s) + '</span>' : '') + '</button>' +
           (isOpen ? '<div class="student-body">' +
             '<div class="save-bar"><span class="muted small" id="saveMsg-' + s.id + '">' + (Cloud.enabled ? 'Changes save automatically. Press Save to send them to the cloud right away.' : 'Changes save on this device as you make them.') + '</span><button class="btn sm" data-save-student="' + esc(s.id) + '">💾 Save changes</button></div>' +
-            (Cloud.enabled && !s.demo ? '<div class="plan-section"><div class="plan-label">🔑 Account</div><div class="course-line"><span>Student number <strong>' + esc(s.number || '—') + '</strong> · birthday <strong>' + esc(s.dob || '—') + '</strong> · ' + (s.pwCustom ? 'has a password of their own (not the birthday)' : 'password = birthday as DDMMYYYY' + (s.dob ? ' (<code>' + esc(Cloud.dobPassword(s.dob)) + '</code>)' : '')) + '</span><span class="btn-row"><input class="text-input" type="date" data-fix-dob="' + esc(s.id) + '" style="max-width:170px" title="Correct birthday"><button class="btn ghost sm" data-fix-dob-go="' + esc(s.id) + '">Fix birthday / reset password</button></span></div></div>' : '') +
+            (window.Records ? Records.accountHtml(s) + (s.demo ? '' : Records.toolsHtml(s)) : '') +
             (sugg.length ? '<div class="plan-section"><div class="plan-label">💡 Suggested level changes (from test results)</div>' + sugg.map(([cid, g]) => { const c = findCourse(cid); return '<div class="suggestion"><span>' + (c ? c.icon + ' ' + esc(c.title) : esc(cid)) + ': <strong>Level ' + g.from + ' → Level ' + g.level + '</strong> <span class="muted small">(' + g.pct + '% on ' + esc(g.unit) + ', ' + new Date(g.at).toLocaleDateString() + ')</span></span><span class="btn-row"><button class="btn sm success" data-sugg-apply="' + esc(s.id) + '" data-c="' + esc(cid) + '" data-l="' + g.level + '">Apply</button><button class="btn sm ghost" data-sugg-dismiss="' + esc(s.id) + '" data-c="' + esc(cid) + '">Dismiss</button></span></div>'; }).join('') + '</div>' : '') +
             '<div class="plan-section"><div class="plan-label">Default achievement level</div><div class="level-cards compact">' + [1, 2, 3, 4].map(l => '<button class="level-card ' + (s.level === l ? 'on' : '') + '" data-set-level="' + esc(s.id) + '" data-l="' + l + '"><h3>Level ' + l + ' · ' + LEVEL_NAMES[l] + '</h3><p>' + LEVEL_DESC[l] + '</p></button>').join('') + '</div></div>' +
             '<div class="plan-section"><div class="plan-label">Courses and level per course</div><p class="muted small" style="margin:0 0 0.5rem">Tick the courses this student sees. "Default" uses the level above; pick a number to set a different level for that course only.</p>' +
@@ -1484,7 +1507,7 @@
           '</div>' : '') + '</div>';
       }).join('') + '</div>' +
       (onlyId ? '' : (Cloud.enabled
-        ? '<div class="plan-unit" style="margin-top:0.75rem"><div class="plan-label">＋ Add a new student' + (cur ? ' to ' + esc(cur.name) : '') + '</div><p class="muted small" style="margin:0 0 0.5rem">This creates the student\'s account. They sign in on any device with their student number and their birthday as the password (DDMMYYYY).</p><div class="search-row" style="grid-template-columns:1fr 1fr 1fr auto"><input class="text-input" id="teacherAddName" maxlength="30" placeholder="First name"><input class="text-input" id="teacherAddNumber" placeholder="Student number" inputmode="numeric"><input class="text-input" id="teacherAddDob" type="date" title="Birthday"><button class="btn secondary" id="teacherAdd">＋ Add student</button></div><p class="small muted" id="teacherAddMsg" style="margin:0.4rem 0 0"></p>' +
+        ? '<div class="plan-unit" style="margin-top:0.75rem"><div class="plan-label">＋ Add a new student' + (cur ? ' to ' + esc(cur.name) : '') + '</div><p class="muted small" style="margin:0 0 0.5rem">This creates the student\'s account. They sign in on any device with their student number and a sign-in code, which is made for you and shown once on the student\'s panel, where the slip can be printed. No birthday is asked for.</p><div class="search-row" style="grid-template-columns:1fr 1fr auto"><input class="text-input" id="teacherAddName" maxlength="30" placeholder="First name"><input class="text-input" id="teacherAddNumber" placeholder="Student number" inputmode="numeric"><button class="btn secondary" id="teacherAdd">＋ Add student</button></div><p class="small muted" id="teacherAddMsg" style="margin:0.4rem 0 0"></p>' +
           (cur && others.length ? '<select class="text-input" id="enrolExisting" style="max-width:300px;margin-top:0.5rem"><option value="">Add an existing student…</option>' + others.map(o => '<option value="' + esc(o.id) + '">' + esc(o.avatar) + ' ' + esc(o.name) + (o.number ? ' · ' + esc(o.number) : '') + '</option>').join('') + '</select>' : '') + '</div>'
         : '<div class="btn-row" style="margin-top:0.75rem"><input class="text-input" id="teacherAddName" maxlength="30" placeholder="Add a new student by first name" style="max-width:280px"><button class="btn secondary" id="teacherAdd">＋ Add student' + (cur ? ' to ' + esc(cur.name) : '') + '</button>')) +
       (!onlyId && !Cloud.enabled && cur && others.length ? '<select class="text-input" id="enrolExisting" style="max-width:260px"><option value="">Add an existing student…</option>' + others.map(o => '<option value="' + esc(o.id) + '">' + esc(o.avatar) + ' ' + esc(o.name) + '</option>').join('') + '</select>' : '') + (Cloud.enabled ? '' : '</div>');
@@ -1544,15 +1567,15 @@
     on('[data-sugg-apply]', 'click', e => { const b = e.currentTarget; Students.setLevel(b.dataset.suggApply, b.dataset.c, +b.dataset.l); redrawStudents(); });
     on('[data-sugg-dismiss]', 'click', e => { const b = e.currentTarget, s = Students.byId(b.dataset.suggDismiss); delete s.suggestions[b.dataset.c]; Students.save(); redrawStudents(); });
     on('[data-rename]', 'click', e => { const s = Students.byId(e.currentTarget.dataset.rename); const v = prompt('New name for ' + s.name + ':', s.name); if (v && v.trim()) { Students.update(s.id, { name: v.trim().slice(0, 30) }); renderWho(); redrawStudents(); } });
-    on('[data-reset-student]', 'click', e => { const s = Students.byId(e.currentTarget.dataset.resetStudent); if (confirm('Erase all of ' + s.name + '\'s progress and awards?')) { Progress.resetFor(s.id); redrawStudents(); } });
-    on('[data-delete]', 'click', e => { const s = Students.byId(e.currentTarget.dataset.delete); if (confirm('Remove ' + s.name + ' and all of their progress? This cannot be undone.')) { const wasMe = Students.current && Students.current.id === s.id; Students.removeStudent(s.id); if (wasMe) { renderWho(); location.hash = '#/welcome'; } else redrawStudents(); } });
+    on('[data-reset-student]', 'click', async e => { const s = Students.byId(e.currentTarget.dataset.resetStudent); if (window.Records) { const why = await Records.heldReason(s.id); if (why) return alert(why); } if (confirm('Erase all of ' + s.name + '\'s progress and awards?')) { Progress.resetFor(s.id); redrawStudents(); } });
+    on('[data-delete]', 'click', async e => { const s = Students.byId(e.currentTarget.dataset.delete); if (window.Records) { const why = await Records.heldReason(s.id); if (why) return alert(why); } if (confirm('Remove ' + s.name + ' and all of their progress? This cannot be undone.')) { const wasMe = Students.current && Students.current.id === s.id; Students.removeStudent(s.id); if (wasMe) { renderWho(); location.hash = '#/welcome'; } else redrawStudents(); } });
     const add = async () => {
       const v = (app.querySelector('#teacherAddName').value || '').trim(); if (!v) return;
       const cur = Sections.currentFor(Staff.current.id);
       if (Cloud.enabled) {
-        const number = app.querySelector('#teacherAddNumber').value.trim(), dob = app.querySelector('#teacherAddDob').value, msg = app.querySelector('#teacherAddMsg');
+        const number = app.querySelector('#teacherAddNumber').value.trim(), msg = app.querySelector('#teacherAddMsg');
         msg.textContent = 'Creating the account…'; msg.style.color = '';
-        try { const s = await Cloud.createStudent({ name: v, number, dob, level: 2, courses: cur ? [cur.courseId] : null }); if (cur) Sections.enrol(cur.id, s.id, true); sessionStorage.setItem('learnhub.studentOpen', s.id); redrawStudents(); }
+        try { const s = await Cloud.createStudent({ name: v, number, level: 2, courses: cur ? [cur.courseId] : null }); if (cur) Sections.enrol(cur.id, s.id, true); sessionStorage.setItem('learnhub.studentOpen', s.id); redrawStudents(); }
         catch (e) { msg.textContent = e.message; msg.style.color = 'var(--danger)'; }
         return;
       }
@@ -1574,7 +1597,6 @@
       b.disabled = false; b.textContent = '💾 Save changes'; });
     app.querySelectorAll('details.student-focus').forEach(d => d.addEventListener('toggle', () => sessionStorage.setItem('learnhub.focusOpen', d.open ? '1' : '0')));
     const fo = sessionStorage.getItem('learnhub.focusOpen'); if (fo === '1') app.querySelectorAll('details.student-focus').forEach(d => d.open = true);
-    on('[data-fix-dob-go]', 'click', async e => { const id = e.currentTarget.dataset.fixDobGo, s = Students.byId(id), inp = app.querySelector('[data-fix-dob="' + esc(id) + '"]'); if (!inp.value) return alert('Pick the correct birthday first.'); try { e.currentTarget.textContent = 'Updating…'; await Cloud.fixStudentBirthday(s, inp.value); alert('Done. ' + s.name + ' now signs in with ' + Cloud.dobPassword(inp.value) + '.'); redrawStudents(); } catch (err) { alert(err.message); redrawStudents(); } });
     const b = app.querySelector('#teacherAdd'); if (b) b.addEventListener('click', add);
     const i = app.querySelector('#teacherAddName'); if (i) i.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
   }
