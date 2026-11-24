@@ -12,34 +12,34 @@
   // key → default theme. {unit} and {course} are filled in.
   const DEFAULT_THEME = {
     /* ---- learning ---- */
-    study:       { tier: 'badge',  icon: '📖', name: '{unit} Reader',          desc: 'Read every slide of every lesson in {unit}.' },
-    firstQuiz:   { tier: 'badge',  icon: '🌱', name: '{unit} First Steps',     desc: 'Pass your first lesson quiz in {unit}.' },
-    quizzes:     { tier: 'badge',  icon: '❓', name: '{unit} Quiz Master',     desc: 'Pass the quiz for every lesson in {unit}.' },
-    firstTry:    { tier: 'badge',  icon: '🎯', name: '{unit} First Try',       desc: 'Pass three lesson quizzes in {unit} on the first attempt.' },
-    scribe:      { tier: 'badge',  icon: '✍️', name: '{unit} Scribe',          desc: 'Hand in every assignment in {unit}.' },
-    lessons:     { tier: 'medal',  icon: '🎓', name: '{unit} Lessons Complete', desc: 'Finish every lesson in {unit}: slides read, quiz passed, assignments handed in.' },
+    study:       { tier: 'badge',  icon: '', name: '{unit} Reader',          desc: 'Read every slide of every lesson in {unit}.' },
+    firstQuiz:   { tier: 'badge',  icon: '', name: '{unit} First Steps',     desc: 'Pass your first lesson quiz in {unit}.' },
+    quizzes:     { tier: 'badge',  icon: '', name: '{unit} Quiz Master',     desc: 'Pass the quiz for every lesson in {unit}.' },
+    firstTry:    { tier: 'badge',  icon: '', name: '{unit} First Try',       desc: 'Pass three lesson quizzes in {unit} on the first attempt.' },
+    scribe:      { tier: 'badge',  icon: '', name: '{unit} Scribe',          desc: 'Hand in every assignment in {unit}.' },
+    lessons:     { tier: 'medal',  icon: '', name: '{unit} Lessons Complete', desc: 'Finish every lesson in {unit}: slides read, quiz passed, assignments handed in.' },
     /* ---- tests ---- */
-    testPass:    { tier: 'badge',  icon: '✅', name: '{unit} Pass',            desc: 'Score ' + PASS_MARK + '% or more on the {unit} test.' },
-    testSharp:   { tier: 'badge',  icon: '🔎', name: '{unit} Sharp Eye',       desc: 'Score 90% or more on the {unit} test.' },
-    testPerfect: { tier: 'badge',  icon: '💯', name: '{unit} Perfect Score',   desc: 'Score 100% on the {unit} test.' },
-    persistence: { tier: 'badge',  icon: '🔁', name: '{unit} Never Give Up',   desc: 'Pass the {unit} test after an earlier attempt that did not pass.' },
+    testPass:    { tier: 'badge',  icon: '', name: '{unit} Pass',            desc: 'Score ' + PASS_MARK + '% or more on the {unit} test.' },
+    testSharp:   { tier: 'badge',  icon: '', name: '{unit} Sharp Eye',       desc: 'Score 90% or more on the {unit} test.' },
+    testPerfect: { tier: 'badge',  icon: '', name: '{unit} Perfect Score',   desc: 'Score 100% on the {unit} test.' },
+    persistence: { tier: 'badge',  icon: '', name: '{unit} Never Give Up',   desc: 'Pass the {unit} test after an earlier attempt that did not pass.' },
     /* ---- games & points ---- */
-    games3:      { tier: 'badge',  icon: '🎮', name: '{unit} Game Explorer',   desc: 'Finish 3 different games in {unit}.' },
-    jeopardy1k:  { tier: 'badge',  icon: '📺', name: '{unit} Big Board',       desc: 'Score 1,000 points or more in one Jeopardy game in {unit}.' },
-    jeopardy2k:  { tier: 'badge',  icon: '🏟️', name: '{unit} Daily Double',    desc: 'Score 2,000 points or more in one Jeopardy game in {unit}.' },
-    millionaire: { tier: 'badge',  icon: '💰', name: '{unit} Millionaire',     desc: 'Reach the top of the Millionaire ladder in {unit}.' },
-    wheel1k:     { tier: 'badge',  icon: '🎡', name: '{unit} Big Spinner',     desc: 'Bank $1,000 or more in one Wheel of Fortune game in {unit}.' },
-    cleanMatch:  { tier: 'badge',  icon: '🔗', name: '{unit} Clean Sweep',     desc: 'Finish Matching in {unit} with no mistakes.' },
-    allGames:    { tier: 'medal',  icon: '🎖️', name: '{unit} Game Champion',   desc: 'Finish every game in {unit}.' },
-    points5k:    { tier: 'medal',  icon: '💎', name: '{unit} Point Collector',  desc: 'Collect 5,000 game points in {unit} (Jeopardy + Wheel best scores).' },
+    games3:      { tier: 'badge',  icon: '', name: '{unit} Game Explorer',   desc: 'Finish 3 different games in {unit}.' },
+    jeopardy1k:  { tier: 'badge',  icon: '', name: '{unit} Big Board',       desc: 'Score 1,000 points or more in one Jeopardy game in {unit}.' },
+    jeopardy2k:  { tier: 'badge',  icon: '', name: '{unit} Daily Double',    desc: 'Score 2,000 points or more in one Jeopardy game in {unit}.' },
+    millionaire: { tier: 'badge',  icon: '', name: '{unit} Millionaire',     desc: 'Reach the top of the Millionaire ladder in {unit}.' },
+    wheel1k:     { tier: 'badge',  icon: '', name: '{unit} Big Spinner',     desc: 'Bank $1,000 or more in one Wheel of Fortune game in {unit}.' },
+    cleanMatch:  { tier: 'badge',  icon: '', name: '{unit} Clean Sweep',     desc: 'Finish Matching in {unit} with no mistakes.' },
+    allGames:    { tier: 'medal',  icon: '', name: '{unit} Game Champion',   desc: 'Finish every game in {unit}.' },
+    points5k:    { tier: 'medal',  icon: '', name: '{unit} Point Collector',  desc: 'Collect 5,000 game points in {unit} (Jeopardy + Wheel best scores).' },
     /* ---- unit medals ---- */
-    unitMedal:   { tier: 'medal',  icon: '🏅', name: '{unit} Medal',           desc: 'Read every lesson, pass the test and complete 3 games in {unit}.' },
-    unitGold:    { tier: 'medal',  icon: '🥇', name: '{unit} Gold',            desc: 'Lessons complete, a perfect test and every game finished in {unit}.' },
+    unitMedal:   { tier: 'medal',  icon: '', name: '{unit} Medal',           desc: 'Read every lesson, pass the test and complete 3 games in {unit}.' },
+    unitGold:    { tier: 'medal',  icon: '', name: '{unit} Gold',            desc: 'Lessons complete, a perfect test and every game finished in {unit}.' },
     /* ---- course trophies ---- */
-    courseTrophy:{ tier: 'trophy', icon: '🏆', name: '{course} Trophy',        desc: 'Earn the medal for every unit in {course}.' },
-    scholarCrown:{ tier: 'trophy', icon: '👑', name: '{course} Scholar\'s Crown', desc: 'Pass every lesson quiz in {course}.' },
-    trailblazer: { tier: 'trophy', icon: '🚀', name: '{course} Summit Flag',   desc: 'Score 80% or more on every unit test in {course} — Level 4 achievement.' },
-    grandMaster: { tier: 'trophy', icon: '🌟', name: '{course} Grand Master',  desc: 'Earn Gold in every unit of {course}.' }
+    courseTrophy:{ tier: 'trophy', icon: '', name: '{course} Trophy',        desc: 'Earn the medal for every unit in {course}.' },
+    scholarCrown:{ tier: 'trophy', icon: '', name: '{course} Scholar\'s Crown', desc: 'Pass every lesson quiz in {course}.' },
+    trailblazer: { tier: 'trophy', icon: '', name: '{course} Summit Flag',   desc: 'Score 80% or more on every unit test in {course} — Level 4 achievement.' },
+    grandMaster: { tier: 'trophy', icon: '', name: '{course} Grand Master',  desc: 'Earn Gold in every unit of {course}.' }
   };
   const UNIT_KEYS = ['study', 'firstQuiz', 'quizzes', 'firstTry', 'scribe', 'lessons', 'testPass', 'testSharp', 'testPerfect', 'persistence',
                      'games3', 'jeopardy1k', 'jeopardy2k', 'millionaire', 'wheel1k', 'cleanMatch', 'allGames', 'points5k', 'unitMedal', 'unitGold'];
@@ -170,7 +170,7 @@
     if (!host) return;
     const el = document.createElement('div');
     el.className = 'toast';
-    el.innerHTML = '<div class="t-icon">' + window.LH.esc(award.icon) + '</div><div><div class="t-title">' +
+    el.innerHTML = '<div class="t-icon">' + window.LH.awardMark(award.tier) + '</div><div><div class="t-title">' +
       ({ badge: 'Badge earned', medal: 'Medal earned', trophy: 'Trophy earned' }[award.tier] || 'Award earned') +
       '</div><div class="t-name">' + window.LH.esc(award.name) + '</div></div>';
     host.appendChild(el);

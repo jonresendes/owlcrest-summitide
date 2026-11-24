@@ -20,9 +20,9 @@
   function bar(course) {
     const s = Students.current; if (!s || !s.isStaff) return '';
     const sec = overlaySection(course.id);
-    if (!sec) { const mine = Sections.visible(s.staffId, false).filter(x => x.courseId === course.id); return '<div class="ov-bar muted">🏫 To customise this course for a class, pick one of your ' + esc(course.title) + ' sections' + (mine.length ? ': <select class="text-input" id="ovPick" style="max-width:260px;display:inline-block"><option value="">choose a section…</option>' + mine.map(x => '<option value="' + x.id + '">' + esc(x.name) + '</option>').join('') + '</select>' : ' (create one in Settings → Sections first)') + '.</div>'; }
-    return '<div class="ov-bar' + (on() ? ' on' : '') + '">✏️ <strong>' + esc(sec.name) + '</strong> — ' + (on() ? 'customising: changes apply only to this section.' : 'this section has ' + countChanges(sec, course.id) + ' customisation' + (countChanges(sec, course.id) === 1 ? '' : 's') + '.') +
-      '<span class="btn-row"><button class="btn sm ' + (on() ? 'success' : 'secondary') + '" id="ovToggle">' + (on() ? '✓ Done customising' : '✏️ Customise') + '</button></span></div>';
+    if (!sec) { const mine = Sections.visible(s.staffId, false).filter(x => x.courseId === course.id); return '<div class="ov-bar muted">To customise this course for a class, pick one of your ' + esc(course.title) + ' sections' + (mine.length ? ': <select class="text-input" id="ovPick" style="max-width:260px;display:inline-block"><option value="">choose a section…</option>' + mine.map(x => '<option value="' + x.id + '">' + esc(x.name) + '</option>').join('') + '</select>' : ' (create one in Settings → Sections first)') + '.</div>'; }
+    return '<div class="ov-bar' + (on() ? ' on' : '') + '"><strong>' + esc(sec.name) + '</strong> — ' + (on() ? 'customising: changes apply only to this section.' : 'this section has ' + countChanges(sec, course.id) + ' customisation' + (countChanges(sec, course.id) === 1 ? '' : 's') + '.') +
+      '<span class="btn-row"><button class="btn sm ' + (on() ? 'success' : 'secondary') + '" id="ovToggle">' + (on() ? '✓ Done customising' : 'Customise') + '</button></span></div>';
   }
   function countChanges(sec, courseId) {
     const c = sec.overlay && sec.overlay[courseId]; if (!c) return 0; let n = 0;
@@ -42,7 +42,7 @@
     return '<div class="ov-tools"><button class="btn ghost sm" data-ov-move="up" data-u="' + unit.id + '" data-i="' + les._idx + '">▲</button><button class="btn ghost sm" data-ov-move="down" data-u="' + unit.id + '" data-i="' + les._idx + '">▼</button>' +
       '<button class="btn ghost sm" data-ov-rename="' + les._idx + '" data-u="' + unit.id + '">Rename</button><button class="btn ghost sm" data-ov-hide="' + les._idx + '" data-u="' + unit.id + '">Hide</button>' +
       (les._custom ? '<button class="btn ghost sm" data-ov-dellesson="' + les._idx + '" data-u="' + unit.id + '">Delete</button>' : (o.title ? '<button class="btn ghost sm" data-ov-untitle="' + les._idx + '" data-u="' + unit.id + '">Original name</button>' : '')) +
-      (les._ov && (les._ov.title || Object.keys(les._ov.slides || {}).length || (les._ov.addSlides || []).length || Object.keys(les._ov.assignments || {}).length || (les._ov.addAssignments || []).length) ? '<span class="tag accent">✏️ customised</span>' : '') + (les._custom ? '<span class="tag accent">your lesson</span>' : '') + '</div>';
+      (les._ov && (les._ov.title || Object.keys(les._ov.slides || {}).length || (les._ov.addSlides || []).length || Object.keys(les._ov.assignments || {}).length || (les._ov.addAssignments || []).length) ? '<span class="tag accent">customised</span>' : '') + (les._custom ? '<span class="tag accent">your lesson</span>' : '') + '</div>';
   }
   function unitTools(course, unit) {
     if (!on()) return '';
@@ -50,13 +50,13 @@
     const hidden = []; (unit.lessons || []).forEach((l, i) => { if (ov && ov.lessons && ov.lessons[i] && ov.lessons[i].hidden) hidden.push({ i, title: (ov.lessons[i].title || l.title) }); });
     (ov && ov.customLessons || []).forEach((l, k) => { const i = CUSTOM_BASE + k; if (ov.lessons && ov.lessons[i] && ov.lessons[i].hidden) hidden.push({ i, title: l.title }); });
     const terms = termsFor(unit);
-    return '<div class="ov-unit"><div class="plan-label">✏️ Customise this unit</div><div class="btn-row">' +
+    return '<div class="ov-unit"><div class="plan-label">Customise this unit</div><div class="btn-row">' +
       '<button class="btn secondary sm" data-ov-addlesson="' + unit.id + '">＋ Add a lesson</button>' +
-      (hidden.length ? '<span class="small">Hidden: ' + hidden.map(h => '<button class="btn ghost sm" data-ov-unhide="' + h.i + '" data-u="' + unit.id + '">↩ ' + esc(h.title) + '</button>').join('') + '</span>' : '') +
+      (hidden.length ? '<span class="small">Hidden: ' + hidden.map(h => '<button class="btn ghost sm" data-ov-unhide="' + h.i + '" data-u="' + unit.id + '">↩︎ ' + esc(h.title) + '</button>').join('') + '</span>' : '') +
       '<button class="btn ghost sm" data-ov-resetunit="' + unit.id + '">Reset this unit to the program</button></div>' +
       '<details style="margin-top:0.5rem"><summary class="small">Words to learn (' + terms.length + ')</summary><div class="word-bank" style="margin-top:0.4rem">' + terms.map(t => '<span class="chip">' + esc(t.term) + ' <button class="ov-x" data-ov-hideterm="' + esc(t.key) + '" data-u="' + unit.id + '" title="Hide this word">✕</button></span>').join('') + '</div>' +
       '<div class="btn-row" style="margin-top:0.4rem"><input class="text-input" id="ovTerm-' + unit.id + '" placeholder="New word" style="max-width:180px"><input class="text-input" id="ovDef-' + unit.id + '" placeholder="Simple meaning" style="max-width:360px"><button class="btn secondary sm" data-ov-addterm="' + unit.id + '">Add word</button></div>' +
-      (ov && ov.terms && ov.terms.hidden && ov.terms.hidden.length ? '<div class="small muted" style="margin-top:0.3rem">Hidden words: ' + ov.terms.hidden.map(t => '<button class="btn ghost sm" data-ov-unhideterm="' + esc(t) + '" data-u="' + unit.id + '">↩ ' + esc(t) + '</button>').join('') + '</div>' : '') + '</details></div>';
+      (ov && ov.terms && ov.terms.hidden && ov.terms.hidden.length ? '<div class="small muted" style="margin-top:0.3rem">Hidden words: ' + ov.terms.hidden.map(t => '<button class="btn ghost sm" data-ov-unhideterm="' + esc(t) + '" data-u="' + unit.id + '">↩︎ ' + esc(t) + '</button>').join('') + '</div>' : '') + '</details></div>';
   }
   function bindCourse(course, rerender) {
     bindBar(rerender);
@@ -72,7 +72,7 @@
     q('[data-ov-hide]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.u); lo(unit, +b.dataset.ovHide).hidden = true; save(); rerender(); }));
     q('[data-ov-unhide]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.u); delete lo(unit, +b.dataset.ovUnhide).hidden; save(); rerender(); }));
     q('[data-ov-dellesson]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.u), i = +b.dataset.ovDellesson; if (!confirm('Delete this lesson you added?')) return; const ov = unitOverlay(unit, true); ov.customLessons.splice(i - CUSTOM_BASE, 1); delete ov.lessons[i]; if (ov.lessonOrder) ov.lessonOrder = ov.lessonOrder.filter(k => k !== i).map(k => k > i && k >= CUSTOM_BASE ? k - 1 : k); save(); rerender(); }));
-    q('[data-ov-addlesson]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.ovAddlesson); const v = prompt('Name of the new lesson:'); if (!v || !v.trim()) return; const ov = unitOverlay(unit, true); ov.customLessons = ov.customLessons || []; ov.customLessons.push({ title: v.trim(), slides: [{ title: v.trim(), visual: '📝', body: 'Write this lesson in the slide editor.' }], assignments: [] }); save(); rerender(); }));
+    q('[data-ov-addlesson]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.ovAddlesson); const v = prompt('Name of the new lesson:'); if (!v || !v.trim()) return; const ov = unitOverlay(unit, true); ov.customLessons = ov.customLessons || []; ov.customLessons.push({ title: v.trim(), slides: [{ title: v.trim(), visual: '', body: 'Write this lesson in the slide editor.' }], assignments: [] }); save(); rerender(); }));
     q('[data-ov-resetunit]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.ovResetunit); if (!confirm('Remove every customisation in ' + unit.title + ' for this section?')) return; const sec = overlaySection(course.id); if (sec.overlay && sec.overlay[course.id]) delete sec.overlay[course.id][unit.id]; save(); rerender(); }));
     q('[data-ov-hideterm]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.u); const ov = unitOverlay(unit, true); ov.terms = ov.terms || { hidden: [], added: [] }; const k = b.dataset.ovHideterm; const ai = (ov.terms.added || []).findIndex(t => L(t.term, 2) === k); if (ai >= 0) ov.terms.added.splice(ai, 1); else if (!ov.terms.hidden.includes(k)) ov.terms.hidden.push(k); save(); rerender(); }));
     q('[data-ov-unhideterm]').forEach(b => b.addEventListener('click', () => { const unit = unitOf(b.dataset.u); const ov = unitOverlay(unit, true); ov.terms.hidden = ov.terms.hidden.filter(t => t !== b.dataset.ovUnhideterm); save(); rerender(); }));
@@ -87,7 +87,7 @@
     const mod = slide.mod || {};
     const media = (lesson.media || []).map((m, k) => Object.assign({ _k: k }, m)).filter(m => m.slide === slide._i || (slide._added !== undefined && m.slide === 'a' + slide._added));
     const slideKey = slide._added !== undefined ? 'a' + slide._added : slide._i;
-    return '<div class="ov-editor"><div class="btn-row between"><strong>✏️ Edit this slide for your section</strong><span class="btn-row">' +
+    return '<div class="ov-editor"><div class="btn-row between"><strong>Edit this slide for your section</strong><span class="btn-row">' +
       (slide._edited ? '<span class="tag accent">customised</span><button class="btn ghost sm" id="ovRevertSlide">Original</button>' : '') + (isAdded ? '<span class="tag accent">your slide</span>' : '') +
       '<button class="btn ghost sm" id="ovHideSlide">' + (isAdded ? 'Delete slide' : 'Hide slide') + '</button><button class="btn ghost sm" id="ovAddSlide">＋ Add a slide after</button></span></div>' +
       '<div class="ov-grid">' + [1, 2, 3, 4].map(l => '<label>Title · Level ' + l + ' <input class="text-input" data-ov-title="' + l + '" value="' + esc(t[l] || '') + '"></label>').join('') + '</div>' +
@@ -95,10 +95,10 @@
       '<details><summary class="small">Modified program text (K–2 · 3–5 · 6–8)</summary><div class="ov-grid">' + BANDS.map(k => '<label>' + k[1] + ' <textarea class="text-input" rows="5" data-ov-mod="' + k[0] + '">' + esc(mod[k[0]] || '') + '</textarea></label>').join('') + '</div></details>' +
       '<p class="muted small" style="margin:0.5rem 0">Tips: blank line between paragraphs · <code>- </code> bullets · <code>**bold**</code> · <code>&gt; </code> quoted passage · <code>| a | b |</code> table rows.</p>' +
       '<div class="btn-row"><button class="btn success" id="ovSaveSlide">Save slide</button><label class="small">Icon <input class="text-input" id="ovVisual" value="' + esc(slide.visual || '') + '" style="width:70px;display:inline-block"></label></div>' +
-      '<div class="plan-section"><div class="plan-label">🖼️ Pictures, audio and video on this slide</div>' +
-      (media.length ? media.map(m => '<div class="ov-media"><div><strong>' + (m.type === 'video' ? '🎬' : m.type === 'audio' ? '🔊' : m.type === 'google' ? '📄' : '🖼️') + ' ' + esc(m.title || 'Media') + '</strong>' + (m.src ? ' <span class="tag ok">added</span>' : ' <span class="tag">empty slot</span>') + (m._added !== undefined ? ' <span class="tag accent">yours</span>' : '') + '<div class="small muted">' + esc(m.why || '') + (m.url ? ' · <a href="' + esc(m.url) + '" target="_blank" rel="noopener">suggested source</a>' : '') + '</div></div>' +
-        '<div class="btn-row"><input class="text-input" placeholder="Paste a link (image, YouTube, audio/video, or Google Slides / Docs / Forms)" data-ov-src="' + m._k + '" value="' + esc(m.src && !/^idb:/.test(m.src) ? m.src : '') + '" style="max-width:340px"><label class="btn secondary sm" for="ovUp-' + m._k + '">⬆️ Upload</label><input type="file" id="ovUp-' + m._k + '" accept="image/*,audio/*,video/*" hidden data-ov-upload="' + m._k + '"><button class="btn ghost sm" data-ov-clearsrc="' + m._k + '">Clear</button>' + (m._added !== undefined ? '<button class="btn ghost sm" data-ov-delmedia="' + m._added + '">Delete</button>' : '') + '</div></div>').join('') : '<p class="muted small">No media on this slide yet.</p>') +
-      '<div class="btn-row" style="margin-top:0.5rem"><input class="text-input" id="ovNewMediaTitle" placeholder="Caption for new media" style="max-width:260px"><label class="btn secondary sm" for="ovNewUp">⬆️ Upload picture / audio / video</label><input type="file" id="ovNewUp" accept="image/*,audio/*,video/*" hidden><button class="btn ghost sm" id="ovNewLink">🔗 Add a link instead</button></div>' +
+      '<div class="plan-section"><div class="plan-label">Pictures, audio and video on this slide</div>' +
+      (media.length ? media.map(m => '<div class="ov-media"><div><strong>' + (m.type === 'video' ? 'Video' : m.type === 'audio' ? 'Sound' : m.type === 'google' ? 'Google file' : 'Picture') + ' · ' + esc(m.title || 'Media') + '</strong>' + (m.src ? ' <span class="tag ok">added</span>' : ' <span class="tag">empty slot</span>') + (m._added !== undefined ? ' <span class="tag accent">yours</span>' : '') + '<div class="small muted">' + esc(m.why || '') + (m.url ? ' · <a href="' + esc(m.url) + '" target="_blank" rel="noopener">suggested source</a>' : '') + '</div></div>' +
+        '<div class="btn-row"><input class="text-input" placeholder="Paste a link (image, YouTube, audio/video, or Google Slides / Docs / Forms)" data-ov-src="' + m._k + '" value="' + esc(m.src && !/^idb:/.test(m.src) ? m.src : '') + '" style="max-width:340px"><label class="btn secondary sm" for="ovUp-' + m._k + '">Upload</label><input type="file" id="ovUp-' + m._k + '" accept="image/*,audio/*,video/*" hidden data-ov-upload="' + m._k + '"><button class="btn ghost sm" data-ov-clearsrc="' + m._k + '">Clear</button>' + (m._added !== undefined ? '<button class="btn ghost sm" data-ov-delmedia="' + m._added + '">Delete</button>' : '') + '</div></div>').join('') : '<p class="muted small">No media on this slide yet.</p>') +
+      '<div class="btn-row" style="margin-top:0.5rem"><input class="text-input" id="ovNewMediaTitle" placeholder="Caption for new media" style="max-width:260px"><label class="btn secondary sm" for="ovNewUp">Upload picture / audio / video</label><input type="file" id="ovNewUp" accept="image/*,audio/*,video/*" hidden><button class="btn ghost sm" id="ovNewLink">Add a link instead</button></div>' +
       '<p class="muted small" style="margin:0.4rem 0 0">Uploads are kept on this device (up to 25 MB each) and show for students who use it; links work on every device.</p></div>' +
       '<input type="hidden" id="ovSlideKey" value="' + esc(String(slideKey)) + '"></div>';
   }
@@ -127,7 +127,7 @@
       save(); rerender('hidden');
     });
     g('ovAddSlide').addEventListener('click', () => {
-      const ns = { title: 'New slide', visual: '📝', body: { 1: 'Write the slide here.', 2: 'Write the slide here.' } };
+      const ns = { title: 'New slide', visual: '', body: { 1: 'Write the slide here.', 2: 'Write the slide here.' } };
       if (lesson._custom) { const cl = unitOverlay(unit, true).customLessons[lesson._idx - CUSTOM_BASE]; cl.slides.splice((slide._i || 0) + 1, 0, ns); }
       else { lo().addSlides = lo().addSlides || []; lo().addSlides.push(ns); }
       save(); rerender('added');
@@ -151,12 +151,12 @@
     if (!on()) return '';
     const as = assignmentsFor(lesson); const qs = lessonQuestions(unit, lesson._idx, 3).concat(lessonQuestions(unit, lesson._idx, 4).filter(q => !lessonQuestions(unit, lesson._idx, 3).some(x => x._key === q._key)));
     const seen = new Set(); const uniq = qs.filter(q => { if (seen.has(q._key)) return false; seen.add(q._key); return true; });
-    return '<div class="ov-editor"><strong>✏️ Assignments for your section</strong>' +
+    return '<div class="ov-editor"><strong>Assignments for your section</strong>' +
       (as.length ? as.map(a => '<div class="ov-row"><div><strong>' + esc(a.title) + '</strong> ' + (a._edited ? '<span class="tag accent">customised</span>' : '') + (a._added ? '<span class="tag accent">yours</span>' : '') + '</div><span class="btn-row"><button class="btn ghost sm" data-ov-edita="' + a._idx + '">Edit</button>' + (a._edited ? '<button class="btn ghost sm" data-ov-reva="' + a._idx + '">Original</button>' : '') + '<button class="btn ghost sm" data-ov-hidea="' + a._idx + '">' + (a._added ? 'Delete' : 'Hide') + '</button></span></div>').join('') : '<p class="muted small">No assignments at this level.</p>') +
-      (lesson._ov && lesson._ov.assignments ? Object.keys(lesson._ov.assignments).filter(k => lesson._ov.assignments[k].hidden).map(k => '<div class="small muted">Hidden: ' + esc((lesson.assignments[k] || {}).title || 'assignment') + ' <button class="btn ghost sm" data-ov-unhidea="' + esc(k) + '">↩ show</button></div>').join('') : '') +
+      (lesson._ov && lesson._ov.assignments ? Object.keys(lesson._ov.assignments).filter(k => lesson._ov.assignments[k].hidden).map(k => '<div class="small muted">Hidden: ' + esc((lesson.assignments[k] || {}).title || 'assignment') + ' <button class="btn ghost sm" data-ov-unhidea="' + esc(k) + '">↩︎ show</button></div>').join('') : '') +
       '<div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" id="ovAddA">＋ Add an assignment</button></div>' +
       '<div id="ovAForm"></div>' +
-      '<hr><strong>✏️ Quiz questions for this lesson</strong> <span class="muted small">(' + uniq.length + ' in the bank for this section)</span>' +
+      '<hr><strong>Quiz questions for this lesson</strong> <span class="muted small">(' + uniq.length + ' in the bank for this section)</span>' +
       '<div class="ov-qlist">' + uniq.map(q => '<div class="ov-row"><div class="small"><span class="tag">' + esc(q.type) + '</span> ' + esc(q.prompt) + ' ' + (q._edited ? '<span class="tag accent">customised</span>' : '') + (q._added ? '<span class="tag accent">yours</span>' : '') + '</div><span class="btn-row"><button class="btn ghost sm" data-ov-editq="' + esc(q._key) + '">Edit</button><button class="btn ghost sm" data-ov-hideq="' + esc(q._key) + '">' + (q._added ? 'Delete' : 'Hide') + '</button></span></div>').join('') + '</div>' +
       '<div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" id="ovAddQ">＋ Add a question</button></div><div id="ovQForm"></div></div>';
   }

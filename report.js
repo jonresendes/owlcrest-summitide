@@ -35,7 +35,7 @@
   btn.type = 'button'; btn.id = 'reportBtn'; btn.className = 'report-fab'; btn.hidden = true;
   btn.setAttribute('data-html2canvas-ignore', 'true');
   btn.title = 'Found a problem? Click here to screenshot and submit.';
-  btn.innerHTML = '<span aria-hidden="true">🐞</span><span class="report-fab-text"> Found a problem? <span class="report-fab-more">Click here to screenshot and submit.</span></span>';
+  btn.innerHTML = '<span class="report-fab-mark" aria-hidden="true">?</span><span class="report-fab-text"> Found a problem? <span class="report-fab-more">Click here to screenshot and submit.</span></span>';
   btn.setAttribute('aria-label', 'Found a problem? Click here to screenshot and submit.');
   document.body.appendChild(btn);
   function refresh() { btn.hidden = !me() || /^#\/print/.test(location.hash) || !!document.getElementById('reportBox'); }
@@ -80,11 +80,11 @@
     const old = document.getElementById('reportBox'); if (old) old.remove();
     const page = location.hash || '#/', title = ((document.querySelector('#app h1') || {}).textContent || document.title || '').trim().slice(0, 120);
     const d = document.createElement('div'); d.id = 'reportBox'; d.className = 'learn-overlay report-overlay'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Report a problem');
-    d.innerHTML = '<div class="learn-card report-card"><h2>🐞 Report a problem</h2>' +
+    d.innerHTML = '<div class="learn-card report-card"><h2>Report a problem</h2>' +
       '<p class="muted small">This goes to the Headmaster. Say what went wrong and what you expected to happen.</p>' +
       (shot ? '<figure class="report-shot"><img src="' + esc(safeShot(shot)) + '" alt="Screenshot of the page you were on"><figcaption class="muted small">Screenshot of <strong>' + esc(title || page) + '</strong></figcaption></figure>' +
               '<label class="chk"><input type="checkbox" id="reportInclude" checked> Send this screenshot with my report</label>'
-            : '<p class="report-note">⚠️ ' + esc(shotErr || 'The screenshot could not be taken.') + ' You can still describe the problem and send it.</p>') +
+            : '<p class="report-note">' + esc(shotErr || 'The screenshot could not be taken.') + ' You can still describe the problem and send it.</p>') +
       '<label class="report-label" for="reportText">What is the problem?</label>' +
       '<textarea class="text-input report-text" id="reportText" rows="4" maxlength="2000" placeholder="e.g. The quiz in Lesson 3 will not let me pick an answer."></textarea>' +
       '<p class="small" id="reportMsg" role="status"></p>' +
@@ -102,7 +102,7 @@
       const issue = { id: 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), by: cloud() && Cloud.user ? Cloud.user.uid : String(s.id || ''), name: String(s.name || ''), role: s.role === 'master' ? 'Headmaster' : s.isStaff ? 'Teacher' : 'Student', number: String(s.number || ''),
         page, title, text: t, shot: shot && (!inc || inc.checked) ? shot : '', at: new Date().toISOString(), status: 'open', version: (window.PWA && PWA.APP_VERSION) || '', screen: window.innerWidth + '×' + window.innerHeight, agent: browserKind() };
       send.disabled = true; msg.style.color = ''; msg.textContent = 'Sending…';
-      try { await submit(issue); d.querySelector('.report-card').innerHTML = '<h2>✅ Sent</h2><p>Thank you — the Headmaster will see your report.</p><div class="btn-row"><button class="btn" id="reportDone">Close</button></div>'; d.querySelector('#reportDone').addEventListener('click', close); d.querySelector('#reportDone').focus(); }
+      try { await submit(issue); d.querySelector('.report-card').innerHTML = '<h2>✓ Sent</h2><p>Thank you — the Headmaster will see your report.</p><div class="btn-row"><button class="btn" id="reportDone">Close</button></div>'; d.querySelector('#reportDone').addEventListener('click', close); d.querySelector('#reportDone').focus(); }
       catch (e) { send.disabled = false; msg.style.color = 'var(--danger)'; msg.textContent = 'Not sent: ' + ((e && e.code === 'permission-denied') ? 'the cloud refused it. Ask the Headmaster to publish the latest firestore.rules.' : !navigator.onLine ? 'you are offline. Try again when you are connected.' : (e && e.message) || e); }
     });
   }
@@ -136,9 +136,9 @@
         '<div class="issue-main"><div class="issue-head"><strong>' + esc(i.name || 'Unknown') + '</strong> <span class="tag">' + esc(i.role || '') + (i.number ? ' · #' + esc(i.number) : '') + '</span> <span class="tag ' + (i.status === 'resolved' ? 'ok' : 'accent') + '">' + (i.status === 'resolved' ? '✓ Resolved' : 'Open') + '</span></div>' +
         '<div class="muted small">' + esc(when(i.at)) + ' · page <a href="' + esc(safePage(i.page)) + '">' + esc(i.title || i.page || '') + '</a> <span class="issue-tech">(' + esc(i.page || '') + (i.version ? ' · v' + esc(i.version) : '') + (i.screen ? ' · ' + esc(i.screen) : '') + ')</span></div>' +
         '<p class="issue-text">' + esc(i.text) + '</p>' +
-        '<div class="btn-row">' + (i.shot ? '<a class="btn secondary sm" href="' + esc(safeShot(i.shot)) + '\" download="' + esc(fileName(i)) + '">💾 Save screenshot</a>' : '') +
-        '<button class="btn secondary sm" data-issue-status="' + esc(i.id) + '">' + (i.status === 'resolved' ? '↩ Reopen' : '✓ Mark resolved') + '</button><button class="btn ghost sm hm-danger" data-issue-del="' + esc(i.id) + '">🗑️ Delete</button></div></div></article>').join('')
-        : '<p class="muted small">' + (filter === 'open' ? 'No open problems. 🎉' : 'Nothing here.') + '</p>');
+        '<div class="btn-row">' + (i.shot ? '<a class="btn secondary sm" href="' + esc(safeShot(i.shot)) + '\" download="' + esc(fileName(i)) + '">Save screenshot</a>' : '') +
+        '<button class="btn secondary sm" data-issue-status="' + esc(i.id) + '">' + (i.status === 'resolved' ? '↩︎ Reopen' : '✓ Mark resolved') + '</button><button class="btn ghost sm hm-danger" data-issue-del="' + esc(i.id) + '">Delete</button></div></div></article>').join('')
+        : '<p class="muted small">' + (filter === 'open' ? 'No open problems.' : 'Nothing here.') + '</p>');
   }
   function draw(host) {
     host.innerHTML = listHtml();
@@ -152,7 +152,7 @@
   }
   function viewer(i) {
     const d = document.createElement('div'); d.className = 'learn-overlay report-overlay'; d.setAttribute('data-html2canvas-ignore', 'true');
-    d.innerHTML = '<div class="learn-card report-view"><img src="' + esc(safeShot(i.shot)) + '\" alt="Screenshot sent by ' + esc(i.name) + '"><div class="btn-row" style="margin-top:0.75rem"><a class="btn" href="' + esc(safeShot(i.shot)) + '\" download="' + esc(fileName(i)) + '">💾 Save screenshot</a><button class="btn ghost" data-close>Close</button></div></div>';
+    d.innerHTML = '<div class="learn-card report-view"><img src="' + esc(safeShot(i.shot)) + '\" alt="Screenshot sent by ' + esc(i.name) + '"><div class="btn-row" style="margin-top:0.75rem"><a class="btn" href="' + esc(safeShot(i.shot)) + '\" download="' + esc(fileName(i)) + '">Save screenshot</a><button class="btn ghost" data-close>Close</button></div></div>';
     document.body.appendChild(d); const close = () => d.remove();
     d.addEventListener('click', e => { if (e.target === d) close(); }); d.querySelector('[data-close]').addEventListener('click', close);
   }
@@ -165,7 +165,7 @@
     if (cache && !force && Date.now() - loadedAt < 60000) return draw(host);   // Settings redraws often; do not fetch every time
     host.innerHTML = '<p class="muted small">Loading…</p>';
     try { await load(); loadedAt = Date.now(); if (host.isConnected) draw(host); }
-    catch (e) { host.innerHTML = '<p class="report-note">⚠️ The reports could not be loaded: ' + esc(e && e.code === 'permission-denied' ? 'the cloud refused. Paste the latest firestore.rules into Firebase → Firestore → Rules → Publish.' : (e && e.message) || e) + '</p>'; }
+    catch (e) { host.innerHTML = '<p class="report-note">The reports could not be loaded: ' + esc(e && e.code === 'permission-denied' ? 'the cloud refused. Paste the latest firestore.rules into Firebase → Firestore → Rules → Publish.' : (e && e.message) || e) + '</p>'; }
   }
   window.Report = { mount, refresh, capture };
 })();

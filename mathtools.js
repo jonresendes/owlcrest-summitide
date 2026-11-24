@@ -1,9 +1,9 @@
 /* Summitide Learning · mathtools.js — the tools every mathematics course shares.
-     🧮 Calculator   a panel on every page of a math course; pops out into its own window; teachers switch it
+     Calculator   a panel on every page of a math course; pops out into its own window; teachers switch it
                      on or off for lesson quizzes and unit tests, per section (sections/<id>.calcQuiz / .calcTest)
-     🎯 Practice     #/practice/<course>/<unit>/<lesson>  the lesson's worksheet questions, marked as you go, and
+     Practice     #/practice/<course>/<unit>/<lesson>  the lesson's worksheet questions, marked as you go, and
                      endless skill practice with hints, worked steps and stars    ·   #/practice/<course>/mix  mixed review
-     📐 Math Lab     #/mathlab/<course>/<tool>  formula sheet and solver, grapher, number line, balance, data, fractions, money
+     Math Lab     #/mathlab/<course>/<tool>  formula sheet and solver, grapher, number line, balance, data, fractions, money
    Nothing here edits app.js: the tools watch the page and add themselves. Nothing is ever run as code: every
    expression goes through MathCore's own reader, and every value drawn on the page is escaped.
    A course turns the tools on with  mathTools: true  (courses in the Mathematics area get them automatically);
@@ -39,7 +39,7 @@
   ];
   var SCI_KEYS = [['x³', '³', 'Cubed'], ['∛', '∛(', 'Cube root'], ['1/x', '^(−1)', 'Reciprocal'], ['|x|', 'abs(', 'Absolute value'], ['sin', 'sin(', 'Sine, in degrees'], ['cos', 'cos(', 'Cosine, in degrees'], ['tan', 'tan(', 'Tangent, in degrees'], ['sin⁻¹', 'asin(', 'Inverse sine'], ['cos⁻¹', 'acos(', 'Inverse cosine'], ['tan⁻¹', 'atan(', 'Inverse tangent'], ['log', 'log(', 'Logarithm base ten'], ['mixed', ' ', 'Space for a mixed number such as 2 1/3']];
   function calcHTML() {
-    return '<div class="mt-calc-head" id="mtCalcHead"><strong>🧮 Calculator</strong><span class="mt-calc-head-btns">' +
+    return '<div class="mt-calc-head" id="mtCalcHead"><strong>Calculator</strong><span class="mt-calc-head-btns">' +
       '<button type="button" class="mt-mini" id="mtCalcSci" aria-pressed="' + Calc.sci + '" title="Scientific keys">' + (Calc.sci ? 'Basic' : 'Scientific') + '</button>' +
       (POPOUT ? '' : '<button type="button" class="mt-mini" id="mtCalcPop" title="Open the calculator in its own window">⧉ Pop out</button><button type="button" class="mt-mini" id="mtCalcClose" aria-label="Close the calculator">✕</button>') + '</span></div>' +
       '<div class="mt-calc-screen"><input id="mtCalcIn" class="mt-calc-in" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Calculation" placeholder="Type or tap">' +
@@ -129,15 +129,15 @@
   function calcLock() {
     var lock = $('#mtCalcLock'); if (!lock) return;
     if (POPOUT) { var st = {}; try { st = JSON.parse(localStorage.getItem(STATE_KEY) || '{}'); } catch (e) {}
-      lock.hidden = st.s !== 'paused'; lock.innerHTML = '<div><div class="mt-lock-icon">⏸</div><strong>Paused during a quiz or test</strong><p>If your teacher allows a calculator, use the 🧮 button inside Summitide.</p></div>'; return; }
+      lock.hidden = st.s !== 'paused'; lock.innerHTML = '<div><div class="mt-lock-icon">⏸︎</div><strong>Paused during a quiz or test</strong><p>If your teacher allows a calculator, use the Calculator button inside Summitide.</p></div>'; return; }
     var ctx = context(); lock.hidden = ctx.allowed;
-    lock.innerHTML = '<div><div class="mt-lock-icon">🔒</div><strong>Calculator off</strong><p>Your teacher has turned the calculator off for this ' + (ctx.page === 'test' ? 'unit test' : 'quiz') + '.</p></div>';
+    lock.innerHTML = '<div><div class="mt-lock-icon"></div><strong>Calculator off</strong><p>Your teacher has turned the calculator off for this ' + (ctx.page === 'test' ? 'unit test' : 'quiz') + '.</p></div>';
   }
   function fab(ctx) {
     var b = $('#mtFab'), show = signedIn() && ctx.math;
     if (!show) { if (b) b.hidden = true; if (Calc.open) calcToggle(false); return; }
     if (!b) { b = D.createElement('button'); b.id = 'mtFab'; b.type = 'button'; b.className = 'mt-fab'; b.setAttribute('aria-controls', 'mtCalc'); b.addEventListener('click', function () { calcToggle(); }); D.body.appendChild(b); }
-    b.hidden = false; b.classList.toggle('off', !ctx.allowed); b.innerHTML = ctx.allowed ? '🧮<span>Calculator</span>' : '🧮<span>Off for this ' + (ctx.page === 'test' ? 'test' : 'quiz') + '</span>';
+    b.hidden = false; b.classList.toggle('off', !ctx.allowed); b.innerHTML = ctx.allowed ? '<span>Calculator</span>' : '<span>Off for this ' + (ctx.page === 'test' ? 'test' : 'quiz') + '</span>';
     b.setAttribute('aria-label', ctx.allowed ? 'Calculator' : 'Calculator: turned off by your teacher for this ' + ctx.page);
     if (!ctx.allowed && Calc.open) calcLock();
     if (Calc.open) calcLock();
@@ -287,12 +287,12 @@
   function draw() {
     var c = P.course, base = '#/course/' + c.id;
     var head = P.mix ? crumbs([{ label: 'Desk', href: '#/' }, { label: c.title, href: base }, { label: 'Mixed review' }]) +
-        '<div class="page-head"><div><span class="tag">🔁 Mixed review</span><h1 style="margin-top:0.4rem">A bit of everything so far</h1><p class="muted">Questions from the lessons you have opened, in a mixed order. Mixing is harder than repeating one skill, and it is what makes it stick.</p></div></div>'
+        '<div class="page-head"><div><span class="tag">Mixed review</span><h1 style="margin-top:0.4rem">A bit of everything so far</h1><p class="muted">Questions from the lessons you have opened, in a mixed order. Mixing is harder than repeating one skill, and it is what makes it stick.</p></div></div>'
       : crumbs([{ label: 'Desk', href: '#/' }, { label: c.title, href: base }, { label: P.les.title, href: '#/lesson/' + c.id + '/' + P.unit.id + '/' + P.idx }, { label: 'Practice' }]) +
-        '<div class="page-head"><div><span class="tag">🎯 Practice</span><h1 style="margin-top:0.4rem">' + esc(P.les.title) + '</h1><p class="muted">Try each one. You get feedback straight away, a hint when you want one, and the worked steps if you are stuck.</p></div>' +
-        '<div class="btn-row"><a class="btn ghost" href="#/lesson/' + esc(c.id) + '/' + esc(P.unit.id) + '/' + P.idx + '">← Lesson</a>' + (toolFor(P.les) ? '<a class="btn secondary" href="#/mathlab/' + esc(c.id) + '/' + esc(toolFor(P.les)) + '">📐 ' + esc(TOOLS[toolFor(P.les)].name) + '</a>' : '') + '</div></div>';
-    var tabs = P.mix ? '' : '<div class="mt-tabs" role="tablist">' + (P.items.length ? '<button type="button" role="tab" class="mt-tab" data-tab="ws" aria-selected="' + (P.tab === 'ws') + '">📄 Worksheet questions <span class="mt-count" id="mtWsCount"></span></button>' : '') +
-      (P.skills.length ? '<button type="button" role="tab" class="mt-tab" data-tab="skill" aria-selected="' + (P.tab === 'skill') + '">♾️ Skill practice <span class="mt-count" id="mtSkCount"></span></button>' : '') + '</div>';
+        '<div class="page-head"><div><span class="tag">Practice</span><h1 style="margin-top:0.4rem">' + esc(P.les.title) + '</h1><p class="muted">Try each one. You get feedback straight away, a hint when you want one, and the worked steps if you are stuck.</p></div>' +
+        '<div class="btn-row"><a class="btn ghost" href="#/lesson/' + esc(c.id) + '/' + esc(P.unit.id) + '/' + P.idx + '">← Lesson</a>' + (toolFor(P.les) ? '<a class="btn secondary" href="#/mathlab/' + esc(c.id) + '/' + esc(toolFor(P.les)) + '">' + esc(TOOLS[toolFor(P.les)].name) + '</a>' : '') + '</div></div>';
+    var tabs = P.mix ? '' : '<div class="mt-tabs" role="tablist">' + (P.items.length ? '<button type="button" role="tab" class="mt-tab" data-tab="ws" aria-selected="' + (P.tab === 'ws') + '">Worksheet questions <span class="mt-count" id="mtWsCount"></span></button>' : '') +
+      (P.skills.length ? '<button type="button" role="tab" class="mt-tab" data-tab="skill" aria-selected="' + (P.tab === 'skill') + '">Skill practice <span class="mt-count" id="mtSkCount"></span></button>' : '') + '</div>';
     app().innerHTML = '<div class="mt-practice" data-mt-page="practice">' + head + tabs + '<div id="mtPicker"></div><div class="mt-stage"><div class="card mt-card" id="mtCard"></div><aside class="mt-side" id="mtSide"></aside></div>' + (Students.isStaffSession && !P.mix ? classTable() : '') + '</div>';
     $$('.mt-tab').forEach(function (b) { b.addEventListener('click', function () { P.tab = b.dataset.tab; draw(); if (P.tab === 'ws') showItem(); else nextSkill(); }); });
     counts(); picker();
@@ -314,7 +314,7 @@
     var el = $('#mtSide'); if (!el) return; var q = P.q || {};
     el.innerHTML = '<div class="card mt-side-card"><div class="mt-run"><span class="mt-run-n" id="mtRun">' + P.run + '</span><span class="muted small">in a row</span></div>' +
       (P.tab === 'skill' && !P.mix && P.skill ? '<p class="small muted">3 in a row earns ★, 5 earns ★★, 8 earns ★★★. Questions get harder as you go, and ease off if you miss two.</p>' : '') +
-      '<div class="btn-row" style="justify-content:center"><button type="button" class="btn secondary sm" id="mtOpenCalc">🧮 Calculator</button><a class="btn secondary sm" href="#/mathlab/' + esc(P.course.id) + '/formulas">📐 Formulas</a></div>' +
+      '<div class="btn-row" style="justify-content:center"><button type="button" class="btn secondary sm" id="mtOpenCalc">Calculator</button><a class="btn secondary sm" href="#/mathlab/' + esc(P.course.id) + '/formulas">Formulas</a></div>' +
       (q.line || q.balance || q.kind === 'graph' ? '<p class="small muted" style="margin-top:0.6rem">Tip: the Math Lab has a ' + (q.kind === 'graph' ? 'grapher' : q.balance ? 'balance' : 'number line') + ' you can play with.</p>' : '') + (extra || '') + '</div>';
     var oc = $('#mtOpenCalc'); if (oc) oc.addEventListener('click', function () { calcToggle(true); });
   }
@@ -345,9 +345,9 @@
     else body = '<div class="mt-answer"><label for="mtIn" class="mt-pre">' + esc(q.pre || 'Answer') + '</label><input id="mtIn" class="text-input mt-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"><button type="button" class="btn" id="mtCheck">Check</button></div>' +
       '<div class="mt-pad" aria-label="Math keys">' + (PADS[q.kind] || PADS.num).map(function (k) { return '<button type="button" class="mt-padkey" data-k="' + esc(k === '␣' ? ' ' : k) + '" aria-label="' + esc({ '−': 'negative or minus', '/': 'fraction bar', '^': 'exponent', '␣': 'space, for a mixed number', '×10^': 'times ten to the power of' }[k] || k) + '">' + esc(k === '/' ? 'a/b' : k === '^' ? 'xʸ' : k === '␣' ? 'space' : k) + '</button>'; }).join('') + '</div>' +
       (q.kind === 'num' ? '<p class="small muted mt-how">Fractions: type 3/4. Mixed numbers: 1 1/2. Negative: −5 or -5.</p>' : q.kind === 'expr' || q.kind === 'pow' ? '<p class="small muted mt-how">Exponents: type x^2 for x². Write 3x for 3 times x.</p>' : q.kind === 'pt' ? '<p class="small muted mt-how">Type the point as (x, y).</p>' : '');
-    el.innerHTML = '<div class="mt-qhead"><span class="tag">' + esc(label) + '</span>' + (W.LH && LH.speak ? '<button type="button" class="btn ghost sm" id="mtSpeak" aria-label="Read the question aloud">🔊</button>' : '') + '</div>' +
+    el.innerHTML = '<div class="mt-qhead"><span class="tag">' + esc(label) + '</span>' + (W.LH && LH.speak ? '<button type="button" class="btn ghost sm" id="mtSpeak" aria-label="Read the question aloud">Listen</button>' : '') + '</div>' +
       '<div class="mt-q" id="mtQ">' + pretty(q.q) + '</div>' + (q.fig ? figHTML(typeof q.fig === 'string' ? findFig(q.fig, P.course) : q.fig) : '') + body + '<div class="mt-fb" id="mtFb" aria-live="polite"></div>' +
-      '<div class="btn-row mt-actions"><button type="button" class="btn ghost sm" id="mtHint"' + (q.steps && q.steps.length && q.kind !== 'self' ? '' : ' hidden') + '>💡 Hint</button><button type="button" class="btn ghost sm" id="mtSkip">' + (q.ws ? 'Next question →' : 'Skip →') + '</button></div>';
+      '<div class="btn-row mt-actions"><button type="button" class="btn ghost sm" id="mtHint"' + (q.steps && q.steps.length && q.kind !== 'self' ? '' : ' hidden') + '>Hint</button><button type="button" class="btn ghost sm" id="mtSkip">' + (q.ws ? 'Next question →' : 'Skip →') + '</button></div>';
     el.classList.remove('right', 'wrong');
     bindCard();
   }
@@ -419,7 +419,7 @@
   }
   function advance() {
     if (P.q && P.q.ws) { var r = rec(P.course, P.unit, P.idx), n = P.items.length, k = P.wsAt; for (var i = 1; i <= n; i++) { var j = (k + i) % n; if (r.ws[j] !== 1) { P.wsAt = j; picker(); return showItem(); } }
-      $('#mtCard').innerHTML = '<div class="center"><div class="card-icon">🎉</div><h2>Worksheet finished</h2><p class="muted">Every question is done.' + (P.skills.length ? ' Keep going with skill practice to earn stars.' : '') + '</p><div class="btn-row" style="justify-content:center">' + (P.skills.length ? '<button type="button" class="btn" id="mtGoSkill">♾️ Skill practice</button>' : '') + '<a class="btn secondary" href="#/lesson/' + esc(P.course.id) + '/' + esc(P.unit.id) + '/' + P.idx + '">Back to the lesson</a></div></div>';
+      $('#mtCard').innerHTML = '<div class="center"><div class="card-icon"></div><h2>Worksheet finished</h2><p class="muted">Every question is done.' + (P.skills.length ? ' Keep going with skill practice to earn stars.' : '') + '</p><div class="btn-row" style="justify-content:center">' + (P.skills.length ? '<button type="button" class="btn" id="mtGoSkill">Skill practice</button>' : '') + '<a class="btn secondary" href="#/lesson/' + esc(P.course.id) + '/' + esc(P.unit.id) + '/' + P.idx + '">Back to the lesson</a></div></div>';
       var g = $('#mtGoSkill'); if (g) g.addEventListener('click', function () { P.tab = 'skill'; draw(); nextSkill(); }); return; }
     nextSkill();
   }
@@ -430,8 +430,8 @@
     if (!sec || sec.courseId !== P.course.id) return '<p class="muted small" style="margin-top:1rem">Teacher view: choose a section of this course as your working section to see who has practised this lesson.</p>';
     var rows = (sec.students || []).map(function (sid) { var st = (Students.everyone || Students.list || []).find(function (x) { return x.id === sid; }); if (!st) return ''; var pr = Progress.peek(sid), r = (((pr[P.course.id] || {})[P.unit.id] || {}).practice || {})[P.idx] || {}, sk = r.sk || {}, ws = r.ws || {};
       var doneN = P.items.filter(function (_, i) { return ws[i] === 1; }).length, tries = Object.keys(sk).reduce(function (s, k) { return s + (sk[k].t || 0); }, 0), right = Object.keys(sk).reduce(function (s, k) { return s + (sk[k].c || 0); }, 0);
-      return '<tr><td>' + esc(st.avatar || '') + ' ' + esc(st.name) + '</td><td>' + doneN + ' of ' + P.items.length + '</td><td>' + P.skills.map(function (id) { return '<span title="' + esc(M.SKILLS[id].name) + '">' + starStr(stars(sk[id])) + '</span>'; }).join(' ') + '</td><td>' + (tries ? right + ' of ' + tries : '–') + '</td><td>' + (r.at ? new Date(r.at).toLocaleDateString() : '–') + '</td></tr>'; }).join('');
-    return '<details class="card" style="margin-top:1.25rem"><summary><strong>👩‍🏫 Class practice · ' + esc(sec.name) + '</strong> <span class="muted small">only teachers see this</span></summary><table class="md-table" style="margin-top:0.75rem"><thead><tr><th>Student</th><th>Worksheet</th><th>Skills (' + P.skills.length + ')</th><th>Skill questions right</th><th>Last practised</th></tr></thead><tbody>' + (rows || '<tr><td colspan="5">No students in this section yet.</td></tr>') + '</tbody></table><p class="muted small">Practice is for learning: it is not a grade and does not change a level.</p></details>';
+      return '<tr><td>' + esc(st.name) + '</td><td>' + doneN + ' of ' + P.items.length + '</td><td>' + P.skills.map(function (id) { return '<span title="' + esc(M.SKILLS[id].name) + '">' + starStr(stars(sk[id])) + '</span>'; }).join(' ') + '</td><td>' + (tries ? right + ' of ' + tries : '–') + '</td><td>' + (r.at ? new Date(r.at).toLocaleDateString() : '–') + '</td></tr>'; }).join('');
+    return '<details class="card" style="margin-top:1.25rem"><summary><strong>Class practice · ' + esc(sec.name) + '</strong> <span class="muted small">only teachers see this</span></summary><table class="md-table" style="margin-top:0.75rem"><thead><tr><th>Student</th><th>Worksheet</th><th>Skills (' + P.skills.length + ')</th><th>Skill questions right</th><th>Last practised</th></tr></thead><tbody>' + (rows || '<tr><td colspan="5">No students in this section yet.</td></tr>') + '</tbody></table><p class="muted small">Practice is for learning: it is not a grade and does not change a level.</p></details>';
   }
 
   /* ----- drawings shared by practice and the lab ----- */
@@ -492,21 +492,21 @@
   ];
   var nice = function (f) { return String(f).replace(/\^2/g, '²').replace(/\^3/g, '³').replace(/\^n/g, 'ⁿ'); };
   var TOOLS = {
-    formulas: { name: 'Formula sheet', icon: '📐', draw: toolFormulas },
-    grapher: { name: 'Line grapher', icon: '📈', draw: toolGrapher },
-    numberline: { name: 'Number line', icon: '↔️', draw: toolLine },
-    balance: { name: 'Equation balance', icon: '⚖️', draw: toolBalance },
-    fractions: { name: 'Fraction bars', icon: '🍫', draw: toolFractions },
-    data: { name: 'Data and box plot', icon: '📊', draw: toolData },
-    money: { name: 'Interest and growth', icon: '💰', draw: toolMoney },
-    convert: { name: 'Unit converter', icon: '📏', draw: toolConvert }
+    formulas: { name: 'Formula sheet', icon: '', draw: toolFormulas },
+    grapher: { name: 'Line grapher', icon: '', draw: toolGrapher },
+    numberline: { name: 'Number line', icon: '', draw: toolLine },
+    balance: { name: 'Equation balance', icon: '', draw: toolBalance },
+    fractions: { name: 'Fraction bars', icon: '', draw: toolFractions },
+    data: { name: 'Data and box plot', icon: '', draw: toolData },
+    money: { name: 'Interest and growth', icon: '', draw: toolMoney },
+    convert: { name: 'Unit converter', icon: '', draw: toolConvert }
   };
   function toolFor(les) { var t = les && les.practice && les.practice.tool; return TOOLS[t] ? t : null; }
   function pageLab(parts) {
     var course = LH.findCourse(parts[1]); if (!course || !isMath(course) || !Students.enrolled(course.id)) return false;
     var tool = TOOLS[parts[2]] ? parts[2] : 'formulas';
     app().innerHTML = '<div class="mt-lab" data-mt-page="lab">' + crumbs([{ label: 'Desk', href: '#/' }, { label: course.title, href: '#/course/' + course.id }, { label: 'Math Lab' }]) +
-      '<div class="page-head"><div><span class="tag">📐 Math Lab</span><h1 style="margin-top:0.4rem">' + esc(TOOLS[tool].name) + '</h1><p class="muted">Tools to see the math, test an idea and check your thinking. Nothing here is marked.</p></div></div>' +
+      '<div class="page-head"><div><span class="tag">Math Lab</span><h1 style="margin-top:0.4rem">' + esc(TOOLS[tool].name) + '</h1><p class="muted">Tools to see the math, test an idea and check your thinking. Nothing here is marked.</p></div></div>' +
       '<div class="mt-tabs" role="tablist">' + Object.keys(TOOLS).map(function (k) { return '<a role="tab" class="mt-tab" aria-selected="' + (k === tool) + '" href="#/mathlab/' + esc(course.id) + '/' + k + '">' + TOOLS[k].icon + ' ' + esc(TOOLS[k].name) + '</a>'; }).join('') + '</div><div class="card mt-tool" id="mtTool"></div></div>';
     TOOLS[tool].draw($('#mtTool')); return true;
   }
@@ -643,13 +643,13 @@
       var unit = LH.findUnit(ctx.course, ctx.parts[2]), les = unit && lessonsOf(unit).find(function (l) { return l._idx === (+ctx.parts[3] || 0); }), grid0 = $('.lesson-parts', a);
       if (les && les.practice && grid0) { var s = summary(ctx.course, unit, les), el = D.createElement('a'); el.id = 'mtPracticeTile'; el.className = 'card link part mt-tile'; el.href = '#/practice/' + ctx.course.id + '/' + unit.id + '/' + les._idx;
         var allDone = s.items && s.done >= s.items && s.starred >= s.skills;
-        el.innerHTML = '<div class="card-icon">🎯</div><h3>Practice</h3><p class="muted small">' + (s.items ? s.items + ' worksheet questions, marked as you go' : '') + (s.items && s.skills ? ' · ' : '') + (s.skills ? s.skills + ' skill' + (s.skills === 1 ? '' : 's') + ' with endless questions' : '') + '.</p>' +
+        el.innerHTML = '<div class="card-icon"></div><h3>Practice</h3><p class="muted small">' + (s.items ? s.items + ' worksheet questions, marked as you go' : '') + (s.items && s.skills ? ' · ' : '') + (s.skills ? s.skills + ' skill' + (s.skills === 1 ? '' : 's') + ' with endless questions' : '') + '.</p>' +
           (allDone ? '<span class="tag ok">✓ Done · ' + s.mastered + ' mastered</span>' : s.tried ? '<span class="tag accent">' + (s.items ? s.done + ' of ' + s.items + ' · ' : '') + s.starred + ' of ' + s.skills + ' ★</span>' : '<span class="tag">Not started</span>');
         var first = grid0.children[1] || null; grid0.insertBefore(el, first); }
     }
     if (ctx.page === 'course' && !$('#mtBar', a)) {
       var bar = D.createElement('div'); bar.id = 'mtBar'; bar.className = 'card mt-bar-card';
-      bar.innerHTML = '<div class="mt-bar-row"><strong>Math tools</strong><span class="btn-row"><button type="button" class="btn secondary sm" id="mtBarCalc">🧮 Calculator</button><a class="btn secondary sm" href="#/mathlab/' + esc(ctx.course.id) + '/formulas">📐 Formula sheet and Math Lab</a><a class="btn secondary sm" href="#/practice/' + esc(ctx.course.id) + '/mix">🔁 Mixed review</a></span></div>' + (Students.isStaffSession ? switches(ctx.course) : '');
+      bar.innerHTML = '<div class="mt-bar-row"><strong>Math tools</strong><span class="btn-row"><button type="button" class="btn secondary sm" id="mtBarCalc">Calculator</button><a class="btn secondary sm" href="#/mathlab/' + esc(ctx.course.id) + '/formulas">Formula sheet and Math Lab</a><a class="btn secondary sm" href="#/practice/' + esc(ctx.course.id) + '/mix">Mixed review</a></span></div>' + (Students.isStaffSession ? switches(ctx.course) : '');
       var anchor = $('.page-head', a); if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor.nextSibling); else a.insertBefore(bar, a.firstChild);
       $('#mtBarCalc', bar).addEventListener('click', function () { calcToggle(true); });
       $$('input[data-sec]', bar).forEach(function (cb) { cb.addEventListener('change', function () { var patch = {}; patch[cb.dataset.f] = cb.checked; Sections.update(cb.dataset.sec, patch); toast('Calculator ' + (cb.checked ? 'on' : 'off') + ' for ' + (cb.dataset.f === 'calcTest' ? 'unit tests' : 'lesson quizzes') + ' in ' + cb.dataset.name + '.'); }); });

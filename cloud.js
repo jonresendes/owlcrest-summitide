@@ -540,7 +540,7 @@
   function Students_signOutLocal() { try { sessionStorage.removeItem('learnhub.entered'); } catch (e) {} if (window.Students) window.Students.setCurrent(null); }
 
   /* ----- access lists: who has which student ----- */
-  const card = s => ({ name: String(s.name || '').slice(0, 40), number: String(s.number || '').slice(0, 40), avatar: String(s.avatar || '').length <= 16 && !/[<>&"'`]/.test(s.avatar || '') ? (s.avatar || '🙂') : '🙂' });
+  const card = s => ({ name: String(s.name || '').slice(0, 40), number: String(s.number || '').slice(0, 40), avatar: String(s.avatar || '').length <= 16 && !/[<>&"'`]/.test(s.avatar || '') ? (s.avatar || '') : '' });
   const sameSet = (a, b) => J([...(a || [])].sort()) === J([...(b || [])].sort());
   let myRoster = null;   // teacher: the students on my rosters at the last look
   const claimed = new Set();   // …and the ones this session has already put me on the list of
@@ -751,7 +751,7 @@
     pwCheck(password);
     const clash = loginTaken(login); if (clash) throw new Error('The teacher ID "' + login + '" already belongs to ' + clash.name + '.');
     const a = await createStaffAuth(login, password, 1);
-    const rec = clean({ id: a.uid, name, role: 'teacher', login, avatar: avatar || '🧑‍🏫', colour: '#1f5f8b', archived: [], createdAt: now() });
+    const rec = clean({ id: a.uid, name, role: 'teacher', login, avatar: avatar || '', colour: '#1f5f8b', archived: [], createdAt: now() });
     const priv = { email: String(email || '').trim().slice(0, 120), authEmail: a.authEmail, gen: a.gen, updatedAt: now() };
     try {
       const b = db.batch(); b.set(db.collection('staff').doc(a.uid), rec); b.set(db.collection('staffPrivate').doc(a.uid), priv);
@@ -774,7 +774,7 @@
       let cred;
       try { cred = await sec.auth().createUserWithEmailAndPassword(staffEmail(login), password); } catch (e) { throw new Error(friendly(e)); }
       const uid = cred.user.uid, sdb = sec.firestore();
-      const rec = clean({ id: uid, name, role: 'master', login, avatar: '🦉', colour: '#1f5f8b', archived: [], createdAt: now() });
+      const rec = clean({ id: uid, name, role: 'master', login, avatar: '', colour: '#1f5f8b', archived: [], createdAt: now() });
       try { await sdb.collection('meta').doc('master').set({ uid, name, at: now() }); await sdb.collection('staff').doc(uid).set(rec); if (email) await sdb.collection('staffPrivate').doc(uid).set({ email: String(email).slice(0, 120), updatedAt: now() }); }
       catch (e) { try { await cred.user.delete(); } catch (x) {} throw new Error(/permission|insufficient/i.test(e.message) ? exists : friendly(e)); }
       return rec;

@@ -212,14 +212,14 @@
   Records.accountHtml = function (s) {
     if (!(window.Cloud && Cloud.enabled) || s.demo) return '';
     const fresh = Cloud.issuedCode ? Cloud.issuedCode(s.id) : '';
-    return '<div class="plan-section"><div class="plan-label">🔑 Account</div><div class="course-line"><span>Student number <strong>' + esc(s.number || '—') + '</strong> · ' +
+    return '<div class="plan-section"><div class="plan-label">Account</div><div class="course-line"><span>Student number <strong>' + esc(s.number || '—') + '</strong> · ' +
       (fresh ? 'new sign-in code <code class="rec-code">' + esc(fresh) + '</code> <span class="muted small">(shown until you leave this page; it is not shown again)</span>'
              : s.dob ? '<span class="tag warn">still signs in with a birthday</span> <span class="muted small">Give them a sign-in code: the birthday is then removed from their record.</span>'
              : 'signs in with a sign-in code <span class="muted small">(not shown; give a new one if it is lost)</span>') + '</span>' +
-      '<span class="btn-row">' + (fresh ? '<button class="btn secondary sm" type="button" data-rec-slip="' + esc(s.id) + '">🖨️ Print the slip</button>' : '') + '<button class="btn ghost sm" type="button" data-rec-newcode="' + esc(s.id) + '">' + (s.dob ? 'Give a sign-in code' : 'New sign-in code') + '</button></span></div></div>';
+      '<span class="btn-row">' + (fresh ? '<button class="btn secondary sm" type="button" data-rec-slip="' + esc(s.id) + '">Print the slip</button>' : '') + '<button class="btn ghost sm" type="button" data-rec-newcode="' + esc(s.id) + '">' + (s.dob ? 'Give a sign-in code' : 'New sign-in code') + '</button></span></div></div>';
   };
   /** The record tools button on a student's panel (staff). */
-  Records.toolsHtml = s => s.demo ? '' : '<div class="plan-section"><div class="plan-label">📁 This student\'s record</div><div class="course-line"><span class="muted small">A copy of everything held about this student, corrections and statements of disagreement, and holds.</span><span class="btn-row"><button class="btn ghost sm" type="button" data-rec-open="' + esc(s.id) + '">Open the record tools</button></span></div></div>';
+  Records.toolsHtml = s => s.demo ? '' : '<div class="plan-section"><div class="plan-label">This student\'s record</div><div class="course-line"><span class="muted small">A copy of everything held about this student, corrections and statements of disagreement, and holds.</span><span class="btn-row"><button class="btn ghost sm" type="button" data-rec-open="' + esc(s.id) + '">Open the record tools</button></span></div></div>';
   /** Above the list of students: how many still sign in with a birthday, and one button to move them all. */
   Records.legacyBannerHtml = function (students) {
     if (!(window.Cloud && Cloud.enabled) || !isStaff()) return '';
@@ -227,7 +227,7 @@
     // the sign-in screen offers "type your birthday, as before" only while some student still needs it
     if (isHead() && Cloud.setLegacyBirthday && window.Settings) { const any = window.Students.list.some(s => s.dob && !s.demo && s.number), flag = Settings.get('legacyBirthday') !== false; if (any !== flag) setTimeout(() => Cloud.setLegacyBirthday(any), 0); }
     return (old.length ? '<div class="rec-banner" role="note"><div><strong>' + old.length + ' student' + (old.length === 1 ? '' : 's') + ' still sign' + (old.length === 1 ? 's' : '') + ' in with a birthday.</strong> <span class="small">A birthday is personal information and easy to guess. Give each one a sign-in code; the birthday is then removed from their record. Have the slips ready to hand out: the birthday stops working at once.</span></div><button class="btn sm" type="button" data-rec-issue-all>Give codes to ' + (old.length === 1 ? 'this student' : 'these ' + old.length) + ' and print the slips</button></div>' : '') +
-      (fresh.length > 1 ? '<div class="rec-banner ok" role="status"><div><strong>' + fresh.length + ' new sign-in codes</strong> <span class="small">are waiting to be printed. They are forgotten when you leave this page or sign out.</span></div><button class="btn secondary sm" type="button" data-rec-slips-all>🖨️ Print all ' + fresh.length + ' slips</button></div>' : '');
+      (fresh.length > 1 ? '<div class="rec-banner ok" role="status"><div><strong>' + fresh.length + ' new sign-in codes</strong> <span class="small">are waiting to be printed. They are forgotten when you leave this page or sign out.</span></div><button class="btn secondary sm" type="button" data-rec-slips-all>Print all ' + fresh.length + ' slips</button></div>' : '');
   };
   Records.printSlips = function (list) {
     list = (list || []).filter(x => x && x.code); if (!list.length) return alert('There are no new codes to print. A code is only known just after it is made.');
@@ -247,16 +247,16 @@
     const s = window.Students.byId(ui.id); if (!s) return closeDialog();
     let d = document.getElementById('recDialog');
     if (!d) { d = document.createElement('div'); d.id = 'recDialog'; d.className = 'learn-overlay'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Record tools'); document.body.appendChild(d); d.addEventListener('keydown', e => { if (e.key === 'Escape') closeDialog(); }); }
-    const head = '<div class="btn-row between"><h2>📁 Record of ' + esc(s.name) + '</h2><button class="btn ghost sm" type="button" data-rec-close>✕ Close</button></div>';
+    const head = '<div class="btn-row between"><h2>Record of ' + esc(s.name) + '</h2><button class="btn ghost sm" type="button" data-rec-close>✕ Close</button></div>';
     if (!d.firstChild) d.innerHTML = '<div class="learn-card privacy-dialog rec-dialog">' + head + '<p class="muted">Loading…</p></div>';
     let hold = null, corr = [], err = '';
     try { hold = await Records.hold(s.id); corr = await Records.corrections(s.id); } catch (e) { err = e.message; }
     if (ui.id !== s.id || !document.getElementById('recDialog')) return;
     const schoolHold = !!(window.Privacy && Privacy.policy && Privacy.policy.holdAll);
     d.innerHTML = '<div class="learn-card privacy-dialog rec-dialog">' + head +
-      (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') + (err ? '<p class="small" role="alert">⚠️ ' + esc(err) + '</p>' : '') +
+      (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') + (err ? '<p class="small" role="alert">' + esc(err) + '</p>' : '') +
       '<h3>A copy of everything held</h3><p class="muted small">For when a student or a parent asks to see what the school holds (an access request). The Word file is for reading; the JSON file is complete. Each copy is written in the change log. Treat the files as confidential student records.' + (isHead() ? '' : ' Problem reports and change-log lines can only be included when the Headmaster makes the copy.') + '</p>' +
-      '<div class="btn-row"><button class="btn secondary sm" type="button" data-rec-export="docx">📄 Word (to read)</button><button class="btn secondary sm" type="button" data-rec-export="json">⬇️ JSON (complete)</button><button class="btn ghost sm" type="button" data-rec-export="print">🖨️ Print</button></div>' +
+      '<div class="btn-row"><button class="btn secondary sm" type="button" data-rec-export="docx">Word (to read)</button><button class="btn secondary sm" type="button" data-rec-export="json">JSON (complete)</button><button class="btn ghost sm" type="button" data-rec-export="print">Print</button></div>' +
       '<h3 style="margin-top:1rem">Corrections and statements of disagreement</h3><p class="muted small">Record here what was corrected at a student\'s or parent\'s request, what was asked for and not corrected, and any statement of disagreement they want attached. These notes stay with the record and are part of every copy.</p>' +
       (corr.length ? corr.map(c => corrHtml(c, true)).join('') : '<p class="muted small">Nothing recorded.</p>') +
       '<div class="rec-add"><div class="hm-grid"><label class="small">Kind<select class="text-input" id="recKind"><option value="corrected">Corrected</option><option value="not-corrected">Correction asked for and not made</option><option value="disagreement">Statement of disagreement</option></select></label><label class="small">About (which record)<input class="text-input" id="recAbout" maxlength="160" placeholder="for example: Unit 2 test, level in ENG3U"></label></div>' +
@@ -279,8 +279,8 @@
     let d = document.getElementById('recDialog');
     if (!d) { d = document.createElement('div'); d.id = 'recDialog'; d.className = 'learn-overlay'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Ask for a correction'); document.body.appendChild(d); d.addEventListener('keydown', e => { if (e.key === 'Escape') closeDialog(); }); }
     let corr = [], err = ''; try { corr = await Records.corrections(m.id); } catch (e) { err = e.message; }
-    d.innerHTML = '<div class="learn-card privacy-dialog rec-dialog"><div class="btn-row between"><h2>✏️ Ask for a correction</h2><button class="btn ghost sm" type="button" data-rec-close>✕ Close</button></div>' +
-      (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') + (err ? '<p class="small" role="alert">⚠️ ' + esc(err) + '</p>' : '') +
+    d.innerHTML = '<div class="learn-card privacy-dialog rec-dialog"><div class="btn-row between"><h2>Ask for a correction</h2><button class="btn ghost sm" type="button" data-rec-close>✕ Close</button></div>' +
+      (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') + (err ? '<p class="small" role="alert">' + esc(err) + '</p>' : '') +
       '<p class="muted small">If something the app shows about you is wrong (your name, your level, a mark, a comment), say what and why. Your teachers will answer here. To see everything that is recorded about you, ask your teacher for a copy.</p>' +
       '<label class="small">What is it about?<input class="text-input" id="recAbout" maxlength="160" placeholder="for example: my mark on the Unit 2 test"></label>' +
       '<textarea class="text-input" id="recText" rows="4" maxlength="1500" placeholder="What is wrong, and what should it say?"></textarea><div class="btn-row"><button class="btn" type="button" data-rec-send>Send to my teachers</button></div>' +

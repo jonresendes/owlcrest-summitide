@@ -19,8 +19,8 @@
   function slidesHtml(course, unit, les, n) {
     const slides = slidesFor(les);
     return '<section class="p-section"><h2 class="p-h2">Lesson ' + n + ' · ' + esc(les.title) + '</h2>' +
-      slides.map((s, i) => '<div class="p-slide"><h3>' + (s.visual ? esc(s.visual) + ' ' : '') + esc(L(s.title)) + '</h3>' + md(LH.body(s)) + (s.html ? L(s.html) : '') +
-        (les.media || []).filter(m => String(m.slide) === String(s._added !== undefined ? 'a' + s._added : s._i) && window.LH.safeUrl(m.src) && !/^idb:/.test(m.src)).map(m => m.type === 'image' ? '<figure class="p-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '"><figcaption>' + esc(m.title) + '</figcaption></figure>' : '<p class="p-media">' + (/docs\.google|forms\.gle/.test(m.src) ? '📄' : '🎬') + ' ' + esc(m.title) + ' — ' + esc(m.src) + '</p>').join('') + '</div>').join('') +
+      slides.map((s, i) => '<div class="p-slide"><h3>' + (LH.plain(s.visual || '') ? esc(LH.plain(s.visual)) + ' ' : '') + esc(L(s.title)) + '</h3>' + md(LH.body(s)) + (s.html ? L(s.html) : '') +
+        (les.media || []).filter(m => String(m.slide) === String(s._added !== undefined ? 'a' + s._added : s._i) && window.LH.safeUrl(m.src) && !/^idb:/.test(m.src)).map(m => m.type === 'image' ? '<figure class="p-fig"><img src="' + esc(m.src) + '" alt="' + esc(m.title) + '"><figcaption>' + esc(m.title) + '</figcaption></figure>' : '<p class="p-media">' + (/docs\.google|forms\.gle/.test(m.src) ? 'File' : 'Video') + ': ' + esc(m.title) + ' — ' + esc(m.src) + '</p>').join('') + '</div>').join('') +
       '</section>';
   }
   function termsHtml(unit, les) {
@@ -92,7 +92,7 @@
       default: app.innerHTML = '<div class="empty">Nothing to print.</div>'; return;
     }
     const back = what === 'test' || what === 'unit' ? '#/course/' + course.id : '#/lesson/' + course.id + '/' + unit.id + '/' + i;
-    app.innerHTML = '<div class="print-toolbar"><div><strong>🖨️ Print preview</strong> <span class="muted small">' + esc(title) + ' · ' + esc(course.title) + ' · prepared for ' + esc(me ? me.name : 'student') + '</span></div>' +
+    app.innerHTML = '<div class="print-toolbar"><div><strong>Print preview</strong> <span class="muted small">' + esc(title) + ' · ' + esc(course.title) + ' · prepared for ' + esc(me ? me.name : 'student') + '</span></div>' +
       '<div class="btn-row">' + (!Settings.locked ? '<label class="small"><input type="checkbox" id="keyToggle"' + (keyOn() ? ' checked' : '') + '> Include answer key</label>' : '') +
       '<button class="btn" id="printNow">Print / Save as PDF</button><a class="btn secondary" href="' + back + '">✕ Close</a></div></div>' +
       '<div class="print-doc"><header class="p-head"><div class="p-course">' + course.icon + ' ' + esc(course.title) + '</div><div class="p-unit">' + esc(unit.title) + '</div></header>' +
@@ -103,7 +103,7 @@
   }
 
   /** Small print button used on pages: Print.button('#/print/…', 'Print lesson') */
-  function button(href, label) { return '<a class="btn ghost sm print-btn" href="' + href + '" title="Print or save as PDF">🖨️ ' + esc(label || 'Print') + '</a>'; }
+  function button(href, label) { return '<a class="btn ghost sm print-btn" href="' + href + '" title="Print or save as PDF">' + esc(label || 'Print') + '</a>'; }
 
   window.Print = { page, button };
 })();

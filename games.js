@@ -26,7 +26,7 @@
         host.querySelectorAll('.option').forEach(b => { b.disabled = true; if (b.dataset.v === answerText && (correct || !opts.hideAnswer)) b.classList.add('correct'); });
         if (!correct) btn.classList.add('wrong');
         host.querySelector('.q-feedback').innerHTML = '<div class="feedback ' + (correct ? 'ok' : 'bad') + '">' +
-          (correct ? '🎉 Correct!' : opts.hideAnswer ? '✗ Not quite.' : '👉 The answer is: ' + esc(answerText)) + '</div>';
+          (correct ? 'Correct!' : opts.hideAnswer ? '✗ Not quite.' : 'The answer is: ' + esc(answerText)) + '</div>';
         setTimeout(() => done(correct, btn.dataset.v), opts.delay !== undefined ? opts.delay : (correct ? 900 : opts.hideAnswer ? 1100 : 1800));
       });
     });
@@ -35,7 +35,7 @@
 
   function resultCard(host, title, lines, ctx, extra) {
     host.innerHTML =
-      '<div class="card result-card"><div class="card-icon">🎊</div><h2>' + esc(title) + '</h2>' +
+      '<div class="card result-card"><div class="card-icon"></div><h2>' + esc(title) + '</h2>' +
       lines.map(l => '<p class="muted">' + l + '</p>').join('') +
       '<div class="btn-row" style="justify-content:center;margin-top:1rem">' +
       '<button class="btn" id="againBtn">Play again</button>' +
@@ -46,7 +46,7 @@
 
   /* ---------- 1. Matching ---------- */
   const matching = {
-    id: 'matching', name: 'Matching', icon: '🔗', gentle: true,
+    id: 'matching', name: 'Matching', icon: '', gentle: true,
     desc: 'Tap a word, then tap its meaning.',
     canPlay: (c, u) => termsFor(u).length >= 2,
     render(ctx) {
@@ -106,7 +106,7 @@
 
   /* ---------- 2. Memory ---------- */
   const memory = {
-    id: 'memory', name: 'Memory', icon: '🧠', gentle: true,
+    id: 'memory', name: 'Memory', icon: '', gentle: true,
     desc: 'Flip cards to find each word and its meaning.',
     canPlay: (c, u) => termsFor(u).length >= 2,
     render(ctx) {
@@ -139,7 +139,7 @@
 
   /* ---------- 3. Tap & Reveal ---------- */
   const reveal = {
-    id: 'reveal', name: 'Tap & Reveal', icon: '👆', gentle: true,
+    id: 'reveal', name: 'Tap & Reveal', icon: '', gentle: true,
     desc: 'Tap each tile to reveal what the word means. No wrong answers!',
     canPlay: (c, u) => termsFor(u).length >= 1,
     render(ctx) {
@@ -163,7 +163,7 @@
 
   /* ---------- 4. Fill in the Blanks ---------- */
   const fill = {
-    id: 'fill', name: 'Fill in the Blanks', icon: '✏️', gentle: true,
+    id: 'fill', name: 'Fill in the Blanks', icon: '', gentle: true,
     desc: 'Choose the missing word to complete each sentence.',
     canPlay: (c, u) => questionsFor(u, 2, ['fill']).length >= 1 || termsFor(u).length >= 2,
     render(ctx) {
@@ -205,7 +205,7 @@
       const correct = normalize(val) === normalize(q.answer);
       const blank = host.querySelector('#blank'); if (blank) blank.textContent = val;
       host.querySelectorAll('.chip').forEach(c => { c.disabled = true; if (c.dataset.v === q.answer && (correct || !opts.hideAnswer)) c.classList.add('used'); });
-      host.querySelector('.q-feedback').innerHTML = '<div class="feedback ' + (correct ? 'ok' : 'bad') + '">' + (correct ? '🎉 Correct!' : opts.hideAnswer ? '✗ Not quite.' : '👉 The answer is: ' + esc(q.answer)) + '</div>';
+      host.querySelector('.q-feedback').innerHTML = '<div class="feedback ' + (correct ? 'ok' : 'bad') + '">' + (correct ? 'Correct!' : opts.hideAnswer ? '✗ Not quite.' : 'The answer is: ' + esc(q.answer)) + '</div>';
       setTimeout(() => done(correct, val), correct ? 900 : opts.hideAnswer ? 1100 : 1800);
     };
     host.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => finish(c.dataset.v)));
@@ -220,7 +220,7 @@
 
   /* ---------- 5. Jeopardy ---------- */
   const jeopardy = {
-    id: 'jeopardy', name: 'Jeopardy', icon: '📺', gentle: false,
+    id: 'jeopardy', name: 'Jeopardy', icon: '', gentle: false,
     desc: 'Pick a category and a value. Answer to bank the points.',
     canPlay: (c, u) => choicePool(u, 2).length >= 4,
     render(ctx) {
@@ -264,7 +264,7 @@
 
   /* ---------- 6. Wheel of Fortune ---------- */
   const wheel = {
-    id: 'wheel', name: 'Wheel of Fortune', icon: '🎡', gentle: false,
+    id: 'wheel', name: 'Wheel of Fortune', icon: '', gentle: false,
     desc: 'Spin, guess letters and solve the hidden word or phrase.',
     canPlay: (c, u) => termsFor(u).length >= 1,
     render(ctx) {
@@ -288,7 +288,7 @@
               '<span class="letter' + (revealed.has(ch) ? ' shown' : '') + '">' + (revealed.has(ch) ? ch : '') + '</span>').join('') + '</div>' +
             '<div class="wheel-wrap"><div><div class="wheel-pointer"></div><div class="wheel" id="wheel" style="transform:rotate(' + turnAngle + 'deg)"></div></div>' +
             '<div style="flex:1;min-width:240px"><p id="wmsg" class="muted" style="min-height:1.5rem">' + (msg || 'Spin the wheel to start.') + '</p>' +
-            '<div class="btn-row"><button class="btn accent" id="spinBtn"' + (spinValue !== null || solved ? ' disabled' : '') + '>🎡 Spin</button>' +
+            '<div class="btn-row"><button class="btn accent" id="spinBtn"' + (spinValue !== null || solved ? ' disabled' : '') + '>Spin</button>' +
             '<button class="btn secondary" id="solveBtn"' + (solved ? ' disabled' : '') + '>Solve</button></div>' +
             '<div class="keyboard" style="margin-top:1rem">' + letters.map(l => '<button data-l="' + l + '" class="' + (vowels.includes(l) ? 'vowel' : '') + '"' +
               ((revealed.has(l) || (spinValue === null && !vowels.includes(l)) || solved) ? ' disabled' : '') + '>' + l + '</button>').join('') + '</div>' +
@@ -333,7 +333,7 @@
 
   /* ---------- 7. Who Wants to Be a Millionaire ---------- */
   const millionaire = {
-    id: 'millionaire', name: 'Millionaire', icon: '💰', gentle: false,
+    id: 'millionaire', name: 'Millionaire', icon: '', gentle: false,
     desc: 'Climb the money ladder. Use your lifelines wisely!',
     canPlay: (c, u) => choicePool(u, 2).length >= 5,
     render(ctx) {
@@ -371,7 +371,7 @@
         });
       };
       const win = () => {
-        resultCard(ctx.host, '🏆 You won ' + values[values.length - 1] + '!', ['You answered every question correctly.'], ctx);
+        resultCard(ctx.host, 'You won ' + values[values.length - 1] + '!', ['You answered every question correctly.'], ctx);
         ctx.finish({ score: rungs, max: rungs });
       };
       ask();
@@ -382,7 +382,7 @@
   const PALETTE = ['#e03131', '#f76707', '#fcc419', '#8ce99a', '#2f9e44', '#15aabf', '#4dabf7', '#1c7ed6', '#7048e8', '#f06595',
                    '#c47f3a', '#8d5524', '#e9ecef', '#868e96', '#343a40', '#ffffff'];
   const colouring = {
-    id: 'colouring', name: 'Colouring Page', icon: '🎨', gentle: true,
+    id: 'colouring', name: 'Colouring Page', icon: '', gentle: true,
     desc: 'Pick a colour, tap an area to fill it. Lesson cards pop up as you go.',
     canPlay: (c, u) => ((window.LearnHub.colouring || {})[c.id + '/' + u.id] || []).length > 0,
     render(ctx) {
@@ -398,7 +398,7 @@
           (lessons.length ? '<div class="plan-section"><div class="plan-label">Lesson to learn while colouring</div><div class="word-bank">' + lessons.map(l => '<button class="chip' + (l._idx === state.lesson ? ' on' : '') + '" data-les="' + l._idx + '">' + esc(l.title) + '</button>').join('') + '</div></div>' : '') +
           (studentChooses ? '<div class="plan-section"><div class="plan-label">Show a learning card every…</div><div class="word-bank">' + [[1, '1 area'], [3, '3 areas'], [5, '5 areas'], [10, '10 areas'], [0, 'Off (facts scroll at the side)']].map(o => '<button class="chip' + (o[0] === state.every ? ' on' : '') + '" data-every="' + o[0] + '">' + o[1] + '</button>').join('') + '</div></div>'
             : '<p class="muted small">Learning cards: ' + (state.every ? 'every ' + state.every + ' area' + (state.every > 1 ? 's' : '') : 'off — facts scroll at the side') + ' (set by your teacher).</p>') +
-          '<div class="btn-row" style="margin-top:1rem"><button class="btn lg" id="startColouring">🎨 Start colouring</button></div>';
+          '<div class="btn-row" style="margin-top:1rem"><button class="btn lg" id="startColouring">Start colouring</button></div>';
         ctx.host.querySelectorAll('[data-pic]').forEach(b => b.addEventListener('click', () => { state.pic = +b.dataset.pic; setup(); }));
         ctx.host.querySelectorAll('[data-les]').forEach(b => b.addEventListener('click', () => { state.lesson = +b.dataset.les; setup(); }));
         ctx.host.querySelectorAll('[data-every]').forEach(b => b.addEventListener('click', () => { state.every = +b.dataset.every; setup(); }));
@@ -418,7 +418,7 @@
           '<div class="colouring-canvas">' + pic.svg + '</div>' +
           '<div class="btn-row" style="margin-top:0.75rem"><button class="btn ghost sm" id="colClear">Start over</button><button class="btn secondary sm" id="colSetup">Change picture</button></div></div>' +
           '<div class="colouring-right"><div class="plan-label">Colours</div><div class="palette">' + PALETTE.map(c => '<button class="swatch' + (c === colour ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="' + c + '"></button>').join('') + '</div>' +
-          (state.every === 0 && facts.length ? '<div class="fact-spot"><div class="plan-label">💡 Did you know?</div><div id="factText"></div></div>' : '') +
+          (state.every === 0 && facts.length ? '<div class="fact-spot"><div class="plan-label">Did you know?</div><div id="factText"></div></div>' : '') +
           '</div></div><div class="learn-card-host"></div>';
         const svg = ctx.host.querySelector('.colouring-canvas svg');
         const regions = [...svg.querySelectorAll('.region')];
@@ -442,7 +442,7 @@
           host.innerHTML = '<div class="learn-overlay"><div class="learn-card">' + (c.visual ? '<div class="slide-visual">' + esc(c.visual) + '</div>' : '') +
             '<div class="btn-row between"><h2>' + esc(c.title) + '</h2>' + speakBtn(c.title + '. ' + String(c.body).replace(/[*#-]/g, ''), '.learn-card') + '</div>' +
             '<div class="slide-body">' + window.LH.md(c.body) + '</div>' +
-            '<div class="btn-row" style="justify-content:flex-end;margin-top:1rem"><button class="btn success" id="learnOk">Got it — keep colouring 🎨</button></div></div></div>';
+            '<div class="btn-row" style="justify-content:flex-end;margin-top:1rem"><button class="btn success" id="learnOk">Got it — keep colouring</button></div></div></div>';
           host.querySelector('#learnOk').addEventListener('click', () => { host.innerHTML = ''; then(); });
         };
         const finishIfDone = () => {

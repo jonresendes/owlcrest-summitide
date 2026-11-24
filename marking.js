@@ -92,7 +92,7 @@
         body = '<div class="mark-meta">The app\'s mark: <strong>' + g.grade + '</strong> · ' + g.raw + '% at Level ' + g.level + ' · ' + esc(LEVEL_NAMES[g.level] || '') + '</div>' +
           (levels.length ? levels.map(l => { const r = rec.levels[l];
             return '<div class="mark-attempt"><div class="mark-meta">Level ' + l + ' · ' + esc(LEVEL_NAMES[l] || '') + ': best ' + (r.best || 0) + '% → grade ' + Grading.levelled(r.best || 0, +l) + ' · ' + (r.attempts || 0) + ' attempt' + (r.attempts === 1 ? '' : 's') + '</div>' +
-              (r.last ? reviewList(r.last.items, true, 'Latest attempt' + (r.last.at ? ' · ' + when(r.last.at) : '') + ' · ' + r.last.pct + '%' + (r.last.away ? (r.last.away.count ? ' · 🎯 Focus Mode: left the app ' + r.last.away.count + '× (' + awayFmt(r.last.away.secs) + ')' : ' · 🎯 Focus Mode: stayed in the app') : '')) : '<p class="muted small">Answers were not recorded for attempts made before version 56.</p>') + '</div>'; }).join('')
+              (r.last ? reviewList(r.last.items, true, 'Latest attempt' + (r.last.at ? ' · ' + when(r.last.at) : '') + ' · ' + r.last.pct + '%' + (r.last.away ? (r.last.away.count ? ' · Focus Mode: left the app ' + r.last.away.count + '× (' + awayFmt(r.last.away.secs) + ')' : ' · Focus Mode: stayed in the app') : '')) : '<p class="muted small">Answers were not recorded for attempts made before version 56.</p>') + '</div>'; }).join('')
             : '<p class="muted small">Answers were not recorded for attempts made before version 56.</p>');
       }
       if (set) body = '<div class="mark-meta mark-over">✎ Score set by ' + esc(mark.by || 'the teacher') + ': <strong>' + esc(mark.score) + '%</strong> → grade <strong>' + Grading.levelled(+mark.score, lv) + '</strong>. This replaces the app\'s mark.</div>' + body;
@@ -100,9 +100,9 @@
         noteBox(mark.note, 'Comment on this ' + (it.kind === 'test' ? 'test' : 'quiz'));
     }
     return { state, html: '<article class="mark-card" id="mark-' + esc(s.id) + '" data-sid="' + esc(s.id) + '" data-sub="' + sub + '" data-state="' + state + '">' +
-      '<header class="mark-head"><span class="mark-who">' + esc(s.avatar || '') + ' ' + esc(s.name) + (s.number ? ' <span class="muted small">#' + esc(s.number) + '</span>' : '') + '</span>' + levelTag(course, s) + '<span class="tag mark-state" data-state-tag>' + STATE[state] + '</span></header>' +
+      '<header class="mark-head"><span class="mark-who">' + esc(s.name) + (s.number ? ' <span class="muted small">#' + esc(s.number) + '</span>' : '') + '</span>' + levelTag(course, s) + '<span class="tag mark-state" data-state-tag>' + STATE[state] + '</span></header>' +
       '<div class="mark-body">' + body + '</div>' +
-      '<div class="mark-tools">' + tools + '<div class="mark-save"><button class="btn" type="button" data-save>💾 Save</button><span class="mark-status small muted" data-status aria-live="polite"></span></div></div></article>' };
+      '<div class="mark-tools">' + tools + '<div class="mark-save"><button class="btn" type="button" data-save>Save</button><span class="mark-status small muted" data-status aria-live="polite"></span></div></div></article>' };
   }
 
   function page(parts) {
@@ -125,7 +125,7 @@
 
     app.innerHTML =
       '<div class="page-head"><div><span class="tag">' + esc(course.title) + ' · ' + (/^unit\s*\d/i.test(unit.title) ? '' : 'Unit ' + (ui + 1) + ' · ') + esc(L(unit.title)) + '</span>' +
-      '<h1 style="margin-top:0.4rem">✍️ ' + esc(it.label) + '</h1><p class="muted">' + (it.kind === 'test' ? 'Every lesson in the unit' : esc(it.title)) + ' · ' + (cur ? esc(cur.name) : (Staff.isMaster ? 'All students' : 'All my students')) + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's') + '</p></div>' +
+      '<h1 style="margin-top:0.4rem">' + esc(it.label) + '</h1><p class="muted">' + (it.kind === 'test' ? 'Every lesson in the unit' : esc(it.title)) + ' · ' + (cur ? esc(cur.name) : (Staff.isMaster ? 'All students' : 'All my students')) + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's') + '</p></div>' +
       '<div class="btn-row"><a class="btn ghost" href="#/dashboard">← Grades grid</a></div></div>' +
       '<div class="mark-bar card"><div class="btn-row between">' +
         '<div class="btn-row">' + (prev ? '<a class="btn secondary sm" href="' + href(course, unit, prev) + '" title="' + esc(prev.label) + '">← ' + esc(prev.label) + '</a>' : '') +

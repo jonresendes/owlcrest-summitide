@@ -35,7 +35,7 @@
     tint: 'none',        // Irlen-style colour overlay: 'none' | 'cream' | 'blue' | 'green' | 'rose' | 'yellow' | 'grey' | 'peach' | 'lavender'
     motion: 'normal',    // 'normal' | 'reduced'
     readAloud: true,     // show speaker buttons
-    dictation: true      // show 🎤 dictation and record buttons
+    dictation: true      // show Dictate dictation and record buttons
   };
   const DEFAULT_SETTINGS = Object.assign({
     guardianPin: '',          // 6-digit Teacher Lock PIN
@@ -51,10 +51,10 @@
      everything below (level cards, suggestions, the Grades grids). */
   const LEVEL_BANDS = { 1: [50, 59], 2: [60, 69], 3: [70, 79], 4: [80, 100] };   // the Ministry's ranges (Growing Success)
   const LEVELS = {
-    1: { name: 'Shore',  icon: '🌊', band: '50–59%', short: 'Limited',      desc: 'Simple words, short lessons, fewer questions, obvious answer choices and gentle games. (Ontario Level 1)' },
-    2: { name: 'Trail',  icon: '🥾', band: '60–69%', short: 'Some',         desc: 'Clear language, regular lessons, guided questions with a word bank and all games. (Ontario Level 2)' },
-    3: { name: 'Ridge',  icon: '⛰️', band: '70–79%', short: 'Considerable', desc: 'The full course at the provincial standard: complete lessons, full tests, typed answers and bigger game boards. (Ontario Level 3)' },
-    4: { name: 'Summit', icon: '🏔️', band: '80–100%', short: 'Thorough',    desc: 'Extended thinking: expectation codes, real-life application questions, the longest tests and the hardest game settings. (Ontario Level 4)' }
+    1: { name: 'Shore',  icon: '', band: '50–59%', short: 'Limited',      desc: 'Simple words, short lessons, fewer questions, obvious answer choices and gentle games. (Ontario Level 1)' },
+    2: { name: 'Trail',  icon: '', band: '60–69%', short: 'Some',         desc: 'Clear language, regular lessons, guided questions with a word bank and all games. (Ontario Level 2)' },
+    3: { name: 'Ridge',  icon: '', band: '70–79%', short: 'Considerable', desc: 'The full course at the provincial standard: complete lessons, full tests, typed answers and bigger game boards. (Ontario Level 3)' },
+    4: { name: 'Summit', icon: '', band: '80–100%', short: 'Thorough',    desc: 'Extended thinking: expectation codes, real-life application questions, the longest tests and the hardest game settings. (Ontario Level 4)' }
   };
   /** Achievement level suggested by a percentage (the bands above). */
   function bandFor(pct) { return pct >= LEVEL_BANDS[4][0] ? 4 : pct >= LEVEL_BANDS[3][0] ? 3 : pct >= LEVEL_BANDS[2][0] ? 2 : 1; }
@@ -125,24 +125,12 @@
   function remove(key) { try { localStorage.removeItem(key); } catch (e) {} if (window.Cloud && window.Cloud.enabled && window.Cloud.onLocalRemove) window.Cloud.onLocalRemove(key); }
 
   /* ---------- Students ---------- */
-  /* Avatars: everyone picks from the groups below. The owl 🦉 is the Headmaster's alone. */
-  const HEADMASTER_AVATAR = '🦉';
-  const AVATAR_GROUPS = [
-    ['People', ['🧑', '👩', '👨', '🧒', '👧', '👦', '🧑‍🎓', '👩‍🎓', '👨‍🎓', '🧑‍🏫', '👩‍🏫', '👨‍🏫', '🧑‍🔬', '👩‍🔬', '👨‍🔬', '🧑‍💻', '👩‍💻', '👨‍💻', '🧑‍🎨', '👩‍🎨', '👨‍🎨', '🧑‍🚀', '👩‍🚀', '👨‍🚀', '🧑‍🍳', '🧑‍🌾', '🧑‍🔧', '🧑‍⚕️', '🦸', '🦹', '🧙', '🧝', '🧛', '🧜', '🧚', '🥷', '🤠', '👻', '🤖', '👽', '🎅', '🤶']],
-    ['Animals', ['🦊', '🐼', '🐸', '🐙', '🦁', '🐧', '🦄', '🐢', '🐝', '🦋', '🐨', '🐯', '🦖', '🐬', '🦜', '🐶', '🐱', '🐭', '🐹', '🐰', '🐻', '🐻‍❄️', '🐷', '🐮', '🐵', '🐔', '🐣', '🦆', '🦅', '🦇', '🐺', '🐗', '🐴', '🦓', '🦒', '🐘', '🦏', '🦛', '🐪', '🦘', '🦥', '🦦', '🦨', '🦔', '🐿️', '🦫', '🐍', '🦎', '🐊', '🐳', '🐋', '🦈', '🐠', '🐡', '🦑', '🦀', '🦞', '🐌', '🐞', '🐜', '🦗', '🕷️', '🦂', '🦩', '🦚', '🦢', '🕊️', '🐉', '🦕']],
-    ['School', ['📚', '📖', '✏️', '📝', '🖍️', '🖊️', '📐', '📏', '🎒', '🏫', '🍎', '🧮', '📎', '📌', '🗂️', '📓', '📒', '🔔', '🎓', '🏅', '🥇', '🏆', '⭐', '🌟']],
-    ['Sport', ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🏓', '🏸', '🏒', '🥍', '🏏', '🥅', '⛳', '🏹', '🎣', '🥊', '🥋', '🛹', '🛼', '⛸️', '🎿', '🛷', '🥌', '🏊', '🚴', '🧗', '🏇', '🤸', '⛷️', '🏂', '🏄', '🚣', '🤾', '🏋️', '🤺', '🧘']],
-    ['Art & music', ['🎨', '🖌️', '🖼️', '🎭', '🎬', '🎤', '🎧', '🎼', '🎵', '🎶', '🎹', '🎸', '🎻', '🎺', '🎷', '🪕', '🥁', '🪘', '🪗', '📷', '📸', '🎥', '🎪', '🩰', '🧵', '🧶', '✂️', '🪡']],
-    ['Math', ['➕', '➖', '✖️', '➗', '🟰', '♾️', '📊', '📈', '📉', '🔢', '🔣', '💯', '🧮', '📐', '📏', '⚖️', '🎲', '🧩', '🔷', '🔶', '🟥', '🟩', '🟦', '🟨', '⬛', '⚪', '🔺', '🔻']],
-    ['Tech', ['💻', '🖥️', '⌨️', '🖱️', '🖨️', '💾', '💿', '📱', '📡', '🔋', '🔌', '💡', '🔦', '🕹️', '🎮', '🤖', '🛰️', '🚀', '🛸', '⚙️', '🔧', '🔩', '🛠️', '🧲', '📟', '📠', '🧰', '🔭']],
-    ['Science', ['🔬', '🧪', '🧫', '🧬', '⚗️', '🌡️', '🧲', '⚛️', '🔭', '🪐', '🌍', '🌎', '🌏', '🌕', '🌙', '☀️', '⭐', '☄️', '🌈', '⚡', '🔥', '💧', '🌊', '🌋', '🧊', '🦠', '🌱', '🌿', '🍄', '🐚', '🪨', '💎', '🧠', '🦴', '🫀', '🫁', '🩺', '💊', '🧯', '🧭']],
-    ['Literature & stories', ['📜', '📰', '📗', '📘', '📙', '📕', '📔', '📑', '🔖', '🖋️', '🪶', '🏰', '🗡️', '🛡️', '👑', '🧞', '🧜‍♀️', '🧚‍♂️', '🐲', '🗺️', '🧭', '⚓', '🏴‍☠️', '🔮', '🪄', '🎩', '🕵️', '🕯️', '🗝️', '🧳', '🎠', '🎡', '🧸', '🪁', '🎈']],
-    ['Nature & food', ['🌳', '🌲', '🌴', '🌵', '🌷', '🌹', '🌻', '🌼', '🌸', '💐', '🍀', '🍁', '🍂', '🍃', '🌾', '🍎', '🍏', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥝', '🍅', '🥑', '🥕', '🌽', '🥦', '🍕', '🍔', '🌮', '🍣', '🍩', '🍪', '🎂', '🧁', '🍦', '🍫', '🍿', '🥨', '🧇', '🥞', '☕', '🧃']],
-    ['Flags & places', ['🇨🇦', '🍁', '🏔️', '🏕️', '🏖️', '🏝️', '🏞️', '🌅', '🌃', '🌉', '🏙️', '🏟️', '🗽', '🗼', '🎑', '🏠', '🏡', '🏢', '🏥', '🏛️', '⛪', '🕌', '🛕', '🕍', '⛩️', '🚗', '🚌', '🚲', '🛴', '🚂', '✈️', '🚁', '⛵', '🚢']]
-  ];
-  (() => { const seen = new Set(); AVATAR_GROUPS.forEach(g => { g[1] = g[1].filter(a => { if (seen.has(a)) return false; seen.add(a); return true; }); }); })();   // each picture in one group only
-  const AVATAR_ALL = AVATAR_GROUPS.reduce((a, g) => a.concat(g[1]), []).filter(a => a !== HEADMASTER_AVATAR);
-  const AVATARS = ['🦊', '🐼', '🐸', '🐙', '🦁', '🐧', '🦄', '🐢', '🐝', '🦋', '🐨', '🐯', '🦖', '🐬', '🦜', '🐶'];   // defaults handed out to new students
+  /* v67 · Avatars are no longer emoji. A person is shown as the first letter of their name on their own colour (LH.initial).
+     The constants stay, empty, so older code and saved profiles (which may still hold an emoji in `avatar`) keep working; nothing draws that field. */
+  const HEADMASTER_AVATAR = '';
+  const AVATAR_GROUPS = [];
+  const AVATAR_ALL = [];
+  const AVATARS = [''];
   /** May this profile use this avatar? The owl belongs to the Headmaster. */
   const avatarAllowed = (a, isMaster) => a === HEADMASTER_AVATAR ? !!isMaster : AVATAR_ALL.includes(a);
   const COLOURS = ['#3b5bdb', '#2f9e6e', '#f59f00', '#d6336c', '#7048e8', '#15aabf', '#e8590c', '#1f5f8b'];
@@ -159,7 +147,7 @@
     /** Create the staff member's demo student (one per account). Not on any roster, not in any list or directory. */
     ensureDemo(ownerId, ownerUid, ownerName) {
       let d = this.demoFor(ownerId); if (d) return d;
-      d = this.add('Demo Student', { id: 'demo__' + (ownerUid || ownerId).replace(/[^A-Za-z0-9_-]/g, ''), demo: true, demoOwner: ownerId, teachers: ownerUid ? [ownerUid] : [], number: '', level: 2, courses: null, avatar: '🧪', colour: '#5f3dc4', note: 'Student View for ' + (ownerName || 'staff') });
+      d = this.add('Demo Student', { id: 'demo__' + (ownerUid || ownerId).replace(/[^A-Za-z0-9_-]/g, ''), demo: true, demoOwner: ownerId, teachers: ownerUid ? [ownerUid] : [], number: '', level: 2, courses: null, avatar: '', colour: '#5f3dc4', note: 'Student View for ' + (ownerName || 'staff') });
       return d;
     },
     /** The signed-in profile: a student, or a teacher/master profile (id 'staff:<id>'). */
@@ -171,7 +159,7 @@
         const sid = id.slice(6); const rec = sid === 'master' ? Staff.master : Staff.teachers.find(t => t.id === sid);
         if (!rec) return null;
         const c = this._staffCache[id] || (this._staffCache[id] = {});
-        return Object.assign(c, { id, staffId: sid, isStaff: true, role: sid === 'master' ? 'master' : 'teacher', name: rec.name, avatar: rec.avatar || '🧑‍🏫', colour: rec.colour || '#1f5f8b',
+        return Object.assign(c, { id, staffId: sid, isStaff: true, role: sid === 'master' ? 'master' : 'teacher', name: rec.name, avatar: rec.avatar || '', colour: rec.colour || '#1f5f8b',
           level: 3, courseLevels: {}, courses: null, coursesLocked: false, accommodations: {}, prefs: rec.prefs || (rec.prefs = Object.assign({}, DEFAULT_PREFS)), suggestions: {}, track: {}, archived: rec.archived || [], levelLog: {}, lessonLevels: {} });
       }
       return this.data.list.find(s => s.id === id) || null;
@@ -295,9 +283,9 @@
       n.live = live; this.setNotes(n);
     },
     get master() { return this.data.master; },
-    setMaster(name, email, pin) { this.data.master = Object.assign({ avatar: '🧑‍🏫', colour: '#1f5f8b' }, this.data.master || {}, { name, email, pin }); this.save(); },
+    setMaster(name, email, pin) { this.data.master = Object.assign({ avatar: '', colour: '#1f5f8b' }, this.data.master || {}, { name, email, pin }); this.save(); },
     get teachers() { return this.data.teachers || (this.data.teachers = []); },
-    addTeacher(name, pin, extra) { const t = Object.assign({ id: 't' + Date.now().toString(36), name: String(name).trim().slice(0, 40), pin: String(pin), avatar: '🧑‍🏫', colour: '#1f5f8b', createdAt: new Date().toISOString() }, extra || {}); this.teachers.push(t); this.save(); return t; },
+    addTeacher(name, pin, extra) { const t = Object.assign({ id: 't' + Date.now().toString(36), name: String(name).trim().slice(0, 40), pin: String(pin), avatar: '', colour: '#1f5f8b', createdAt: new Date().toISOString() }, extra || {}); this.teachers.push(t); this.save(); return t; },
     updateTeacher(id, patch) { const t = this.teachers.find(x => x.id === id); if (t) { Object.assign(t, patch); this.save(); } },
     removeTeacher(id) { this.data.teachers = this.teachers.filter(t => t.id !== id); this.save(); Sections.list.forEach(sec => { if (sec.teacherId === id) sec.teacherId = null; }); Sections.save(); },
     /** Try a PIN: returns 'master', a teacher id, or null. */

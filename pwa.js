@@ -86,7 +86,7 @@
      APP_VERSION is baked into this file; version.json on the site says what is published.
      Settings → Updates compares the two and offers a one-tap update (new service worker +
      cache clear + reload). The check also runs on load and hourly. */
-  const APP_VERSION = '66';
+  const APP_VERSION = '67';
   let latest = null;   // { version, date, notes } from the site, when newer
   async function checkForUpdate() {
     try {
@@ -114,7 +114,7 @@
     const host = document.getElementById('toasts'); if (!host) return;
     const el = document.createElement('div');
     el.className = 'toast update-toast';
-    el.innerHTML = '<div class="t-icon">⬆️</div><div><div class="t-title">Summitide</div><div class="t-name">' + text + '</div></div>' +
+    el.innerHTML = '<div class="t-icon"></div><div><div class="t-title">Summitide</div><div class="t-name">' + text + '</div></div>' +
       (btnLabel ? '<button class="btn sm" id="updateBtn">' + btnLabel + '</button>' : '');
     host.appendChild(el);
     const b = el.querySelector('#updateBtn'); if (b) b.addEventListener('click', () => { onClick(); el.remove(); });
@@ -191,7 +191,7 @@
   function askClose() {
     dialogOpen = true;
     const d = document.createElement('div'); d.id = 'closeDialog'; d.className = 'learn-overlay';
-    d.innerHTML = '<div class="learn-card" style="max-width:380px;text-align:center"><div class="slide-visual">👋</div><h2>Close Summitide?</h2><p class="muted">Your progress is saved.</p>' +
+    d.innerHTML = '<div class="learn-card" style="max-width:380px;text-align:center"><div class="slide-visual"></div><h2>Close Summitide?</h2><p class="muted">Your progress is saved.</p>' +
       '<div class="btn-row" style="justify-content:center"><button class="btn secondary" id="stayBtn">Keep learning</button><button class="btn" id="closeBtn">Close app</button></div></div>';
     document.body.appendChild(d);
     d.querySelector('#stayBtn').addEventListener('click', closeDialog);

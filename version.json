@@ -1,5 +1,5 @@
 {
- "version": "66",
- "date": "2026-11-21",
- "notes": "Privacy and compliance build. Students sign in with a code a teacher gives them, not a birthday; birthdays are no longer collected. Nothing is deleted automatically unless the Headmaster switches that on. New: holds, a copy of everything held about a student, corrections, notice-of-collection fields. Off until switched on: dictation, Google Drive, videos and pictures from other sites. THE NEW firestore.rules MUST BE PUBLISHED."
+ "version": "67",
+ "date": "2026-11-23",
+ "notes": "No emoji. Every emoji is removed from the app and the course files. People show as the first letter of their name on their colour; awards, coins and Live Class states are drawn; icon-only buttons have words (Listen, Dictate, Stop). Image files, drawn graphics and plain symbols are unchanged. No rules to publish."
 }

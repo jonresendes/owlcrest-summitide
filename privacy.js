@@ -8,7 +8,7 @@
       from the school's policy record, so the notice always matches what the app actually does.
 
    2. THE SCHOOL'S POLICY — settings/policy (anyone may read it, only the Headmaster may write it):
-        allowDictation  dictation (voice to text) offered at all; off = no 🎤 button for anyone. v66: OFF until switched on
+        allowDictation  dictation (voice to text) offered at all; off = no Dictate button for anyone. v66: OFF until switched on
         shotDays        a problem report's screenshot is removed after this many days   } only when autoSweep is on
         reportDays      a resolved problem report is deleted after this many days       } (v66: nothing is deleted
         liveDays        Live Class presence records and ended sessions, likewise        }  automatically by default)
@@ -109,9 +109,9 @@
   Privacy.askDictation = function () {
     return new Promise(resolve => {
       const d = document.createElement('div'); d.className = 'learn-overlay'; d.id = 'dictationNotice'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Before you use dictation');
-      d.innerHTML = '<div class="learn-card privacy-dialog"><h2>🎤 Before you use dictation</h2>' +
+      d.innerHTML = '<div class="learn-card privacy-dialog"><h2>Before you use dictation</h2>' +
         '<p>Dictation turns what you say into text. Your browser does that by sending the sound of your voice to the company that makes the browser — <strong>Google</strong> (Chrome), <strong>Microsoft</strong> (Edge) or <strong>Apple</strong> (Safari). Summitide Learning does not keep the sound: it only receives the words.</p>' +
-        '<p>If you would rather not, type your answer or use <strong>🎙️ Record</strong> instead. A recording stays on this device and is not sent anywhere.</p>' +
+        '<p>If you would rather not, type your answer or use <strong>Record</strong> instead. A recording stays on this device and is not sent anywhere.</p>' +
         '<p class="muted small">You can turn dictation off at any time in Settings → Accessibility. <a href="#/privacy" data-dn-more>Read the privacy notice</a></p>' +
         '<div class="btn-row"><button class="btn" type="button" data-dn-ok>OK, use dictation</button><button class="btn ghost" type="button" data-dn-no>Not now</button></div></div>';
       document.body.appendChild(d);
@@ -125,14 +125,14 @@
   };
 
   /* ====================== the privacy notice (#/privacy) ====================== */
-  Privacy.link = () => '<a href="#/privacy">🔏 Privacy notice</a>';
+  Privacy.link = () => '<a href="#/privacy">Privacy notice</a>';
   function noticeHtml() {
     const p = Privacy.policy, signedIn = !!me();
     const sec = (title, body) => '<section class="card privacy-sec"><h2>' + title + '</h2>' + body + '</section>';
     const ul = items => '<ul>' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>';
     return '<div class="privacy-page">' +
-      '<div class="page-head"><div><h1>🔏 Privacy notice</h1><p class="muted">What Summitide Learning knows about you, who can see it, and how long it is kept.</p></div>' +
-        '<div class="btn-row">' + (signedIn ? '<a class="btn ghost sm" href="#/settings">← Settings</a>' : '<a class="btn ghost sm" href="#/signin" data-privacy-back>← Back to sign in</a>') + '<button class="btn secondary sm" type="button" data-privacy-print>🖨️ Print</button></div></div>' +
+      '<div class="page-head"><div><h1>Privacy notice</h1><p class="muted">What Summitide Learning knows about you, who can see it, and how long it is kept.</p></div>' +
+        '<div class="btn-row">' + (signedIn ? '<a class="btn ghost sm" href="#/settings">← Settings</a>' : '<a class="btn ghost sm" href="#/signin" data-privacy-back>← Back to sign in</a>') + '<button class="btn secondary sm" type="button" data-privacy-print>Print</button></div></div>' +
       (p.boardReviewed ? '' : '<p class="privacy-flag" role="note">This notice describes how the app works today. It has not yet been reviewed by the school board.</p>') +
       (p.authority && p.officerTitle && p.officerAddress && p.officerPhone ? '' : '<p class="privacy-flag" role="note">Still to be filled in by the school: ' + [!p.authority && 'the legal authority for collecting this information', !(p.officerTitle && p.officerAddress && p.officerPhone) && 'the title, business address and telephone number of the school board officer who answers questions about it'].filter(Boolean).join('; and ') + '.</p>') +
       (p.holdAll ? '<p class="privacy-flag" role="note">Every record is on hold at the moment: nothing is being deleted.</p>' : '') +
@@ -141,7 +141,7 @@
         '<p><strong>Who answers questions about the collection:</strong> ' + (p.officerTitle || p.officerAddress || p.officerPhone ? esc([p.officerTitle, p.officerAddress, p.officerPhone].filter(Boolean).join(' · ')) : '<em>the school board officer has not yet been named here.</em>') + '</p>' +
         '<p><strong>Day-to-day questions:</strong> ' + (p.contact ? esc(p.contact) : 'ask your teacher or the school office.') + '</p>') +
       sec('What the app keeps about a student', ul([
-        '<strong>Who you are:</strong> your first name, your student number, and the picture and colours you choose. The app does not ask for your birthday. (If your record has one from before, it is removed when your teacher gives you a sign-in code.)',
+        '<strong>Who you are:</strong> your first name, your student number, and the colour you choose. The app does not ask for your birthday. (If your record has one from before, it is removed when your teacher gives you a sign-in code.)',
         '<strong>How you sign in:</strong> a sign-in code your teacher gives you. A copy of the code is kept where only your teachers and the Headmaster can reach it, so that a teacher can replace it if you lose it.',
         '<strong>How you learn:</strong> your level in each course, and any accommodations, modified program or Focus Plan your teacher has set.',
         '<strong>Your work:</strong> the slides you have read, your quiz and test results (including your answers to the latest attempt), your assignments, your awards, and the history of your level changes.',
@@ -168,8 +168,8 @@
         '<strong>On paper and in files:</strong> a teacher or the Headmaster can print or download grades, a Live Class session report, sign-in slips and a copy of a student\'s record. Each download or print of these is written in the change log. What happens to the paper or file afterwards is up to the school.'
       ])) +
       sec('Other services the app can use', ul([
-        '<strong>Dictation (🎤):</strong> ' + (p.allowDictation ? 'your browser sends the sound of your voice to its maker (Google, Microsoft or Apple), whose automated speech-recognition system (a kind of artificial intelligence) turns it into text. You are told before the first time, a person always reads what you hand in, and you can turn it off in Settings → Accessibility.' : 'switched off for this school.'),
-        '<strong>Read aloud (🔊):</strong> uses the voices built into your device or browser.',
+        '<strong>Dictation (the Dictate button):</strong> ' + (p.allowDictation ? 'your browser sends the sound of your voice to its maker (Google, Microsoft or Apple), whose automated speech-recognition system (a kind of artificial intelligence) turns it into text. You are told before the first time, a person always reads what you hand in, and you can turn it off in Settings → Accessibility.' : 'switched off for this school.'),
+        '<strong>Read aloud (the Listen button):</strong> uses the voices built into your device or browser.',
         '<strong>Videos and Google files in a lesson:</strong> ' + (p.allowEmbeds ? 'when a teacher adds a YouTube video or a Google Slides, Docs or Forms file, it is shown inside the lesson and that service can see that your device opened it.' : 'not shown inside lessons at this school. A teacher can add a link; the other site sees your device only if you choose to open the link.'),
         '<strong>Pictures and sound kept on other websites:</strong> ' + (p.allowOutsideMedia ? 'loaded inside the lesson, so the site that keeps them can see that your device asked for them.' : 'not loaded at this school. A link is shown instead. Pictures kept with the app itself, such as the graphs in mathematics, do not go through another site.'),
         '<strong>Links in a lesson:</strong> open in a new tab. The app tells the other site nothing; the site sees what any website sees when you visit it.',
@@ -347,7 +347,7 @@
     const q = await Cloud.db.collection('live').get();
     for (const d of q.docs) { const x = d.data() || {}; if (!x.endedAt && ageDays(x.startedAt) > MAX_SESSION_HOURS / 24) { try { await d.ref.update({ endedAt: now(), updatedAt: now(), endedBy: 'retention' }); } catch (e) {} } }
   }
-  const sweepLine = s => !s || !s.at ? 'Not run on this device yet.' : 'Last run ' + esc(when(s.at)) + ': ' + (s.shots + s.reports + s.presence + s.sessions + (s.ended || 0) ? [s.shots && plural(s.shots, 'screenshot') + ' removed', s.reports && plural(s.reports, 'resolved report') + ' deleted', s.presence && plural(s.presence, 'Live Class record') + ' deleted', s.sessions && plural(s.sessions, 'old session') + ' deleted', s.ended && plural(s.ended, 'forgotten session') + ' ended'].filter(Boolean).join(', ') : 'nothing was past its date') + (s.skipped ? ' · ' + plural(s.skipped, 'record') + ' on hold left alone' : '') + (s.errors ? ' · ⚠️ ' + plural(s.errors, 'step') + ' could not finish (check that the version 66 rules are published)' : '') + '.';
+  const sweepLine = s => !s || !s.at ? 'Not run on this device yet.' : 'Last run ' + esc(when(s.at)) + ': ' + (s.shots + s.reports + s.presence + s.sessions + (s.ended || 0) ? [s.shots && plural(s.shots, 'screenshot') + ' removed', s.reports && plural(s.reports, 'resolved report') + ' deleted', s.presence && plural(s.presence, 'Live Class record') + ' deleted', s.sessions && plural(s.sessions, 'old session') + ' deleted', s.ended && plural(s.ended, 'forgotten session') + ' ended'].filter(Boolean).join(', ') : 'nothing was past its date') + (s.skipped ? ' · ' + plural(s.skipped, 'record') + ' on hold left alone' : '') + (s.errors ? ' · ' + plural(s.errors, 'step') + ' could not finish (check that the version 66 rules are published)' : '') + '.';
 
   Privacy.settingsHtml = function () {
     const p = Privacy.policy, arch = sections().filter(s => s.archived);
@@ -367,7 +367,7 @@
                   '<p class="small">The sections themselves, their rosters and their customisations stay. <strong>This cannot be undone.</strong> Download an export first (Settings → Google Drive &amp; exports) if the marks may still be needed.</p>' +
                   '<div class="btn-row"><input class="text-input privacy-word" id="pvWord" placeholder="Type ERASE to confirm" autocomplete="off"' + (ui.busy ? ' disabled' : '') + '><button class="btn danger sm" type="button" data-pv-run' + (ui.busy ? ' disabled' : '') + '>' + (ui.busy ? 'Working…' : 'Erase now') + '</button></div><p class="small muted" id="pvStep"></p>'
               : '<p class="muted small">Nothing to erase: ' + (plan.sections.length ? 'every student in the chosen sections is still taking the course in an active section, or the sections are empty.' : 'tick at least one archived section.') + '</p>') + '</div>' : '') +
-        (ui.result ? '<p class="small" role="status"><strong>Done.</strong> Work erased for ' + plural(ui.result.work, 'course record') + ', grades for ' + plural(ui.result.grades, 'course record') + ', ' + plural(ui.result.students, 'student') + ' deleted.' + (ui.result.failed.length ? ' ⚠️ Could not finish: ' + esc(ui.result.failed.slice(0, 5).join('; ')) : '') + '</p>' : '');
+        (ui.result ? '<p class="small" role="status"><strong>Done.</strong> Work erased for ' + plural(ui.result.work, 'course record') + ', grades for ' + plural(ui.result.grades, 'course record') + ', ' + plural(ui.result.students, 'student') + ' deleted.' + (ui.result.failed.length ? ' Could not finish: ' + esc(ui.result.failed.slice(0, 5).join('; ')) : '') + '</p>' : '');
     const txt = (key, label, help, ph) => '<div class="setting-row"><div><label for="pv_' + key + '">' + label + '</label><div class="help">' + help + '</div></div><input class="text-input" id="pv_' + key + '" data-pv-text="' + key + '" maxlength="' + TEXTS[key] + '" value="' + esc(p[key]) + '" placeholder="' + esc(ph || '') + '" style="max-width:340px"></div>';
     return '<p class="muted small">What the school tells people, what it keeps and for how long. The privacy notice reads these settings, so it always says what the app actually does.</p>' +
       (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') +
@@ -383,7 +383,7 @@
       '<div class="setting-row"><div><label for="pvContact">Who to ask about privacy</label><div class="help">One line shown on the notice, for example a name and a school e-mail address or phone number. Leave it empty for "ask your teacher or the school office".</div></div><span class="btn-row"><input class="text-input" id="pvContact" maxlength="200" value="' + esc(p.contact) + '" style="max-width:320px"><button class="btn secondary sm" type="button" data-pv-contact>Save</button></span></div>' +
       sw('data-pv-switch="boardReviewed"', 'The school board has reviewed this notice', 'Off: the notice says it has not yet been reviewed by the school board.', p.boardReviewed) +
       '<h3 style="margin-top:1rem">Dictation</h3>' +
-      sw('data-pv-switch="allowDictation"', 'Allow dictation (voice to text)', 'Dictation uses the browser\'s speech service, which sends the audio to Google, Microsoft or Apple, where an automated speech-recognition system (artificial intelligence) turns it into text. Leave it off until your board allows it. On: each person is told before the first use. Off: the 🎤 button disappears for everyone; voice recording, which stays on the device, still works.', p.allowDictation) +
+      sw('data-pv-switch="allowDictation"', 'Allow dictation (voice to text)', 'Dictation uses the browser\'s speech service, which sends the audio to Google, Microsoft or Apple, where an automated speech-recognition system (artificial intelligence) turns it into text. Leave it off until your board allows it. On: each person is told before the first use. Off: the Dictate button disappears for everyone; voice recording, which stays on the device, still works.', p.allowDictation) +
       '<h3 style="margin-top:1rem">Other sites and services</h3><p class="muted small">Each of these lets another organisation see that a device at your school opened something. All are off until you switch them on.</p>' +
       sw('data-pv-switch="allowEmbeds"', 'Show YouTube videos and Google files inside lessons', 'Off: a link that opens in a new tab is shown instead, so nothing is loaded from YouTube or Google unless a person chooses to open it.', p.allowEmbeds) +
       sw('data-pv-switch="allowOutsideMedia"', 'Load pictures, sound and video kept on other websites', 'Off: a link is shown instead. Files a teacher uploads and pictures kept with the app (a folder beside the course file) are not affected and always show.', p.allowOutsideMedia) +
@@ -408,15 +408,15 @@
     sweep(false).catch(() => {});   // device-only mode has no sign-in event
     const again = () => { keepOpen(); if (redraw) redraw(); };
     const say = m => { ui.msg = m; again(); };
-    root.querySelectorAll('[data-pv-switch]').forEach(b => b.addEventListener('click', async () => { const k = b.dataset.pvSwitch; try { await savePolicy({ [k]: !Privacy.policy[k] }); ui.msg = ''; } catch (e) { ui.msg = '⚠️ ' + e.message; } again(); }));
-    const tx = root.querySelector('[data-pv-texts]'); if (tx) tx.addEventListener('click', async () => { const patch = {}; root.querySelectorAll('[data-pv-text]').forEach(i => { patch[i.dataset.pvText] = i.value; }); try { await savePolicy(patch); say('Saved. The privacy notice now shows these details.'); } catch (e) { say('⚠️ ' + e.message); } });
-    const c = root.querySelector('[data-pv-contact]'); if (c) c.addEventListener('click', async () => { try { await savePolicy({ contact: root.querySelector('#pvContact').value }); say('Saved.'); } catch (e) { say('⚠️ ' + e.message); } });
+    root.querySelectorAll('[data-pv-switch]').forEach(b => b.addEventListener('click', async () => { const k = b.dataset.pvSwitch; try { await savePolicy({ [k]: !Privacy.policy[k] }); ui.msg = ''; } catch (e) { ui.msg = '' + e.message; } again(); }));
+    const tx = root.querySelector('[data-pv-texts]'); if (tx) tx.addEventListener('click', async () => { const patch = {}; root.querySelectorAll('[data-pv-text]').forEach(i => { patch[i.dataset.pvText] = i.value; }); try { await savePolicy(patch); say('Saved. The privacy notice now shows these details.'); } catch (e) { say('' + e.message); } });
+    const c = root.querySelector('[data-pv-contact]'); if (c) c.addEventListener('click', async () => { try { await savePolicy({ contact: root.querySelector('#pvContact').value }); say('Saved.'); } catch (e) { say('' + e.message); } });
     const s = root.querySelector('[data-pv-save]'); if (s) s.addEventListener('click', async () => {
       const patch = {}; let bad = '';
       Object.keys(LIMITS).forEach(k => { const v = Math.round(+root.querySelector('#pv_' + k).value), lim = LIMITS[k]; if (isNaN(v) || v < lim[0] || v > lim[1]) bad = 'Each period must be a whole number of days inside the range shown.'; patch[k] = v; });
-      if (bad) return say('⚠️ ' + bad);
-      try { await savePolicy(patch); say('Saved. The privacy notice now shows these periods.'); } catch (e) { say('⚠️ ' + e.message); } });
-    const w = root.querySelector('[data-pv-sweep]'); if (w) w.addEventListener('click', async () => { if (Privacy.policy.holdAll) return say('Every record is on hold: nothing was deleted.'); if (!confirm('Delete everything that is past the periods shown (screenshots, resolved reports, Live Class records)? Records of students on hold are left alone. This cannot be undone.')) return; w.disabled = true; w.textContent = 'Working…'; try { await sweep(true); ui.msg = ''; } catch (e) { ui.msg = '⚠️ ' + (e && e.message); } again(); });
+      if (bad) return say('' + bad);
+      try { await savePolicy(patch); say('Saved. The privacy notice now shows these periods.'); } catch (e) { say('' + e.message); } });
+    const w = root.querySelector('[data-pv-sweep]'); if (w) w.addEventListener('click', async () => { if (Privacy.policy.holdAll) return say('Every record is on hold: nothing was deleted.'); if (!confirm('Delete everything that is past the periods shown (screenshots, resolved reports, Live Class records)? Records of students on hold are left alone. This cannot be undone.')) return; w.disabled = true; w.textContent = 'Working…'; try { await sweep(true); ui.msg = ''; } catch (e) { ui.msg = '' + (e && e.message); } again(); });
     root.querySelectorAll('[data-pv-term]').forEach(b => b.addEventListener('change', () => { ui.termPick[b.dataset.pvTerm] = b.checked; ui.preview = null; ui.result = null; }));
     const al = root.querySelector('[data-pv-also]'); if (al) al.addEventListener('change', () => { ui.termAlso = al.checked; ui.preview = null; ui.result = null; });
     const pv = root.querySelector('[data-pv-preview]'); if (pv) pv.addEventListener('click', () => { ui.preview = termPlan(Object.keys(ui.termPick).filter(k => ui.termPick[k]), ui.termAlso); ui.result = null; ui.msg = ''; again(); });
@@ -427,7 +427,7 @@
       ui.busy = true; run.disabled = true; run.textContent = 'Working…';
       const st = root.querySelector('#pvStep');
       try { ui.result = await termRun(plan, (n, total, name) => { if (st) st.textContent = n + ' of ' + total + ' · ' + name; }); ui.msg = ''; }
-      catch (e) { ui.msg = '⚠️ ' + (e && e.message); }
+      catch (e) { ui.msg = '' + (e && e.message); }
       ui.busy = false; ui.preview = null; ui.termPick = {}; again(); });
     const rc = root.querySelector('[data-pv-receipt]'); if (rc) rc.addEventListener('click', () => showReceipt(Privacy.lastReceipt));
   };
@@ -442,7 +442,7 @@
     if (!r) return;
     const old = document.getElementById('deleteReceipt'); if (old) old.remove();
     const d = document.createElement('div'); d.className = 'learn-overlay'; d.id = 'deleteReceipt'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Record of deletion');
-    d.innerHTML = '<div class="learn-card privacy-dialog"><h2>🗑️ ' + esc(r.name || 'Student') + ' was deleted</h2><p class="muted small">' + esc(when(r.at)) + (r.number ? ' · student number ' + esc(r.number) : '') + (r.recordings ? ' · ' + plural(r.recordings, 'recording') + ' removed from this device' : '') + '</p>' +
+    d.innerHTML = '<div class="learn-card privacy-dialog"><h2>' + esc(r.name || 'Student') + ' was deleted</h2><p class="muted small">' + esc(when(r.at)) + (r.number ? ' · student number ' + esc(r.number) : '') + (r.recordings ? ' · ' + plural(r.recordings, 'recording') + ' removed from this device' : '') + '</p>' +
       '<h3>Deleted</h3><ul>' + r.deleted.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
       '<h3>Still to do by hand</h3><ul>' + r.kept.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
       '<div class="btn-row"><button class="btn secondary" type="button" data-rc-copy>Copy this record</button><button class="btn" type="button" data-rc-close>Close</button></div><p class="small muted" data-rc-msg role="status"></p></div>';

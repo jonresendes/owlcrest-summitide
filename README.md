@@ -7,6 +7,28 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 67 — no emoji (23 November 2026)
+
+Every emoji is gone from the app and from the course files: 1,907 uses of 542 different emoji. Image files (crest, logo, icons, the MTH1W pictures), drawn graphics (chalkboard tiles, colouring pages) and plain symbols (✓ ✕ → ▶ ★) stay. Nothing about the data, the rules or the grading changes.
+
+**What replaced the ones that were doing a job**
+
+| Was | Now |
+|---|---|
+| Emoji avatars (354 to choose from, the Headmaster's owl) | The first letter of the person's name on their own colour (`LH.initial`). The picture picker is gone from Settings and the welcome forms. A saved `avatar` value is left in the record and no longer drawn. |
+| Award icons (badges, medals, trophies) | A drawn mark for each tier (`LH.awardMark`, `.award-mark.tier-badge / -medal / -trophy` in `styles.css`) |
+| Coin pile (one, bag, gem, crown) | One drawn gold disc (`.coin-disc`). `Coins.art` still takes a picture of your own. |
+| Live Class state circles | Drawn dots (`.st-dot.st-writing / -done / -elsewhere / -unfocused / -away / -off`) |
+| Icon-only buttons | Words: **Listen** (read aloud), **Dictate**, **Stop**, **note** / **+ note** in the Grades grid, **Remove** on a loaded course, **?** on the "Found a problem?" button |
+| Level, game, course, slide, tile and card icons | Nothing: the box that held one folds away when empty (`:empty` rules) so headings and cards stay aligned |
+| An emoji that carried a meaning in a sentence | A plain symbol where one exists (a tick for "handed in"), otherwise the name of the control ("the Calculator button") |
+
+**So that none come back.** `LH.plain(text)` takes emoji out of text that arrives from outside the build, and `LH.plainDeep(course)` runs on every course loaded from a file or the cloud (`courseloader.js`) and on a slide's picture field. What a teacher or student types themselves (notes, answers, shop items) is their own writing and is not filtered. Seven plain symbols that some devices would draw in colour carry U+FE0E so they stay text.
+
+**Files.** Changed: `app.js`, `util.js`, `storage.js`, `badges.js`, `games.js`, `coins.js`, `live.js`, `mathtools.js`, `media.js`, `dashboard.js`, `marking.js`, `overlay.js`, `print.js`, `privacy.js`, `records.js`, `report.js`, `tables.js`, `pwa.js`, `cloud.js`, `courseloader.js`, `index.html`, `styles.css`, the six course files, the two media guides with emoji, `sw.js` (`summitide-v67`), `version.json`, `README.md`. `firestore.rules` is unchanged: nothing to publish.
+
+**Tested.** A scan of every app and course file finds no emoji. Headless Chrome: 30 screens looked at as student and as Headmaster after the change (welcome, desks, course, lesson, slides, quiz, assignment, Game Room, Display Case, Work folder, Grades, Settings, Students, Sections, Courses, marking, Math Lab, practice, notes, Live Class Board); the 63-check cloud flow from version 66; printing; device-only record tools; no reload loop. **Not tested:** the live site, phones, Safari and Firefox, courses loaded from files in your cloud (CGC1W and others are filtered as they load, but I could not see them).
+
 ## Version 66 — privacy and compliance build (21 November 2026)
 
 Written against `claude/compliance-checklist.md` (MFIPPA and the Enhancing Digital Security and Trust Act, as uploaded to the project). Both Acts bind the school board, not the app: this build makes the app ready for a board to review. It is not a legal opinion.
@@ -79,8 +101,8 @@ Built on version 61. Version 62 (figures in mathematics) is a separate package t
 - A cell can say exactly what goes in a file with `data-export="…"` (the grid uses it: `72 (Level 3, 84% raw)`, `handed in · 7.5/10 → 65 (Level 2) · comment: …`).
 
 **Live Class Board.**
-- **📝 Session notes**: a box under the board while a session runs and after it ends. Saves as the teacher types. Stored with that teacher's own sticky notes (`staffNotes/<uid>` → `notes.live[<sectionId>] = { since, text, at }`), so only that teacher reads them and they follow the teacher between devices; they are never written to `live/<sectionId>`, which students on the roster can read. One note per section, replaced by the next session's; notes of other sections older than the Live Class retention period are dropped on the next save.
-- **📄 Session report** (button on the running board and on the summary after a session): section, course, item, date, start and end, Focus Mode, counts; a row per student (writing today, joined at, where they were, times left, time away); every recorded leave (time, length, page); the session notes. **Print / Save as PDF**, **Word**, **CSV**. While a session runs it is the report so far.
+- ** Session notes**: a box under the board while a session runs and after it ends. Saves as the teacher types. Stored with that teacher's own sticky notes (`staffNotes/<uid>` → `notes.live[<sectionId>] = { since, text, at }`), so only that teacher reads them and they follow the teacher between devices; they are never written to `live/<sectionId>`, which students on the roster can read. One note per section, replaced by the next session's; notes of other sections older than the Live Class retention period are dropped on the next save.
+- ** Session report** (button on the running board and on the summary after a session): section, course, item, date, start and end, Focus Mode, counts; a row per student (writing today, joined at, where they were, times left, time away); every recorded leave (time, length, page); the session notes. **Print / Save as PDF**, **Word**, **CSV**. While a session runs it is the report so far.
 - The report is made from the same records as the board, so it is available until the section's next session or until the retention period deletes the records (Privacy settings, 7 days unless changed). Print or download it to keep it.
 
 **Tested** (headless Chrome, device-only mode and a stand-in for the cloud): a 24-column and a 33-column Grades grid printed whole across landscape pages by the page's Print button and by the browser's own print; typed scores present; no inputs, buttons or links in the printed copy; clean-up after printing; CSV read back by Python's csv module; `.docx` opened by python-docx and LibreOffice; Live Class: notes keep the cursor while the board redraws, are not in the session record, survive a sticky-note save, start empty for a new session; report rows, leaves, the "last 20" line, hostile names and page labels shown as text. **Not tested:** the live Firebase project (notes syncing between two real devices), Safari and Firefox printing, phones.
@@ -91,20 +113,20 @@ Built on version 61. Version 62 (figures in mathematics) is a separate package t
 
 **Which courses get the tools.** Any course in the Mathematics area (code starting with M), or any course file with `mathTools: true`. A lesson turns practice on with `practice: { skills: ['int-addsub', …], items: [ … ], tool: 'numberline' }`.
 
-**🧮 Calculator.** A button in the bottom-right corner of every page of a math course. Type or tap; fractions stay exact (`1/2 + 1/3 = 5/6`, with the decimal underneath; **F⇄D** switches fraction, mixed number and decimal); powers, roots, π, percent, brackets, scientific notation; **Scientific** adds cube, cube root, reciprocal, absolute value, sin / cos / tan and their inverses (degrees) and log. The last 12 answers are kept on a tape to reuse. Drag it by its title bar. **⧉ Pop out** opens it in its own window (`calculator.html`).
+** Calculator.** A button in the bottom-right corner of every page of a math course. Type or tap; fractions stay exact (`1/2 + 1/3 = 5/6`, with the decimal underneath; **F⇄D** switches fraction, mixed number and decimal); powers, roots, π, percent, brackets, scientific notation; **Scientific** adds cube, cube root, reciprocal, absolute value, sin / cos / tan and their inverses (degrees) and log. The last 12 answers are kept on a tape to reuse. Drag it by its title bar. **⧉ Pop out** opens it in its own window (`calculator.html`).
 - **Teacher switches** (course page → *Math tools*, staff only): per section, *on lesson quizzes* and *on unit tests*. Stored on the section (`calcQuiz`, `calcTest`; absent = on). When off, the button reads *Off for this quiz/test* and the panel is covered.
 - A popped-out calculator **pauses during every quiz and test** (leaving the app window is what Focus Mode records), whatever the switches say; students use the built-in panel when it is allowed.
 - Nothing typed is ever run as code: expressions are read by `MathCore.parse`, a small recursive-descent reader.
 
-**🎯 Practice** (`#/practice/<course>/<unit>/<lesson>`, a tile on the lesson page).
+** Practice** (`#/practice/<course>/<unit>/<lesson>`, a tile on the lesson page).
 - *Worksheet questions*: the closed questions from the lesson worksheet, one at a time. Numbers, fractions, mixed numbers, percents, scientific notation, algebraic expressions, points and ordered lists are marked by the app (equivalent forms are accepted; an unfinished calculation, an unreduced fraction or the question typed back is not). Questions that need a sentence show the solution and ask the student to mark themselves.
 - *Skill practice*: endless generated questions per skill (84 skills) with typed answers and a math keypad, tap-to-order, a tappable number line, choose-the-operation and plot-two-points graphing. First miss: a hint and another try. Second miss: the worked steps and *Try a similar one*. 3 / 5 / 8 correct in a row earn ★ / ★★ / ★★★; difficulty steps up after three in a row and down after two misses.
 - *Mixed review* (`#/practice/<course>/mix`): questions from every lesson the student has opened, in mixed order.
 - Saved with the student's progress (`progress/<student>__<course>` → `data.<unit>.practice.<lesson>`), so it follows them between devices. Staff see a **Class practice** table on the practice page for their working section. Practice is not a grade and does not move a level.
 
-**📐 Math Lab** (`#/mathlab/<course>/<tool>`): formula sheet and solver (24 formulas; leave one box empty and it shows the formula rearranged for that letter, the substitution and the answer), line grapher with sliders and a second line (point of intersection), number line, equation balance, fraction bars, data and box plot, interest and growth, unit converter.
+** Math Lab** (`#/mathlab/<course>/<tool>`): formula sheet and solver (24 formulas; leave one box empty and it shows the formula rearranged for that letter, the substitution and the answer), line grapher with sliders and a second line (point of intersection), number line, equation balance, fraction bars, data and box plot, interest and growth, unit converter.
 
-**MTH1W - Mathematics.** Seven units, 41 lessons, built from the teacher's decks, worksheets, answer keys, unit tests and challenge assignments by `build.js` (kept with the build notes). Each lesson: 5 slides (Start here · Key ideas · Worked examples · 📝 Write this down · 🧪 Try it), practice, a quiz, *My record*, *Worksheet problems*; the last lesson of each unit carries the optional challenge assignment.
+**MTH1W - Mathematics.** Seven units, 41 lessons, built from the teacher's decks, worksheets, answer keys, unit tests and challenge assignments by `build.js` (kept with the build notes). Each lesson: 5 slides (Start here · Key ideas · Worked examples · Write this down · Try it), practice, a quiz, *My record*, *Worksheet problems*; the last lesson of each unit carries the optional challenge assignment.
 
 ## Version 60 — coins, teacher shops, Redeem coins and the Locker
 
@@ -112,13 +134,13 @@ Built on version 61. Version 62 (figures in mathematics) is a separate package t
 
 **How it works.** A student earns coins for work in a course and spends them on rewards in their teacher's shop. The student asks for an item (*Redeem* in the shop, after a check of the bag); the teacher hands it over (*Redeem coins* on the section's roster); the item lands in the student's Locker.
 
-- **Switches.** Headmaster: Settings → 🪙 Coins and shops (off = every coin, shop and locker screen, button and mention is hidden for everyone). Teacher: the **Coins: on / off** button on each section card (Sections page) and in *My shop*. Coins start **off** in every section.
+- **Switches.** Headmaster: Settings → Coins and shops (off = every coin, shop and locker screen, button and mention is hidden for everyone). Teacher: the **Coins: on / off** button on each section card (Sections page) and in *My shop*. Coins start **off** in every section.
 - **Earning** (each counts once): lesson read 2 · quiz passed 3 (+1 at 85%+) · assignment handed in 2 · every lesson in a unit read +5 · unit test 4 / 7 / 10 / 12 at 50 / 70 / 85 / 100% · games 1 per game finished + 1 per 1,000 points, at most 10 a unit. A six-lesson unit is worth about 60 to 90 coins. The numbers are `RATES` at the top of `coins.js`.
 - **Suggested shop** (a new shop starts with these; every teacher edits their own): small 10–15 (5-minute break 10, pick your seat 10, music 12, prize box 15) · bigger 35–45 (sit with a friend 35, extra day 35, homework pass 40, teacher's chair 45) · big 80–110 (lunch with the teacher 80, class game period 90, movie day 100, class snack day 110).
 - **My shop** (staff desk tile, `#/shop`): name, tagline, colours, banner emoji or photo, pattern, a sale on everything, open/closed; per item: name, emoji or uploaded picture, cost, % off, shelf, description, show/hide, delete; a live preview.
 - **Redeem coins** (`#/coins/<section>`): every student's bag; requests with *Hand it over* / *Not this time*; *Redeem coins* (pick any item for the student); *Give coins* (1–50); *mark used*; *refund*.
 - **Student:** Shop and Locker tiles on the desk, a small bag chip on each coin course page, *My coin bag* in Settings → My profile. The **Locker** (`#/locker`) shows the bag, items (used ones crossed out), and every trophy, medal and badge earned, in a locker whose colour the student picks.
-- **The coin picture** is chosen in one place, `Coins.icon(n)`: 🪙 under 10, 💰 10–49, 💎 50–99, 👑 100+. To use your own art set `Coins.art = 'coin.png'` in `coins.js` and add the file to `sw.js`.
+- **The coin picture** is chosen in one place, `Coins.icon(n)`: under 10, 10–49, 50–99, 100+. To use your own art set `Coins.art = 'coin.png'` in `coins.js` and add the file to `sw.js`.
 
 **Where it is stored.** `students/<id>.coins` (earned, per course, written by the student's app; only ever goes up) and `.coinReq` (requests); `coins/<id>` (the ledger: spent, given, refunded, used — written only by the student's teachers); `shops/<staff id>`; `settings/coins`; `sections/<id>.coins`. Deleting a student deletes their ledger. Rules v60 add these.
 
@@ -129,8 +151,8 @@ Built on version 61. Version 62 (figures in mathematics) is a separate package t
 **Deploy in this order:** (1) paste `firestore.rules` into Firebase console → Firestore → Rules → Publish; (2) upload the changed files; (3) sign in as the Headmaster once. New files: `privacy.js`, `nunito.woff2`, `lexend.woff2`, `patrick-hand.woff2`, `fonts-LICENSE.txt`.
 
 - **Privacy notice** (`#/privacy`) — open to anyone, linked from the sign-in screen and from Settings → Privacy. Plain words: what is kept, why, who can see it, where it is stored, the outside services the app can use, how long things are kept, and who to ask. It reads the periods and the dictation line from the school's policy record, so it always matches what the app does. Until the Headmaster switches on *The school board has reviewed this notice*, it says it has not been reviewed.
-- **Settings → 🔏 Privacy and retention** (Headmaster): the contact line for the notice; the *reviewed* switch; **Allow dictation** for the whole school; three periods in days (problem-report screenshots 30, resolved reports 180, Live Class records 7); *Run the clean-up now*; the **end-of-term clean-up**. Stored in `settings/policy` (anyone reads, only the Headmaster writes, fixed shape in the rules).
-- **Dictation** — the browser's speech service sends audio to the browser's maker. Each person sees a notice before the first use (OK / Not now). With the school switch off the 🎤 button disappears for everyone; 🎙️ recording, which stays on the device, still works.
+- **Settings → Privacy and retention** (Headmaster): the contact line for the notice; the *reviewed* switch; **Allow dictation** for the whole school; three periods in days (problem-report screenshots 30, resolved reports 180, Live Class records 7); *Run the clean-up now*; the **end-of-term clean-up**. Stored in `settings/policy` (anyone reads, only the Headmaster writes, fixed shape in the rules).
+- **Dictation** — the browser's speech service sends audio to the browser's maker. Each person sees a notice before the first use (OK / Not now). With the school switch off the Dictate button disappears for everyone; recording, which stays on the device, still works.
 - **Daily clean-up** — once a day when the Headmaster signs in: screenshots past their date are removed from reports (the message stays), old resolved reports are deleted, Live Class presence records and ended sessions past their date are deleted, and a session left running for 12 hours is ended. A student's app also ignores a session older than 12 hours. Each run that removes something adds a line to the change log.
 - **End-of-term clean-up** — tick archived sections → Preview → type ERASE. Erases the work and teacher grades of those students for that section's course; a student still taking the same course in an active section is left alone. Option: also delete students left in no active section. The records are emptied rather than deleted (`purged: true`), so a device holding an old copy cannot put the work back. Sections, rosters and customisations stay; the section is stamped `purgedAt`.
 - **Deleting one student** — Students → open the student → Remove now also deletes their Live Class record and (Headmaster) the problem reports they sent, clears their recordings from this device, and shows a **receipt**: what was deleted, and what this app cannot delete (the unused sign-in, change-log lines, recordings on other devices, export files).
@@ -144,14 +166,14 @@ Not changed by this version: students still sign in with number + birthday, scor
 **What it is.** A teacher (or the Headmaster) opens **Live Class** on the desk (`#/live`), picks a section, chooses what the class is writing (any work in the course, a unit test, a lesson quiz or an assignment), switches **Focus Mode** on or off and starts the session. The board then shows **one tile per student on the roster**:
 
 - **Click a tile to mark that student as writing today** (students are sometimes away, or write on another day). *Everyone is writing*, *Only those here* and *Clear* set the whole list at once. Tiles not marked are dimmed.
-- Each tile shows where the student is right now: 🟢 on the item (with *Question 3 of 8*), ✅ handed in, 🔵 in Summitide but on another page (which one), 🟠 Summitide open but another window in use, 🔴 Summitide hidden or closed, ⚪ not in this session. A red/amber tile also shows *left 2× · 1 min 40 s*.
+- Each tile shows where the student is right now: on the item (with *Question 3 of 8*), ✓ handed in, in Summitide but on another page (which one), Summitide open but another window in use, Summitide hidden or closed, not in this session. A red/amber tile also shows *left 2× · 1 min 40 s*.
 - The side panel lists **Writing now** (marked as writing and on the item), **Handed in**, and a drop-down **Not writing** with the reason for each (not writing today · not here · left the app · another window · in the app, elsewhere).
 - **A late student simply opens the item**: their tile goes live on the teacher's screen on its own, they are added to the writing list, and the tile says *late 10:22* when the session had been running for more than 90 seconds. A student the teacher has deliberately unmarked is not re-added.
-- Optional 🔔 sound when a student who is writing leaves the app. **End the session** keeps a summary table (writing, last seen on, left the app) until the next session.
+- Optional sound when a student who is writing leaves the app. **End the session** keeps a summary table (writing, last seen on, left the app) until the next session.
 
-**Focus Mode (students).** While a session runs, every student page carries a green **Live now** banner with a *Go to it →* link and a plain privacy line. On the quiz or test start screen a notice explains Focus Mode; pressing Start asks the browser for full screen. Every time the student leaves — tab hidden, window not focused, app closed — the leave is timed; on return a *You left Summitide for 42 s* card appears (teacher can see it) before they continue. The leaves are kept on the attempt (`levels[L].last.away = { count, secs }`) and the marking screen shows *🎯 Focus Mode: left the app 1× (42 s)* (or *stayed in the app*) on the latest attempt.
+**Focus Mode (students).** While a session runs, every student page carries a green **Live now** banner with a *Go to it →* link and a plain privacy line. On the quiz or test start screen a notice explains Focus Mode; pressing Start asks the browser for full screen. Every time the student leaves — tab hidden, window not focused, app closed — the leave is timed; on return a *You left Summitide for 42 s* card appears (teacher can see it) before they continue. The leaves are kept on the attempt (`levels[L].last.away = { count, secs }`) and the marking screen shows * Focus Mode: left the app 1× (42 s)* (or *stayed in the app*) on the latest attempt.
 
-**What it cannot do — say this to staff plainly.** A web app sees only itself. It cannot stop a student opening another tab or app, cannot see their screen, and cannot see a phone. Two windows side by side show as 🟠 (open, not focused), not 🔴. Real locking and screen viewing come from the board's device management (Chromebook kiosk/locked mode, Hāpara, GoGuardian, Securly, Lightspeed) — Focus Mode complements those. The status is reported by the student's own app, so it is evidence, not proof.
+**What it cannot do — say this to staff plainly.** A web app sees only itself. It cannot stop a student opening another tab or app, cannot see their screen, and cannot see a phone. Two windows side by side show as (open, not focused), not. Real locking and screen viewing come from the board's device management (Chromebook kiosk/locked mode, Hāpara, GoGuardian, Securly, Lightspeed) — Focus Mode complements those. The status is reported by the student's own app, so it is evidence, not proof.
 
 **Privacy.** Presence is written **only while a teacher is running a session for one of the student's sections** — nothing is sent otherwise (tested). It holds the page name, question number, focused/unfocused/hidden, times of leaves, never what the student typed and nothing from outside the app. Each presence record is readable only by that student's own teachers and the Headmaster. Add this to the board privacy review alongside accommodations and Focus Plans; suggested retention: records are overwritten by the next session, attempts keep only the count and seconds.
 
@@ -161,7 +183,7 @@ Not changed by this version: students still sign in with number + birthday, scor
 
 **Not covered.** Student View (demo student) does not send presence (a staff sign-in is not a student); presence while offline is simply not sent; the sound needs one click on the page first (browser rule).
 
-**Tested** (`live-test.js`, mock Firestore that now wakes only listeners of the written collection, like the real one): start → three idle tiles → click marks Neo → Zara appears on the item and is auto-listed → hidden = 🔴 + leave count and the Not-writing reason → blur = 🟠 → done = ✅ → stale record from an old session = ⚪ → late arrival listed with *late* → unmarked student not re-added → bulk buttons → phone layout fits → end + summary → second session → Neo signs in: banner, presence (desk, not on item; rules key list) → *Go to it* → Focus notice → start → window blur 2 s → return card, presence leave → quiz finished, presence handed in, attempt `away {1, 2 s}` → session ended: banner gone, presence closed, nothing written afterwards → Headmaster's marking screen shows the leave.
+**Tested** (`live-test.js`, mock Firestore that now wakes only listeners of the written collection, like the real one): start → three idle tiles → click marks Neo → Zara appears on the item and is auto-listed → hidden = + leave count and the Not-writing reason → blur = → done = ✓ → stale record from an old session = → late arrival listed with *late* → unmarked student not re-added → bulk buttons → phone layout fits → end + summary → second session → Neo signs in: banner, presence (desk, not on item; rules key list) → *Go to it* → Focus notice → start → window blur 2 s → return card, presence leave → quiz finished, presence handed in, attempt `away {1, 2 s}` → session ended: banner gone, presence closed, nothing written afterwards → Headmaster's marking screen shows the leave.
 
 ## Version 57 — reload-loop fix (17 November 2026)
 
@@ -264,7 +286,7 @@ Since v32 the app runs on a Firebase project (`cloud-config.js`): accounts, rost
 
 **Profile sync (v38).** A device sends only the profile fields that changed since the last copy it received, never the whole record, so a phone holding an old copy (offline, or opened from cache) cannot put an old level or course list back over a newer one. A student's own account may only change its own fields (preferences, archived courses, avatar, quiz-driven level moves and logs); the level, course list, accommodations, track, name and number are teacher-only, enforced in `firestore.rules`. Every saved change raises the profile's **version** (`rev`) and stamps who saved it and when; the stamp shows on the student's desk, in their Settings → My profile, and under their name in the teacher's Students list. If two screens show different version numbers, the newer one has not reached the other yet — Settings → App status says whether that device is synced, offline or in error, and the Save button now reports a refused write instead of claiming success.
 
-**Is it really saved? (v40)** The student row's Save button now waits for the cloud to confirm every write that is in flight, then reads the profile straight back from the server and compares it with what you set; it says *✓ Confirmed by the cloud · Profile vN* only if they match, and otherwise *⚠️ Not confirmed* with the reason. Settings has a cloud status line (synced / sending, N waiting / offline / error). If writes keep waiting, another open copy of the app on the same phone (a Chrome tab plus the installed app) may be holding the cache — close the other copy. Writes go out one batch at a time in the order they were made.
+**Is it really saved? (v40)** The student row's Save button now waits for the cloud to confirm every write that is in flight, then reads the profile straight back from the server and compares it with what you set; it says *✓ Confirmed by the cloud · Profile vN* only if they match, and otherwise * Not confirmed* with the reason. Settings has a cloud status line (synced / sending, N waiting / offline / error). If writes keep waiting, another open copy of the app on the same phone (a Chrome tab plus the installed app) may be holding the cache — close the other copy. Writes go out one batch at a time in the order they were made.
 
 **Firestore layout:** `students/{uid}`, `staff/{uid}`, `meta/master`, `logins/{teacherId}`, `issues/{id}`, `sections/{id}`, `progress/{uid}__{courseId}`, `focus/{uid}`, `settings/global`. See the v43 section below for the current layout and rules.
 
@@ -284,9 +306,9 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Stored text is never run as code.** Every value read from the cloud is escaped where it is drawn; screenshots in problem reports must be real JPEG pictures; links must be web addresses; raw slide markup is only taken from the course files. A Content-Security-Policy in `index.html` allows scripts from this site only, and the Firebase SDK is served from this folder (`firebase-*-compat.js`, v10.14.1).
 
-**The one-time data upgrade** runs by itself the first time the Headmaster signs in on v43: access lists on every student, grades moved to their own records, notes and e-mail moved to private records, directory cards. Until then teachers see a notice and no students. *Settings → 🔐 Security → Run the data upgrade again* repeats it safely.
+**The one-time data upgrade** runs by itself the first time the Headmaster signs in on v43: access lists on every student, grades moved to their own records, notes and e-mail moved to private records, directory cards. Until then teachers see a notice and no students. *Settings → Security → Run the data upgrade again* repeats it safely.
 
-**Settings → 🔐 Security (Headmaster)** also has the **change log**: who added or removed students and teachers, reset a password, or took a student onto their roster. Lines cannot be edited or deleted.
+**Settings → Security (Headmaster)** also has the **change log**: who added or removed students and teachers, reset a password, or took a student onto their roster. Lines cannot be edited or deleted.
 
 **Passwords.** New or changed staff passwords need 10 characters and are typed into a masked box. Resetting a teacher's password still gives them a fresh sign-in behind the same teacher ID (a browser cannot change someone else's password); their record, notes, sections and students move to it.
 
@@ -300,7 +322,7 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 ## Headmaster, Teachers tab, dyslexia-friendly text and problem reports (v42)
 
-**Who is the Headmaster.** The account named in `meta/master` (the same record the security rules trust) is the Headmaster, whatever role is written on its staff record; if that record says `teacher` the app corrects it at sign-in. A Headmaster session is marked by a gold line across the top of the header, a **👑 Headmaster** badge on the name chip, a banner at the top of Settings and an *Account type* row in Settings → My profile. A teacher's *Account type* row names the Headmaster on record and, under *This should be the Headmaster account?*, gives the Firebase console step to move the role (set `meta/master.uid`).
+**Who is the Headmaster.** The account named in `meta/master` (the same record the security rules trust) is the Headmaster, whatever role is written on its staff record; if that record says `teacher` the app corrects it at sign-in. A Headmaster session is marked by a gold line across the top of the header, a ** Headmaster** badge on the name chip, a banner at the top of Settings and an *Account type* row in Settings → My profile. A teacher's *Account type* row names the Headmaster on record and, under *This should be the Headmaster account?*, gives the Firebase console step to move the role (set `meta/master.uid`).
 
 **Teachers tab** (top menu, Headmaster only; the same panel is in Settings → Teachers):
 - **Add a teacher** — name, teacher ID (sign-in name, 3+ letters/digits), password (10+), optional school e-mail, optional first section.
@@ -310,17 +332,17 @@ v43 answers the v42 security review (project doc `security-privacy-audit-v42.md`
 
 **Dyslexia-friendly text** — Settings → Accessibility (students) / My accessibility (teachers): a switch that shows the whole app in OpenDyslexic with extra room between words and lines and no italics. It is a per-person preference (`prefs.dyslexia`) that follows the account; the font files are in the repo and cached for offline use.
 
-**Found a problem?** — a button in the bottom-left corner of every page for anyone signed in. It takes a picture of the screen, opens a box showing the picture (with a tick-box to leave it out) and a place to describe the problem, and sends both to the Headmaster. **Settings → 🐞 Reported problems** (Headmaster only) lists them — who, when, which page, app version, the message and the screenshot — with *Save screenshot* (downloads a JPEG), *Mark resolved / Reopen*, *Delete*, and Open / Resolved / All filters. Reports live in `issues/{id}`; the screenshot is a JPEG shrunk to fit inside the record. Embedded Google files and videos appear blank in a screenshot.
+**Found a problem?** — a button in the bottom-left corner of every page for anyone signed in. It takes a picture of the screen, opens a box showing the picture (with a tick-box to leave it out) and a place to describe the problem, and sends both to the Headmaster. **Settings → Reported problems** (Headmaster only) lists them — who, when, which page, app version, the message and the screenshot — with *Save screenshot* (downloads a JPEG), *Mark resolved / Reopen*, *Delete*, and Open / Resolved / All filters. Reports live in `issues/{id}`; the screenshot is a JPEG shrunk to fit inside the record. Embedded Google files and videos appear blank in a screenshot.
 
 **Rules changed in v43** — paste `firestore.rules` into Firestore → Rules → Publish before uploading the app (see DEPLOY.md).
 
 ## Load a Course or Section — simpler loader (v55)
 
-The Headmaster's course loader at the foot of **Courses** is now a bar in the same family as the curriculum-area bars (amber 📥 block, "Load a Course or Section"), with three numbered steps — **Select the course file → Confirm its Ontario course code → Load it** — a real **📂 Select a course file** button (the native file input is visually hidden but still keyboard-focusable), and the chosen file name beside it. The report that appears after picking a file carries the same step numbers: step 2 is the code box (button reads *Use this code* when the code came from the file), step 3 is either *Create a section of …* (code already in The Academy) or *Load CODE into The Academy* (new code). The security explanation lives in a small "How course files are kept safe" fold. Nothing about parsing, scrubbing, validation or saving changed (`courseloader.js` untouched). CSS: `.loader-*` rules and a `.visually-hidden` helper; the inner `.grid-2` is capped so the card fits a phone.
+The Headmaster's course loader at the foot of **Courses** is now a bar in the same family as the curriculum-area bars (amber block, "Load a Course or Section"), with three numbered steps — **Select the course file → Confirm its Ontario course code → Load it** — a real ** Select a course file** button (the native file input is visually hidden but still keyboard-focusable), and the chosen file name beside it. The report that appears after picking a file carries the same step numbers: step 2 is the code box (button reads *Use this code* when the code came from the file), step 3 is either *Create a section of …* (code already in The Academy) or *Load CODE into The Academy* (new code). The security explanation lives in a small "How course files are kept safe" fold. Nothing about parsing, scrubbing, validation or saving changed (`courseloader.js` untouched). CSS: `.loader-*` rules and a `.visually-hidden` helper; the inner `.grid-2` is capped so the card fits a phone.
 
 ## Student View — a demo student inside each staff account (v54)
 
-**Settings → 👁 Student View** (teachers and the Headmaster). *Create my demo student* makes a profile that exists only inside that account: `students/demo__<uid>` with `demo: true`, `demoOwner`, `teachers: [<uid>]`, written directly by the staff member's app (`Cloud.createDemo`; the create rule already allows a staff member to create a profile whose access list is just themselves). It has no sign-in, is never on a roster, and is left out of `Students.list` — so the Students page, the desk counts, the grids, the directory, *add an existing student* and every other list never show it (`Students.everyone` is the raw list; `Students.demoFor(owner)` finds the demo; the access-list reconciliation leaves demo records alone).
+**Settings → Student View** (teachers and the Headmaster). *Create my demo student* makes a profile that exists only inside that account: `students/demo__<uid>` with `demo: true`, `demoOwner`, `teachers: [<uid>]`, written directly by the staff member's app (`Cloud.createDemo`; the create rule already allows a staff member to create a profile whose access list is just themselves). It has no sign-in, is never on a roster, and is left out of `Students.list` — so the Students page, the desk counts, the grids, the directory, *add an existing student* and every other list never show it (`Students.everyone` is the raw list; `Students.demoFor(owner)` finds the demo; the access-list reconciliation leaves demo records alone).
 
 The group shows the demo's row with the same editor as any student — level, courses and per-course levels, Modified program, accommodations, rewrites, Focus Plan — minus the account, roster and remove controls. **Open Student View** switches the session to the demo (`Students.setCurrent(demoId)`; the staff sign-in stays): the student desk, courses at the demo's level, quizzes, tests, games, work, grades and notes all behave as they would for a real student, under a dashed banner with **↩ Back to my desk**. Everything the demo does is saved under its own id (`progress/demo__<uid>__<course>`, which a teacher's app also subscribes to) and is there next time; *Reset its progress* wipes it. Staff menu items are hidden while in Student View; the staff pages bounce the demo like any student.
 
@@ -338,7 +360,7 @@ The Courses page groups courses under the Ministry's secondary curriculum areas,
 
 ## Loading a course from a file (v48–v49)
 
-The Headmaster can add a course without touching the repository: **Courses → 📥 Load a course from a file** (`courseloader.js`).
+The Headmaster can add a course without touching the repository: **Courses → Load a course from a file** (`courseloader.js`).
 
 - **A course file is data, never code.** The app accepts only `.json`: the envelope `{ "format": "academy-course/1", "type": "course", "code": "ENG3U", "build": "2026-11-14", "course": { … } }` or a bare course object. One course per file. A repo-style `.js` course file (`window.LearnHub.courses.push({ … })`) is converted on your own computer first: `node course2json.js eng3u.js` writes `eng3u.json`. Nothing from a file is ever executed in anyone's browser (no eval, no worker, no script tag), and the CSP stays `script-src 'self'`.
 - **Scrubbed, then checked.** Every string in the course is cleaned before it is registered — and again whenever a copy arrives from the cloud or the local cache: the one field the app renders as raw HTML (slide `html`) goes through an allow-list sanitiser (text tags, lists, tables, images from https, links to https; no scripts, event handlers, styles, frames, forms or `javascript:`); every other string loses any tags and is escaped when drawn, as all cloud text is; media links must be http(s); colours must be `#hex`; ids are normalised; `__proto__`/`constructor`/`prototype` keys are dropped; size is capped. Then the shape is validated (id, title "CODE - description", units with lessons and slides, questions, terms) — errors block the load, warnings are listed.
@@ -372,10 +394,10 @@ Each level is a **grade band**: L1 · Shore 50–59, L2 · Trail 60–69, L3 · 
 ## Tile desks, Students page, Sections page, avatars (v44)
 
 - **Both desks are tile grids.** Teacher's Desk (shown as **The Headmaster's Desk** for the Headmaster, in the heading, the top menu and breadcrumbs): **Sections · Students · Courses · Grades** (+ **Teachers** for the Headmaster), then the **My notes** area. Student Desk: the four stat tiles, then **Sections · Courses · Grades · Display Case** and My notes. Tiles are compact and equal in height, icon centred above the title (v47); the page scrollbar is slim and its lane always reserved, so content never shifts sideways. Every tile opens a page; nothing folds out on the desk any more. **Settings** lives only in the top menu.
-- **Students page** (`#/students`, staff only, also in the top menu): search by name or student number, choose the scope (all my students / one section, archived sections included), and open any student for the full editor (level, courses and per-course level, Modified program, accommodations, Focus Plan, work, recordings). Each student's row has **🏫 Sections and teachers**: who they are assigned to now, and every section and teacher they have been with before (left when, since when). The history is kept on the section (`sec.log`) and on the student's record (`history`, teacher-only), so it survives archiving and a change of teacher. A teacher sees only the students of their own sections; the Headmaster sees the school.
+- **Students page** (`#/students`, staff only, also in the top menu): search by name or student number, choose the scope (all my students / one section, archived sections included), and open any student for the full editor (level, courses and per-course level, Modified program, accommodations, Focus Plan, work, recordings). Each student's row has ** Sections and teachers**: who they are assigned to now, and every section and teacher they have been with before (left when, since when). The history is kept on the section (`sec.log`) and on the student's record (`history`, teacher-only), so it survives archiving and a change of teacher. A teacher sees only the students of their own sections; the Headmaster sees the school.
 - **Sections page** hosts creating and managing sections (it used to be a Settings group). A section is the teacher's own copy of a course for one roster: everything customised in it (hidden lessons, edited slides, extra questions and terms, own lessons) stays in that section — including after it is archived — unless it is copied into another section with *copy customisations from…*. Teachers create their own sections; the **Headmaster** creates sections too and is the only one who can **assign a section to a teacher** (at creation here, or later on the Teachers page). The Headmaster can customise any section by selecting it as the working section.
 - **Courses page** (`#/courses`): students see their classes (resume, join, archived); staff see the library in teacher preview with each course's sections and a *＋ New section* shortcut.
-- **Avatars:** every profile picks from ~400 emoji in groups — People, Animals, School, Sport, Art & music, Math, Tech, Science, Literature & stories, Nature & food, Flags & places. The owl 🦉 is reserved for the Headmaster (it is not offered to anyone else and the store refuses it for other profiles).
+- **Avatars:** every profile picks from ~400 emoji in groups — People, Animals, School, Sport, Art & music, Math, Tech, Science, Literature & stories, Nature & food, Flags & places. The owl is reserved for the Headmaster (it is not offered to anyone else and the store refuses it for other profiles).
 - The two sample courses (`english.js`, `science.js`) are gone; `Sample - English` / `Sample - Science` no longer appear anywhere.
 - Fix: a pending cloud write now carries a snapshot of the data, so an incoming copy of a record can no longer erase a change made a moment earlier (the enrolment history relied on this). Fix: the phone back button steps up one level even after pages that navigate by setting the address directly.
 
@@ -384,7 +406,7 @@ Each level is a **grade band**: L1 · Shore 50–59, L2 · Trail 60–69, L3 · 
 - **Student Desk / Teacher's Desk** is the home page: two fold-outs, **Sections** first, then **Courses**. Students see the sections they are in (teacher, term, Open class / Grades / Display Case) and their courses (with Join / Archived); teachers see their sections (roster, Grades, Open the course, Students) and the course previews.
 - **Sections** in the top menu opens a page with every section and its options. Grades are reached from a section (teacher: the grid for that section; student: their grades for that course). There is no separate Grades or Dashboard menu item.
 - **Display Case** stays in the student menu; for teachers it is a fold-out at the top of each course page (students get that fold too).
-- **Settings** groups all start closed each time Settings is opened. The Focus Plan and keyword search live inside each student's row in Settings → Students (no separate group). Each open student row has a **💾 Save changes** button that pushes the row's changes to the cloud immediately and confirms; changes are also pushed automatically within a second and on sign-out.
+- **Settings** groups all start closed each time Settings is opened. The Focus Plan and keyword search live inside each student's row in Settings → Students (no separate group). Each open student row has a ** Save changes** button that pushes the row's changes to the cloud immediately and confirms; changes are also pushed automatically within a second and on sign-out.
 
 ## Notes (everyone) and the desk
 
@@ -392,7 +414,7 @@ Every desk — student, teacher, Headmaster — has a **My notes** area under th
 
 ## Grades
 
-Teachers: open a section (Desk → Sections, or the Sections page) → **Grades**. One collapsible table per unit: a row per student; per lesson a quiz cell and a cell per assignment showing ✓ handed in / ✎ draft / – not started with a grade box (out of 10) and a 💬 comment button; then unit test and awards. Grades save to the student's record (and the cloud) as you type.
+Teachers: open a section (Desk → Sections, or the Sections page) → **Grades**. One collapsible table per unit: a row per student; per lesson a quiz cell and a cell per assignment showing ✓ handed in / ✎ draft / – not started with a grade box (out of 10) and a comment button; then unit test and awards. Grades save to the student's record (and the cloud) as you type.
 
 Students: **Grades** in the top bar, or *My grades* on a class — the same row for themselves, with teacher grades and comments. Nothing on it is editable.
 
@@ -406,7 +428,7 @@ Back always goes **up one level** — slide → lesson → course → desk — w
 
 ## Installing on a phone or computer
 
-The app is a Progressive Web App. On Android Chrome and desktop Chrome/Edge an **⬇️ Install app** button appears in the header (also available from the browser menu → *Install app* / *Add to Home screen*). On iPhone use Safari → Share → *Add to Home Screen*. Installed copies work offline.
+The app is a Progressive Web App. On Android Chrome and desktop Chrome/Edge an ** Install app** button appears in the header (also available from the browser menu → *Install app* / *Add to Home screen*). On iPhone use Safari → Share → *Add to Home Screen*. Installed copies work offline.
 
 **Settings → App** shows whether LearnHub is installed on this device, offers Install / Uninstall instructions, and — when not installed — checks that `manifest.json`, both icons and `sw.js` are actually being served (a ✕ means that file is missing from the website). The header's Install button disappears once the app is installed on the device. If you host the app at a different address, update the `related_applications` URL in `manifest.json` so the browser can report installed status.
 
@@ -453,7 +475,7 @@ The course page lists every unit's lessons. Opening a lesson shows its parts:
 - **Quiz** — 4 / 6 / 8 / 10 questions (by level) drawn only from that lesson's question bank (questions whose `cat` starts with `L<n>`, or the categories a lesson lists in `cats: […]`). Pass mark 50%; best score is kept.
 - **Assignments** — open-response tasks with a levelled prompt, a sentence starter and a "complete answer contains…" box. Work autosaves as a draft; *Hand in* marks it done. Teachers read handed-in work in Teacher Lock → Students → *Assignment work*.
 - **Unit test** — covers every lesson in the unit (5 / 8 / 12 / 15 questions by level).
-- **📁 Work folder** (a room on every unit) — every assignment in the unit with its state (not started / draft saved / handed in), a preview of the writing, any voice recording, and Continue / Open / Print buttons. The student sees their own; an unlocked teacher sees the same page for the signed-in student (and all students' work in Teacher Lock → Students).
+- ** Work folder** (a room on every unit) — every assignment in the unit with its state (not started / draft saved / handed in), a preview of the writing, any voice recording, and Continue / Open / Print buttons. The student sees their own; an unlocked teacher sees the same page for the signed-in student (and all students' work in Teacher Lock → Students).
 
 Every quiz and test starts with something every student can do (a true/false or short multiple choice) and builds up; questions are served least-seen first so nothing repeats until the whole bank has been used.
 
@@ -463,7 +485,7 @@ Every quiz and test starts with something every student can do (a true/false or 
 
 ## Teacher Lock
 
-Everything a teacher or parent controls lives at the top of **Settings → 🔒 Teacher Lock**. Choose a **6-digit PIN** once; from then on the section is hidden until the PIN is entered (unlock lasts for the browser session — press **Lock now** before handing the device back). Inside:
+Everything a teacher or parent controls lives at the top of **Settings → Teacher Lock**. Choose a **6-digit PIN** once; from then on the section is hidden until the PIN is entered (unlock lasts for the browser session — press **Lock now** before handing the device back). Inside:
 
 - **Students** — levels, courses, accommodations, level suggestions, assignment work, add / rename / reset / remove.
 - **Find lessons by keyword** — pick a course and unit, type a word or phrase, and every lesson in that unit whose slides mention it is listed in chronological order. *Show only these lessons to the student* turns the Focus Plan on for the signed-in student, adds the unit, and sets its lesson list to just those lessons.
@@ -483,7 +505,7 @@ The Focus Plan lets a teacher choose exactly which pieces of a course a student 
   - **Goals to work toward** — the checklist the student sees on the course page (e.g. read every lesson, pass the test, finish 3 games). Each goal ticks itself off when the matching award is earned.
 - Leaving every chip in a group selected means "all of them".
 
-The student sees a 🎯 banner, a smaller course and a *My goals* checklist per unit; the Display Case and course trophy count only the units in the plan. Combine with **Level 1 · Shore** for the simplest possible experience. The plan is stored on the device (`localStorage`, key `learnhub.focus`).
+The student sees a banner, a smaller course and a *My goals* checklist per unit; the Display Case and course trophy count only the units in the plan. Combine with **Level 1 · Shore** for the simplest possible experience. The plan is stored on the device (`localStorage`, key `learnhub.focus`).
 
 ## Adding a course
 
@@ -515,17 +537,17 @@ window.LearnHub.courses.push({
   title: 'Mathematics',
   subtitle: 'Numbers & Patterns',
   description: '…',
-  icon: '➗',                        // any emoji
+  icon: '',                        // any emoji
   color: '#d6336c',                 // accent used throughout this course
 
   awards: {                         // names per course; {unit} and {course} are filled in
-    study:        { icon: '📐', name: 'Measured Mind: {unit}', desc: '…' },   // badge
-    testPass:     { icon: '✅', name: 'Problem Solver: {unit}', desc: '…' },  // badge
-    testPerfect:  { icon: '💯', name: 'Flawless: {unit}', desc: '…' },        // badge
-    games3:       { icon: '🎲', name: 'Game Theorist: {unit}', desc: '…' },   // badge
-    allGames:     { icon: '🎖️', name: 'Grand Master: {unit}', desc: '…' },   // medal
-    unitMedal:    { icon: '🏅', name: 'Medal of Numbers: {unit}', desc: '…' },// medal
-    courseTrophy: { icon: '🏆', name: 'Fields Medallist', desc: '…' }         // trophy
+    study:        { icon: '', name: 'Measured Mind: {unit}', desc: '…' },   // badge
+    testPass:     { icon: '', name: 'Problem Solver: {unit}', desc: '…' },  // badge
+    testPerfect:  { icon: '', name: 'Flawless: {unit}', desc: '…' },        // badge
+    games3:       { icon: '', name: 'Game Theorist: {unit}', desc: '…' },   // badge
+    allGames:     { icon: '', name: 'Grand Master: {unit}', desc: '…' },   // medal
+    unitMedal:    { icon: '', name: 'Medal of Numbers: {unit}', desc: '…' },// medal
+    courseTrophy: { icon: '', name: 'Fields Medallist', desc: '…' }         // trophy
   },
 
   units: [
@@ -540,7 +562,7 @@ window.LearnHub.courses.push({
             { title: 'Fractions at home', prompt: { 1: '…', 2: '…', 3: '…', 4: '…' }, starter: { 1: 'I found …' }, success: { 1: '…', 2: '…', 3: '…', 4: '…' }, expectations: 'B1.1' }
           ],
           slides: [
-            { title: 'Parts of a whole', visual: '🍕', body: { 1: '…', 2: '…', 3: '…' } },
+            { title: 'Parts of a whole', visual: '', body: { 1: '…', 2: '…', 3: '…' } },
             { title: 'Numerator & denominator', body: '…', levels: [2, 3] }
           ] }
       ],
@@ -589,7 +611,7 @@ Good sources of public-domain line art: openclipart.org, publicdomainvectors.org
 - **Master account** — created the first time Settings is opened (name, optional e-mail, 6-digit PIN). The master sees every student on the device, adds **teachers** (name + their own 6-digit PIN), creates sections for any teacher, and runs exports.
 - **Teachers** unlock the Teacher Lock with their PIN and see only the students in their own sections — with full control over them: levels, Modified band, accommodations, course list, Focus Plan, written work, recordings, level history.
 - **Sections** (Teacher Lock → Sections) — one class = a course + a teacher + a roster + a term. The dropdown picks the section you are working with; the Students list follows it. New students added while a section is selected are enrolled in it and its course; existing students can be added from a dropdown. **Archive** a section at the end of term; archived sections stay in the dropdown under "Archived" and can be retrieved.
-- **Student archive** — a student can archive a class from its course page (📦 Archive class). It moves to "Archived classes" on their home page and can be brought back; teachers can still assign it.
+- **Student archive** — a student can archive a class from its course page (Archive class). It moves to "Archived classes" on their home page and can be brought back; teachers can still assign it.
 
 Accounts are stored on the device (`learnhub.staff`, `learnhub.sections`). To move a roster or a student's work to another device, use the export/import below.
 
@@ -601,7 +623,7 @@ Every course's `title` is its Ontario course code, a hyphen, and a short descrip
 
 A teacher can tailor any course for **one section** without touching the program or other teachers' classes. Everything lives in an *overlay* on the section (`Sections.list[n].overlay[courseId][unitId]`); the course files are never edited.
 
-- **Turn it on** — sign in as a teacher, open the course, pick one of your sections in the bar at the top, then **✏️ Customise**. The orange bar means every change applies only to that section. **✓ Done customising** hides the tools.
+- **Turn it on** — sign in as a teacher, open the course, pick one of your sections in the bar at the top, then ** Customise**. The orange bar means every change applies only to that section. **✓ Done customising** hides the tools.
 - **Course page** — move lessons up/down, rename or hide a lesson (hidden ones are listed so you can bring them back), add a lesson of your own, add or hide words in the unit word bank, reset the unit to the program.
 - **Slides** — under each slide: edit the title and text at every level (1–4 and the Modified bands), change the icon, hide the slide, add a slide after it, revert to the original. Media slots: paste a link (image, YouTube, audio or video URL), **upload** a picture / audio / video from the device, or add a new media item with a caption.
 - **Lesson page** — edit, hide or add assignments (task, sentence starter and success criteria at each level); edit, hide or add quiz questions (multiple choice, true/false, fill-in; optionally only at some levels). Added questions join that lesson's quiz and the unit test for the section.
@@ -625,7 +647,7 @@ For students working on the course without going for credit. In the student's ro
 
 ## Dictation, recording and other accessibility options
 
-- **🎤 Dictate** appears on assignment answers and typed blanks (Chrome, Edge, Safari): speak instead of typing. **🎙️ Record** lets a student record an answer to an assignment or a voice note on the last slide of a lesson; recordings live in the browser (IndexedDB) and teachers play them from the student's row (*Voice recordings*). Both can be turned off per student in Settings → Accessibility.
+- ** Dictate** appears on assignment answers and typed blanks (Chrome, Edge, Safari): speak instead of typing. ** Record** lets a student record an answer to an assignment or a voice note on the last slide of a lesson; recordings live in the browser (IndexedDB) and teachers play them from the student's row (*Voice recordings*). Both can be turned off per student in Settings → Accessibility.
 - **Colour overlay (Irlen / visual stress)** — cream, pale blue, pale green, rose, yellow, grey, peach, lavender tints, per student.
 - **Read&Write (Texthelp)** — the Chrome extension works on the app as it is (everything is real text). Settings links to the Chrome Web Store.
 
@@ -640,7 +662,7 @@ Teacher Lock → **Google Drive & exports** (master only):
 
 ## Printing
 
-Every lesson, quiz, test and assignment has a **🖨️ Print** button, and each unit has **Print unit** next to the unit test and Game Room. The print preview opens in the app (`#/print/…`) with a *Print / Save as PDF* button:
+Every lesson, quiz, test and assignment has a ** Print** button, and each unit has **Print unit** next to the unit test and Game Room. The print preview opens in the app (`#/print/…`) with a *Print / Save as PDF* button:
 - **Lesson** — slides as a handout, the lesson's words, the quiz on paper and the assignment sheets.
 - **Unit** — every lesson followed by the unit test.
 - **Quiz / Unit test** — numbered paper versions (a) b) c) choices, T/F boxes, word banks, matching columns) at the student's level and accommodations.

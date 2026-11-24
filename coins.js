@@ -20,7 +20,7 @@
    has coins on. With the Headmaster's switch off, every tile, chip, button, page and setting about coins is
    hidden for everyone (Coins.on() is false and every hook below returns nothing).
 
-   THE COIN ITSELF — Coins.icon(n) is the one place that decides what a pile of n coins looks like (emoji for
+   THE COIN ITSELF — Coins.icon(n) is the one place that decides what a pile of n coins looks like (a drawn disc for
    now). To use your own picture later, set Coins.art = 'coin.png' (and list the file in sw.js). */
 (function () {
   const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -58,18 +58,18 @@
   };
   const TIERS = [['low', 'Small rewards', '8–15'], ['medium', 'Bigger rewards', '30–50'], ['high', 'Big rewards', '80–120']];
   const SUGGESTED = [
-    ['low', '⏱️', '5-minute break', 'Step away from your work for five minutes.', 10],
-    ['low', '🪑', 'Pick your seat for a day', 'Sit anywhere you like for one class.', 10],
-    ['low', '🎧', 'Music while you work', 'Headphones on for one work period.', 12],
-    ['low', '✏️', 'Something from the prize box', 'A pencil, an eraser or a sticker.', 15],
-    ['medium', '👫', 'Sit with a friend for a week', 'You and one friend choose your seats for five classes.', 35],
-    ['medium', '📅', 'One extra day on an assignment', 'Hand one assignment in a day later, no questions asked.', 35],
-    ['medium', '🎟️', 'Homework pass', 'Skip one piece of homework.', 40],
-    ['medium', '👑', "Teacher's chair for a period", 'The comfy chair is yours for one class.', 45],
-    ['high', '🍕', 'Lunch with the teacher', 'Bring your lunch and one friend.', 80],
-    ['high', '🎲', 'Class game period', 'The whole class plays games for one period.', 90],
-    ['high', '🎬', 'Movie day', 'The whole class watches a film. You help choose it.', 100],
-    ['high', '🧁', 'Class snack day', 'The whole class brings a snack to share.', 110]
+    ['low', '', '5-minute break', 'Step away from your work for five minutes.', 10],
+    ['low', '', 'Pick your seat for a day', 'Sit anywhere you like for one class.', 10],
+    ['low', '', 'Music while you work', 'Headphones on for one work period.', 12],
+    ['low', '', 'Something from the prize box', 'A pencil, an eraser or a sticker.', 15],
+    ['medium', '', 'Sit with a friend for a week', 'You and one friend choose your seats for five classes.', 35],
+    ['medium', '', 'One extra day on an assignment', 'Hand one assignment in a day later, no questions asked.', 35],
+    ['medium', '', 'Homework pass', 'Skip one piece of homework.', 40],
+    ['medium', '', "Teacher's chair for a period", 'The comfy chair is yours for one class.', 45],
+    ['high', '', 'Lunch with the teacher', 'Bring your lunch and one friend.', 80],
+    ['high', '', 'Class game period', 'The whole class plays games for one period.', 90],
+    ['high', '', 'Movie day', 'The whole class watches a film. You help choose it.', 100],
+    ['high', '', 'Class snack day', 'The whole class brings a snack to share.', 110]
   ];
   const SHOP_COLOURS = ['#1b2f5e', '#1f6b45', '#7a1f3d', '#b45309', '#6b3fa0', '#0f766e', '#be185d', '#374151'];
   const LOCKER_COLOURS = [['navy', '#1b2f5e'], ['forest', '#1f6b45'], ['burgundy', '#7a1f3d'], ['teal', '#0f766e'], ['plum', '#6b3fa0'], ['rust', '#b45309'], ['rose', '#be185d'], ['slate', '#475569']];
@@ -81,7 +81,7 @@
   /** What a pile of n coins looks like. The only place the coin picture is chosen. */
   Coins.icon = function (n) {
     if (Coins.art) return '<img class="coin-art" src="' + esc(Coins.art) + '" alt="">';
-    n = +n || 0; return n >= 100 ? '👑' : n >= 50 ? '💎' : n >= 10 ? '💰' : '🪙';
+    return '<i class="coin-disc" aria-hidden="true"></i>';   // v67: one drawn gold disc for any number of coins (it was a different emoji for 1, 10, 50 and 100)
   };
   const chip = (n, extra) => '<span class="coin-chip' + (extra ? ' ' + extra : '') + '" title="' + plural(n, 'coin') + '"><span class="coin-ico" aria-hidden="true">' + Coins.icon(n) + '</span><span class="coin-n">' + n + '</span><span class="sr-only"> coins</span></span>';
   Coins.chip = chip;
@@ -187,9 +187,9 @@
   function cleanShop(s, key) {
     s = s && typeof s === 'object' ? s : {};
     return { owner: key, name: txt(s.name, 40) || (teacherName(key) + "'s shop"), tagline: txt(s.tagline, 120), colour: hex(s.colour, '#1b2f5e'), accent: hex(s.accent, '#e3a614'),
-      pattern: PATTERNS.some(p => p[0] === s.pattern) ? s.pattern : 'plain', banner: txt(s.banner, 24) || '🛍️', bannerImg: img(s.bannerImg, 160000),
+      pattern: PATTERNS.some(p => p[0] === s.pattern) ? s.pattern : 'plain', banner: txt(s.banner, 24) || '', bannerImg: img(s.bannerImg, 160000),
       sale: int(s.sale, 0, 90), saleLabel: txt(s.saleLabel, 40), open: s.open !== false, made: s.made === true,
-      items: (Array.isArray(s.items) ? s.items : []).slice(0, 40).map(i => ({ id: txt(i.id, 40) || uidOf(), name: txt(i.name, 60), desc: txt(i.desc, 160), icon: txt(i.icon, 16) || '🎁', img: img(i.img, 60000),
+      items: (Array.isArray(s.items) ? s.items : []).slice(0, 40).map(i => ({ id: txt(i.id, 40) || uidOf(), name: txt(i.name, 60), desc: txt(i.desc, 160), icon: txt(i.icon, 16) || '', img: img(i.img, 60000),
         cost: int(i.cost, 1, 9999), tier: TIERS.some(t => t[0] === i.tier) ? i.tier : 'low', off: int(i.off, 0, 90), on: i.on !== false })).filter(i => i.name) };
   }
   function shop(key) { return cleanShop(Coins.shops[key], key); }
@@ -241,7 +241,7 @@
   Coins.deskTiles = function (tile) {
     const st = me(); if (!active(st)) return '';
     const b = bagOf(st), items = lockerItems(st.id).filter(i => !i.used).length;
-    return tile('#/shop', Coins.icon(b.bag), 'Shop', plural(b.bag, 'coin') + ' in your bag') + tile('#/locker', '🚪', 'Locker', items ? plural(items, 'item') + ' · your awards' : 'your items and awards');
+    return tile('#/shop', Coins.icon(b.bag), 'Shop', plural(b.bag, 'coin') + ' in your bag') + tile('#/locker', '', 'Locker', items ? plural(items, 'item') + ' · your awards' : 'your items and awards');
   };
   /** Staff desk: the shop tile (chalkboard style, like the others). */
   Coins.staffTile = function (tile) {
@@ -346,7 +346,7 @@
     recalc(true);
     const keys = [...new Set(coinSections(st.id).map(shopKeyOf))], b = bagOf(st);
     if (keys.length === 1) return pageShop(keys[0], st);
-    app().innerHTML = crumb('Shops') + '<div class="page-head"><div><h1>🛍️ Shops</h1><p class="muted">Spend your coins in a teacher\'s shop. Your teacher hands the item over.</p></div><div class="btn-row">' + chip(b.bag, 'big') + '<a class="btn secondary sm" href="#/locker">🚪 My locker</a></div></div>' +
+    app().innerHTML = crumb('Shops') + '<div class="page-head"><div><h1>Shops</h1><p class="muted">Spend your coins in a teacher\'s shop. Your teacher hands the item over.</p></div><div class="btn-row">' + chip(b.bag, 'big') + '<a class="btn secondary sm" href="#/locker">My locker</a></div></div>' +
       (keys.length ? '<div class="shop-doors">' + keys.map(k => { const s = shop(k); return '<a class="card shop-door" href="#/shop/' + encodeURIComponent(k) + '" style="--shop:' + esc(s.colour) + ';--shop-accent:' + esc(s.accent) + '"><span class="shop-door-banner">' + esc(s.banner) + '</span><h2>' + esc(s.name) + '</h2><span class="muted small">' + esc(teacherName(k)) + ' · ' + plural(s.items.filter(i => i.on).length, 'item') + '</span></a>'; }).join('') + '</div>'
         : '<div class="empty">Coins are paused in your classes right now. Your bag and your locker are safe.</div>');
   }
@@ -368,7 +368,7 @@
     recalc(true);
     const s = shop(key), b = bagOf(st), pend = pendingFor(st, key), items = s.items.filter(i => i.on);
     app().innerHTML = crumb('Shop') + bannerHtml(s, key) +
-      '<div class="shop-bar"><div class="shop-bag"><span class="muted small">Your coin bag</span>' + chip(b.bag, 'big') + (b.held ? '<span class="muted small">' + b.held + ' held for items you have asked for · ' + b.free + ' free to spend</span>' : '') + '</div><div class="btn-row"><a class="btn secondary sm" href="#/locker">🚪 My locker</a></div></div>' +
+      '<div class="shop-bar"><div class="shop-bag"><span class="muted small">Your coin bag</span>' + chip(b.bag, 'big') + (b.held ? '<span class="muted small">' + b.held + ' held for items you have asked for · ' + b.free + ' free to spend</span>' : '') + '</div><div class="btn-row"><a class="btn secondary sm" href="#/locker">My locker</a></div></div>' +
       (pend.length ? '<div class="card shop-pending" role="status"><strong>Waiting for ' + esc(teacherName(key)) + ':</strong> ' + pend.map(r => '<span class="tag">' + esc(r.icon) + ' ' + esc(r.name) + ' · ' + r.cost + ' <button type="button" class="link-btn" data-shop-cancel="' + esc(r.id) + '" aria-label="Cancel my request for ' + esc(r.name) + '">cancel</button></span>').join(' ') + '</div>' : '') +
       (!s.open ? '<div class="empty">This shop is closed for now.</div>' : !items.length ? '<div class="empty">This shop has nothing on its shelves yet.</div>' :
         TIERS.map(t => { const list = items.filter(i => i.tier === t[0]); return list.length ? '<h2 class="shop-tier">' + t[1] + '</h2><div class="shop-grid">' + list.map(i => itemCard(s, i, b.free, 'student')).join('') + '</div>' : ''; }).join(''));
@@ -405,16 +405,16 @@
     mine.forEach(c => { try { const list = Badges.listForCourse(c); total += list.length; list.filter(a => a.earnedAt).forEach(a => earned.push(Object.assign({ course: c }, a))); } catch (e) {} });
     earned.sort((x, y) => String(y.earnedAt).localeCompare(String(x.earnedAt)));
     const tier = t => earned.filter(a => a.tier === t);
-    const shelfAwards = (list, empty) => list.length ? '<div class="locker-awards">' + list.slice(0, 24).map(a => '<span class="locker-award tier-' + esc(a.tier) + '" title="' + esc(a.name + ' · ' + a.course.title + ' · ' + when(a.earnedAt)) + '"><span class="la-ico" aria-hidden="true">' + esc(a.icon) + '</span><span class="la-name">' + esc(a.name) + '</span></span>').join('') + (list.length > 24 ? '<a class="locker-more" href="#/case">+' + (list.length - 24) + ' more</a>' : '') + '</div>' : '<p class="locker-empty">' + empty + '</p>';
+    const shelfAwards = (list, empty) => list.length ? '<div class="locker-awards">' + list.slice(0, 24).map(a => '<span class="locker-award tier-' + esc(a.tier) + '" title="' + esc(a.name + ' · ' + a.course.title + ' · ' + when(a.earnedAt)) + '"><span class="la-ico" aria-hidden="true">' + LH.awardMark(a.tier) + '</span><span class="la-name">' + esc(a.name) + '</span></span>').join('') + (list.length > 24 ? '<a class="locker-more" href="#/case">+' + (list.length - 24) + ' more</a>' : '') + '</div>' : '<p class="locker-empty">' + empty + '</p>';
     const next = (() => { for (const c of mine) { try { const a = Badges.listForCourse(c).find(x => !x.earnedAt); if (a) return a; } catch (e) {} } return null; })();
-    app().innerHTML = crumb('Locker') + '<div class="page-head"><div><h1>🚪 ' + esc(st.name) + '\'s locker</h1><p class="muted">Your coin bag, the items you have redeemed, and every award you have earned.</p></div><div class="btn-row"><a class="btn secondary sm" href="#/shop">🛍️ Shop</a><a class="btn ghost sm" href="#/case">🏆 Display Case</a></div></div>' +
+    app().innerHTML = crumb('Locker') + '<div class="page-head"><div><h1>' + esc(st.name) + '\'s locker</h1><p class="muted">Your coin bag, the items you have redeemed, and every award you have earned.</p></div><div class="btn-row"><a class="btn secondary sm" href="#/shop">Shop</a><a class="btn ghost sm" href="#/case">Display Case</a></div></div>' +
       '<div class="locker" style="--locker:' + esc(col[1]) + '">' +
-        '<div class="locker-door" aria-hidden="true"><span class="locker-vents"><i></i><i></i><i></i><i></i></span><span class="locker-plate">' + esc(st.avatar || '🎒') + '</span><span class="locker-handle"></span><span class="locker-num">' + esc(String(st.number || '').slice(-3) || '101') + '</span></div>' +
+        '<div class="locker-door" aria-hidden="true"><span class="locker-vents"><i></i><i></i><i></i><i></i></span><span class="locker-plate">' + esc(LH.initial(st)) + '</span><span class="locker-handle"></span><span class="locker-num">' + esc(String(st.number || '').slice(-3) || '101') + '</span></div>' +
         '<div class="locker-inside">' +
           '<section class="locker-shelf"><h2>Coin bag</h2><div class="locker-bag">' + chip(b.bag, 'huge') + '<div class="small">Earned <strong>' + b.earned + '</strong>' + (b.given ? ' · given <strong>' + b.given + '</strong>' : '') + ' · spent <strong>' + b.spent + '</strong>' + (b.held ? ' · <strong>' + b.held + '</strong> held' : '') + '</div></div>' +
-            (pend.length ? '<p class="small">⏳ Waiting for your teacher: ' + pend.map(r => esc(r.icon) + ' ' + esc(r.name)).join(', ') + '</p>' : '') +
+            (pend.length ? '<p class="small">Waiting for your teacher: ' + pend.map(r => esc(r.icon) + ' ' + esc(r.name)).join(', ') + '</p>' : '') +
             (declined.length ? '<p class="small muted">Not this time: ' + declined.map(e => esc(e.icon) + ' ' + esc(e.item) + (e.note ? ' (' + esc(e.note) + ')' : '')).join(', ') + '</p>' : '') + '</section>' +
-          '<section class="locker-shelf"><h2>My items <span class="tag">' + items.filter(i => !i.used).length + ' to use</span></h2>' + (items.length ? '<div class="locker-items">' + items.map(i => '<div class="locker-item' + (i.used ? ' used' : '') + '"><span class="li-ico" aria-hidden="true">' + esc(i.icon || '🎁') + '</span><span class="li-name">' + esc(i.item) + '</span><span class="li-meta">' + (i.used ? 'used' : 'from ' + esc(i.byName || teacherName(i.shop))) + ' · ' + esc(when(i.at)) + '</span></div>').join('') + '</div>' : '<p class="locker-empty">Nothing here yet. Items you redeem in a shop are kept on this shelf.</p>') + '</section>' +
+          '<section class="locker-shelf"><h2>My items <span class="tag">' + items.filter(i => !i.used).length + ' to use</span></h2>' + (items.length ? '<div class="locker-items">' + items.map(i => '<div class="locker-item' + (i.used ? ' used' : '') + '"><span class="li-ico" aria-hidden="true">' + esc(i.icon || '') + '</span><span class="li-name">' + esc(i.item) + '</span><span class="li-meta">' + (i.used ? 'used' : 'from ' + esc(i.byName || teacherName(i.shop))) + ' · ' + esc(when(i.at)) + '</span></div>').join('') + '</div>' : '<p class="locker-empty">Nothing here yet. Items you redeem in a shop are kept on this shelf.</p>') + '</section>' +
           '<section class="locker-shelf trophy"><h2>Trophies <span class="tag">' + tier('trophy').length + '</span></h2>' + shelfAwards(tier('trophy'), 'Course trophies stand here. Earn every unit medal in a course for your first.') + '</section>' +
           '<section class="locker-shelf"><h2>Medals <span class="tag">' + tier('medal').length + '</span></h2>' + shelfAwards(tier('medal'), 'Medals hang here. Finish a unit to earn one.') + '</section>' +
           '<section class="locker-shelf"><h2>Badges <span class="tag">' + tier('badge').length + '</span></h2>' + shelfAwards(tier('badge'), 'Badges are pinned here. Read a lesson or pass a quiz to earn one.') + '</section>' +
@@ -431,22 +431,22 @@
     const roster = (sec.students || []).map(id => Students.byId(id)).filter(Boolean).sort((a, b) => String(a.name).localeCompare(String(b.name)));
     const draw = () => {
       const s = shop(key);
-      app().innerHTML = crumb('Sections', '#/sections') + '<div class="page-head"><div><h1>' + Coins.icon(10) + ' Redeem coins</h1><p class="muted">' + esc(sec.name) + ' · every student\'s bag, what they have asked for, and what they hold. ' + (sec.coins === true ? '' : '<strong>Coins are off for this section.</strong>') + '</p></div><div class="btn-row"><a class="btn secondary sm" href="#/shop">🛍️ My shop</a></div></div>' +
+      app().innerHTML = crumb('Sections', '#/sections') + '<div class="page-head"><div><h1>' + Coins.icon(10) + ' Redeem coins</h1><p class="muted">' + esc(sec.name) + ' · every student\'s bag, what they have asked for, and what they hold. ' + (sec.coins === true ? '' : '<strong>Coins are off for this section.</strong>') + '</p></div><div class="btn-row"><a class="btn secondary sm" href="#/shop">My shop</a></div></div>' +
         (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') +
         (roster.length ? '<div class="coin-roster">' + roster.map(st => { const b = bagOf(st), pend = pendingFor(st, key), items = lockerItems(st.id).filter(i => !i.used && i.shop === key);
-          return '<div class="card coin-row"><div class="coin-who"><span class="who-avatar" style="background:' + esc(hex(st.colour, '#1f5f8b')) + '">' + esc(st.avatar) + '</span><span><strong>' + esc(st.name) + '</strong>' + (st.number ? ' <span class="muted small">#' + esc(st.number) + '</span>' : '') + '<br><span class="muted small">earned ' + b.earned + (b.given ? ' · given ' + b.given : '') + ' · spent ' + b.spent + '</span></span></div>' +
+          return '<div class="card coin-row"><div class="coin-who"><span class="who-avatar" style="background:' + esc(hex(st.colour, '#1f5f8b')) + '">' + esc(LH.initial(st)) + '</span><span><strong>' + esc(st.name) + '</strong>' + (st.number ? ' <span class="muted small">#' + esc(st.number) + '</span>' : '') + '<br><span class="muted small">earned ' + b.earned + (b.given ? ' · given ' + b.given : '') + ' · spent ' + b.spent + '</span></span></div>' +
             '<div class="coin-bag">' + chip(b.bag, 'big') + '</div>' +
             '<div class="coin-acts"><button type="button" class="btn sm" data-redeem="' + esc(st.id) + '">Redeem coins</button><button type="button" class="btn ghost sm" data-give="' + esc(st.id) + '">Give coins</button></div>' +
             (pend.length ? '<div class="coin-pend">' + pend.map(r => '<div class="coin-req"><span>' + esc(r.icon) + ' <strong>' + esc(r.name) + '</strong> · ' + r.cost + ' coins' + (b.bag < r.cost ? ' <span class="tag">not enough</span>' : '') + '</span><span class="btn-row"><button type="button" class="btn sm" data-approve="' + esc(st.id) + '|' + esc(r.id) + '"' + (b.bag < r.cost ? ' disabled' : '') + '>Hand it over</button><button type="button" class="btn ghost sm" data-decline="' + esc(st.id) + '|' + esc(r.id) + '">Not this time</button></span></div>').join('') + '</div>' : '') +
             (items.length ? '<div class="coin-held"><span class="muted small">Holding:</span> ' + items.map(i => '<span class="tag">' + esc(i.icon) + ' ' + esc(i.item) + ' <button type="button" class="link-btn" data-used="' + esc(st.id) + '|' + esc(i.id) + '">mark used</button> · <button type="button" class="link-btn" data-refund="' + esc(st.id) + '|' + esc(i.id) + '">refund</button></span>').join(' ') + '</div>' : '') + '</div>'; }).join('') + '</div>'
           : '<div class="empty">No students in this section yet.</div>');
       const q = sel => [...app().querySelectorAll(sel)], find = v => { const [sid, id] = v.split('|'); return { st: Students.byId(sid), id }; };
-      const run = async fn => { try { ui.msg = (await fn()) || ''; } catch (e) { ui.msg = '⚠️ ' + (e && e.message); } draw(); };
+      const run = async fn => { try { ui.msg = (await fn()) || ''; } catch (e) { ui.msg = '' + (e && e.message); } draw(); };
       q('[data-approve]').forEach(b => b.addEventListener('click', () => { const f = find(b.dataset.approve), r = f.st && pendingFor(f.st, key).find(x => x.id === f.id); if (r) run(async () => { await settle(f.st, r, true); return f.st.name + ' redeemed ' + r.name + ' for ' + plural(r.cost, 'coin') + '.'; }); }));
       q('[data-decline]').forEach(b => b.addEventListener('click', () => { const f = find(b.dataset.decline), r = f.st && pendingFor(f.st, key).find(x => x.id === f.id); if (!r) return; const note = prompt('A short reason for ' + f.st.name + ' (optional):', ''); if (note === null) return; run(async () => { await settle(f.st, r, false, note); return 'Request turned down. No coins were taken.'; }); }));
       q('[data-used]').forEach(b => b.addEventListener('click', () => { const f = find(b.dataset.used); if (f.st) run(async () => { await addEntry(f.st.id, { t: 'use', n: 0, ref: f.id, shop: key }); return 'Marked as used.'; }); }));
       q('[data-refund]').forEach(b => b.addEventListener('click', () => { const f = find(b.dataset.refund), it = f.st && lockerItems(f.st.id).find(i => i.id === f.id); if (!it || !confirm('Take ' + it.item + ' back and return ' + plural(it.n, 'coin') + ' to ' + f.st.name + '?')) return; run(async () => { await addEntry(f.st.id, { t: 'refund', n: it.n, item: it.item, icon: it.icon, ref: it.id, shop: key }); return plural(it.n, 'coin') + ' returned to ' + f.st.name + '.'; }); }));
-      q('[data-give]').forEach(b => b.addEventListener('click', () => { const st = Students.byId(b.dataset.give); if (!st) return; const n = prompt('How many coins to give ' + st.name + '? (1 to 50)', '5'); if (n === null) return; const v = Math.round(+n); if (!(v >= 1 && v <= 50)) return alert('Type a whole number from 1 to 50.'); const note = prompt('What for? (shown in the change log)', '') || ''; run(async () => { await addEntry(st.id, { t: 'bonus', n: v, item: 'Gift from ' + (me().name || 'your teacher'), icon: '🎁', shop: key, note }); return plural(v, 'coin') + ' given to ' + st.name + '.'; }); }));
+      q('[data-give]').forEach(b => b.addEventListener('click', () => { const st = Students.byId(b.dataset.give); if (!st) return; const n = prompt('How many coins to give ' + st.name + '? (1 to 50)', '5'); if (n === null) return; const v = Math.round(+n); if (!(v >= 1 && v <= 50)) return alert('Type a whole number from 1 to 50.'); const note = prompt('What for? (shown in the change log)', '') || ''; run(async () => { await addEntry(st.id, { t: 'bonus', n: v, item: 'Gift from ' + (me().name || 'your teacher'), icon: '', shop: key, note }); return plural(v, 'coin') + ' given to ' + st.name + '.'; }); }));
       q('[data-redeem]').forEach(b => b.addEventListener('click', () => { const st = Students.byId(b.dataset.redeem); if (st) redeemDialog(st, key, s, draw); }));
     };
     draw();
@@ -466,7 +466,7 @@
     d.querySelectorAll('[data-rd]').forEach(btn => btn.addEventListener('click', async () => { const it = items.find(i => i.id === btn.dataset.rd), p = priceOf(s, it);
       if (!confirm('Hand ' + it.name + ' to ' + st.name + ' for ' + plural(p.price, 'coin') + '?')) return;
       try { await loadLedger(st.id); if (bagOf(st).bag < p.price) throw new Error('Not enough coins.'); await addEntry(st.id, { t: 'spend', n: p.price, item: it.name, icon: it.icon, shop: key }); ui.msg = st.name + ' redeemed ' + it.name + ' for ' + plural(p.price, 'coin') + '.'; close(); after(); }
-      catch (e) { d.querySelector('[data-rd-msg]').textContent = '⚠️ ' + (e && e.message); } }));
+      catch (e) { d.querySelector('[data-rd-msg]').textContent = '' + (e && e.message); } }));
     d.querySelector('[data-rd-no]').focus();
   }
 
@@ -485,12 +485,12 @@
     const d = ui.draft, mine = sections().filter(s => !s.archived && shopKeyOf(s) === key);
     const sw = (colours, cur, attr) => colours.map(c => '<button type="button" class="swatch' + (c.toLowerCase() === String(cur).toLowerCase() ? ' on' : '') + '" style="background:' + c + '" ' + attr + '="' + c + '" aria-label="' + c + '" aria-pressed="' + (c.toLowerCase() === String(cur).toLowerCase()) + '"></button>').join('');
     const preview = cleanShop(d, key);
-    app().innerHTML = crumb('My shop') + '<div class="page-head"><div><h1>🛍️ My shop</h1><p class="muted">What your students can spend their coins on. Change anything, then save. Students see it at once.</p></div><div class="btn-row">' + (ui.dirty ? '<span class="tag accent">Not saved</span>' : '') + '<button type="button" class="btn" data-se-save>Save my shop</button></div></div>' +
+    app().innerHTML = crumb('My shop') + '<div class="page-head"><div><h1>My shop</h1><p class="muted">What your students can spend their coins on. Change anything, then save. Students see it at once.</p></div><div class="btn-row">' + (ui.dirty ? '<span class="tag accent">Not saved</span>' : '') + '<button type="button" class="btn" data-se-save>Save my shop</button></div></div>' +
       (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') +
       '<div class="card coin-secs"><strong>Coins in my sections</strong> ' + (mine.length ? mine.map(s => '<span class="coin-sec">' + esc(s.name) + ' ' + Coins.sectionButtons(s) + '</span>').join('') : '<span class="muted small">You have no sections yet.</span>') + '</div>' +
       '<details class="card sgroup" open><summary><span class="sg-title">Look and feel</span><span class="sg-help muted small">name · colours · banner · sale</span></summary><div class="sg-body">' +
         '<div class="shop-edit-grid"><label>Shop name <input class="text-input" data-se="name" maxlength="40" value="' + esc(d.name) + '"></label><label>A line under the name <input class="text-input" data-se="tagline" maxlength="120" value="' + esc(d.tagline) + '" placeholder="e.g. Work hard, spend wisely"></label>' +
-        '<label>Banner picture (emoji) <input class="text-input" data-se="banner" maxlength="24" value="' + esc(d.banner) + '"></label><label>Banner photo <span class="btn-row"><input type="file" accept="image/*" data-se-banner class="file-input">' + (d.bannerImg ? '<button type="button" class="btn ghost sm" data-se-nobanner>Remove</button>' : '') + '</span></label></div>' +
+        '<label>Banner word or symbol (optional) <input class="text-input" data-se="banner" maxlength="24" value="' + esc(d.banner) + '"></label><label>Banner photo <span class="btn-row"><input type="file" accept="image/*" data-se-banner class="file-input">' + (d.bannerImg ? '<button type="button" class="btn ghost sm" data-se-nobanner>Remove</button>' : '') + '</span></label></div>' +
         '<div class="setting-row"><div><label>Shop colour</label><div class="help">The banner and the edges of your shelves.</div></div><span class="btn-row">' + sw(SHOP_COLOURS, d.colour, 'data-se-colour') + '</span></div>' +
         '<div class="setting-row"><div><label>Highlight colour</label><div class="help">Sale tags and prices.</div></div><span class="btn-row">' + sw(['#e3a614', '#f97316', '#22c55e', '#38bdf8', '#f472b6', '#ffffff'], d.accent, 'data-se-accent') + '</span></div>' +
         '<div class="setting-row"><div><label>Banner pattern</label></div><div class="seg">' + PATTERNS.map(p => '<button type="button" data-se-pattern="' + p[0] + '" class="' + (d.pattern === p[0] ? 'on' : '') + '">' + p[1] + '</button>').join('') + '</div></div>' +
@@ -499,11 +499,11 @@
       '<details class="card sgroup" open><summary><span class="sg-title">Items</span><span class="sg-help muted small">' + plural(d.items.length, 'item') + ' · suggested prices: small 8–15 · bigger 30–50 · big 80–120</span></summary><div class="sg-body">' +
         '<p class="muted small">A student who does everything in a six-lesson unit earns about 60 to 90 coins. Price a big reward at 80 or more and it takes about a whole unit.</p>' +
         d.items.map((it, i) => '<div class="shop-edit-item' + (it.on ? '' : ' off') + '"><div class="sei-pic">' + (it.img ? '<img src="' + it.img + '" alt="">' : '<span>' + esc(it.icon) + '</span>') + '</div>' +
-          '<label>Name <input class="text-input" data-si="' + i + '" data-f="name" maxlength="60" value="' + esc(it.name) + '"></label><label class="sei-small">Emoji <input class="text-input" data-si="' + i + '" data-f="icon" maxlength="16" value="' + esc(it.icon) + '"></label>' +
+          '<label>Name <input class="text-input" data-si="' + i + '" data-f="name" maxlength="60" value="' + esc(it.name) + '"></label><label class="sei-small">Symbol <input class="text-input" data-si="' + i + '" data-f="icon" maxlength="16" value="' + esc(it.icon) + '"></label>' +
           '<label class="sei-small">Cost <input class="text-input" type="number" min="1" max="9999" data-si="' + i + '" data-f="cost" value="' + it.cost + '"></label><label class="sei-small">% off <input class="text-input" type="number" min="0" max="90" data-si="' + i + '" data-f="off" value="' + it.off + '"></label>' +
           '<label class="sei-small">Shelf <select class="text-input" data-si="' + i + '" data-f="tier">' + TIERS.map(t => '<option value="' + t[0] + '"' + (it.tier === t[0] ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select></label>' +
           '<label class="sei-wide">What the student gets <input class="text-input" data-si="' + i + '" data-f="desc" maxlength="160" value="' + esc(it.desc) + '"></label>' +
-          '<div class="btn-row sei-acts"><label class="btn ghost sm file-btn">🖼️ Picture<input type="file" accept="image/*" data-si-img="' + i + '" class="sr-only"></label>' + (it.img ? '<button type="button" class="btn ghost sm" data-si-noimg="' + i + '">Remove picture</button>' : '') + '<button type="button" class="btn ghost sm" data-si-on="' + i + '">' + (it.on ? 'Hide from students' : 'Show to students') + '</button><button type="button" class="btn ghost sm" data-si-del="' + i + '">Delete</button></div></div>').join('') +
+          '<div class="btn-row sei-acts"><label class="btn ghost sm file-btn">Picture<input type="file" accept="image/*" data-si-img="' + i + '" class="sr-only"></label>' + (it.img ? '<button type="button" class="btn ghost sm" data-si-noimg="' + i + '">Remove picture</button>' : '') + '<button type="button" class="btn ghost sm" data-si-on="' + i + '">' + (it.on ? 'Hide from students' : 'Show to students') + '</button><button type="button" class="btn ghost sm" data-si-del="' + i + '">Delete</button></div></div>').join('') +
         '<div class="btn-row" style="margin-top:0.75rem"><button type="button" class="btn secondary sm" data-se-add>＋ Add an item</button><button type="button" class="btn ghost sm" data-se-starter>Add the suggested items</button></div></div></details>' +
       '<details class="card sgroup"' + (ui.preview ? ' open' : '') + ' data-se-preview><summary><span class="sg-title">How students see it</span><span class="sg-help muted small">a preview of what you have typed</span></summary><div class="sg-body">' + bannerHtml(preview, key) +
         TIERS.map(t => { const list = preview.items.filter(i => i.on && i.tier === t[0]); return list.length ? '<h2 class="shop-tier">' + t[1] + '</h2><div class="shop-grid">' + list.map(i => itemCard(preview, i, null, 'preview')).join('') + '</div>' : ''; }).join('') + '</div></details>';
@@ -514,13 +514,13 @@
     const on = (sel, fn) => root.querySelectorAll(sel).forEach(el => el.addEventListener('click', () => { fn(el); touch(); again(); }));
     on('[data-se-colour]', el => { d.colour = el.dataset.seColour; }); on('[data-se-accent]', el => { d.accent = el.dataset.seAccent; }); on('[data-se-pattern]', el => { d.pattern = el.dataset.sePattern; });
     on('[data-se-open]', () => { d.open = !d.open; }); on('[data-se-nobanner]', () => { d.bannerImg = ''; });
-    on('[data-se-add]', () => { d.items.push({ id: uidOf(), name: 'New item', desc: '', icon: '🎁', img: '', cost: 10, tier: 'low', off: 0, on: true }); });
+    on('[data-se-add]', () => { d.items.push({ id: uidOf(), name: 'New item', desc: '', icon: '', img: '', cost: 10, tier: 'low', off: 0, on: true }); });
     on('[data-se-starter]', () => { const have = new Set(d.items.map(i => i.name)); starterItems().forEach(i => { if (!have.has(i.name)) d.items.push(i); }); });
     on('[data-si-on]', el => { const it = d.items[+el.dataset.siOn]; if (it) it.on = !it.on; }); on('[data-si-noimg]', el => { const it = d.items[+el.dataset.siNoimg]; if (it) it.img = ''; });
     root.querySelectorAll('[data-si-del]').forEach(el => el.addEventListener('click', () => { const it = d.items[+el.dataset.siDel]; if (it && confirm('Delete ' + it.name + ' from your shop? Items students already hold stay in their lockers.')) { d.items.splice(+el.dataset.siDel, 1); touch(); again(); } }));
-    root.querySelectorAll('[data-si-img]').forEach(el => el.addEventListener('change', async () => { const it = d.items[+el.dataset.siImg]; if (!it || !el.files[0]) return; try { it.img = await shrink(el.files[0], 240, 240, 0.8); touch(); } catch (e) { ui.msg = '⚠️ ' + e.message; } again(); }));
-    const bf = root.querySelector('[data-se-banner]'); if (bf) bf.addEventListener('change', async () => { if (!bf.files[0]) return; try { d.bannerImg = await shrink(bf.files[0], 1000, 300, 0.75); touch(); } catch (e) { ui.msg = '⚠️ ' + e.message; } again(); });
-    const sv = root.querySelector('[data-se-save]'); if (sv) sv.addEventListener('click', async () => { sv.disabled = true; try { const s = await saveShop(key, d); ui.draft = JSON.parse(JSON.stringify(s)); ui.dirty = false; ui.msg = 'Saved. Your students see the shop as it is now.'; } catch (e) { ui.msg = '⚠️ ' + (e && e.message); } again(); });
+    root.querySelectorAll('[data-si-img]').forEach(el => el.addEventListener('change', async () => { const it = d.items[+el.dataset.siImg]; if (!it || !el.files[0]) return; try { it.img = await shrink(el.files[0], 240, 240, 0.8); touch(); } catch (e) { ui.msg = '' + e.message; } again(); }));
+    const bf = root.querySelector('[data-se-banner]'); if (bf) bf.addEventListener('change', async () => { if (!bf.files[0]) return; try { d.bannerImg = await shrink(bf.files[0], 1000, 300, 0.75); touch(); } catch (e) { ui.msg = '' + e.message; } again(); });
+    const sv = root.querySelector('[data-se-save]'); if (sv) sv.addEventListener('click', async () => { sv.disabled = true; try { const s = await saveShop(key, d); ui.draft = JSON.parse(JSON.stringify(s)); ui.dirty = false; ui.msg = 'Saved. Your students see the shop as it is now.'; } catch (e) { ui.msg = '' + (e && e.message); } again(); });
   }
 
   /* ====================== start-up ====================== */

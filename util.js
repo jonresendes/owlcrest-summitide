@@ -83,9 +83,9 @@
   let speaking = null, hl = null;   // the active button; the highlight state { el, html, spans }
   function clearHighlight() { if (hl) { try { hl.el.innerHTML = hl.html; } catch (e) {} hl = null; } }
   function setSpeaking(btn) {
-    document.querySelectorAll('.speak-btn.on').forEach(b => { b.classList.remove('on'); b.textContent = '🔊'; b.title = 'Read aloud'; b.setAttribute('aria-label', 'Read aloud'); });
+    document.querySelectorAll('.speak-btn.on').forEach(b => { b.classList.remove('on'); b.textContent = 'Listen'; b.title = 'Read aloud'; b.setAttribute('aria-label', 'Read aloud'); });
     speaking = btn || null;
-    if (btn) { btn.classList.add('on'); btn.textContent = '⏹️'; btn.title = 'Stop reading'; btn.setAttribute('aria-label', 'Stop reading'); }
+    if (btn) { btn.classList.add('on'); btn.textContent = 'Stop'; btn.title = 'Stop reading'; btn.setAttribute('aria-label', 'Stop reading'); }
   }
   function stopSpeaking() { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); clearHighlight(); setSpeaking(null); }
   /** Wrap every word of el in a span; returns the text to speak and the spans with their character offsets. */
@@ -130,9 +130,13 @@
   function stopDictationSafe() { if (window.Media && Media.stopDictation) Media.stopDictation(); }
   /** Button HTML. `target` is a CSS selector for the element whose words should light up while read
       (resolved relative to the button first, then the page). */
+
+
+
+
   function speakBtn(text, target) {
     if (!Settings.get('readAloud')) return '';
-    return '<button class="speak-btn" type="button" title="Read aloud" aria-label="Read aloud" data-speak="' + esc(text) + '"' + (target ? ' data-target="' + esc(target) + '"' : '') + '>🔊</button>';
+    return '<button class="speak-btn" type="button" title="Read aloud" aria-label="Read aloud" data-speak="' + esc(text) + '"' + (target ? ' data-target="' + esc(target) + '"' : '') + '>Listen</button>';
   }
   // delegate all speaker buttons
   document.addEventListener('click', e => {
@@ -335,7 +339,7 @@
     return qs.map((q, i) => ({ q, i, d: difficulty(q) })).sort((a, b) => a.d - b.d || a.i - b.i).map(x => x.q);
   }
 
-  /* ---------- lessons ↔ questions ----------
+  /* ---------- lessons ↔︎ questions ----------
      A lesson's quiz uses the unit questions whose `cat` belongs to it: either the
      lesson lists `cats: ['Nouns', 'Verbs']`, or the category starts with "L<n> "
      where n is the lesson's position (the convention used by OLC4O and HRF3O). */
@@ -455,4 +459,27 @@
                 questionsFor, resolveQuestion, termQuestions, choicePool, normalize, findCourse, findUnit, markSeen,
                 focusFor, unitsFor, lessonsFor, catsOf, allTermKeys, accom, assessmentCount, difficulty, assessmentOrder,
                 lessonCats, lessonCat, lessonQuestions, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };
+  /* v67 · NO EMOJI. The app draws no emoji of its own. Three helpers replace what they did:
+       LH.plain(text)     takes emoji out of text that came from outside the build (a course loaded from a file, an older saved customisation)
+       LH.initial(person) the letter shown in a person's coloured circle, where an emoji avatar used to be
+       LH.awardMark(tier) a drawn badge, medal or trophy mark (CSS), where an award's emoji used to be
+     Plain symbols (✓ ✕ → ▶︎ ★ and the like) are not emoji and are left alone. */
+  (function (LH) {
+    var KEEP = /^[\u2190-\u21FF\u2300-\u23FF\u25A0-\u25FF\u2600-\u27BF\u2900-\u297F\u2B00-\u2BFF]$/;      // symbol blocks: an emoji only when it asks for colour (U+FE0F) or is one of the few that are colour by default
+    var COLOUR = '\u231A\u231B\u23E9\u23EA\u23EB\u23EC\u23F0\u23F3\u25FD\u25FE\u2614\u2615\u2648\u2649\u264A\u264B\u264C\u264D\u264E\u264F\u2650\u2651\u2652\u2653\u267F\u2693\u26A1\u26AA\u26AB\u26BD\u26BE\u26C4\u26C5\u26CE\u26D4\u26EA\u26F2\u26F3\u26F5\u26FA\u26FD\u2705\u270A\u270B\u2728\u274C\u274E\u2753\u2754\u2755\u2757\u2795\u2796\u2797\u27B0\u27BF\u2B1B\u2B1C\u2B50\u2B55';
+    var RE; try { RE = new RegExp('(?:[\\u{1F1E6}-\\u{1F1FF}]{2}|[#*0-9]\\uFE0F?\\u20E3|\\p{Extended_Pictographic}(?:\\uFE0F|[\\u{1F3FB}-\\u{1F3FF}])?(?:\\u200D\\p{Extended_Pictographic}(?:\\uFE0F|[\\u{1F3FB}-\\u{1F3FF}])?)*)', 'gu'); } catch (e) { RE = null; }
+    LH.plain = function (v) {
+      if (typeof v !== 'string' || !RE || !/[^\x00-\u2189]/.test(v)) return v;
+      return v.replace(RE, function (m) { var first = m.charAt(0); if (m.length === 1 && KEEP.test(first) && COLOUR.indexOf(first) < 0) return m; if (/^[\u00A9\u00AE\u2122]$/.test(m)) return m; return '\u0000'; })
+              .replace(/(^|\n)\u0000 ?/g, '$1').replace(/ ?\u0000/g, '');   // the emoji goes with the one space that set it off; nothing else moves
+    };
+    /** Every string inside a course (or any plain object), in place. */
+    LH.plainDeep = function (o, depth) {
+      if (!o || typeof o !== 'object' || (depth || 0) > 40) return o;
+      Object.keys(o).forEach(function (k) { var v = o[k]; if (typeof v === 'string') { if (k !== 'svg' && k !== 'html' && k !== 'src' && k !== 'url') o[k] = LH.plain(v); } else if (v && typeof v === 'object') LH.plainDeep(v, (depth || 0) + 1); });
+      return o;
+    };
+    LH.initial = function (p) { var n = String((p && p.name) || '').trim(), m = n.match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : '?'; };
+    LH.awardMark = function (tier) { return '<span class="award-mark tier-' + LH.esc(/^(badge|medal|trophy)$/.test(tier) ? tier : 'badge') + '" aria-hidden="true"></span>'; };
+  })(window.LH);
 })();

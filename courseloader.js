@@ -144,7 +144,8 @@
     if (!course || !course.id || !Array.isArray(course.units)) return;
     const list = window.LearnHub.courses = window.LearnHub.courses || [];
     course.source = 'cloud'; course.code = (meta && meta.code) || CF.codeOf(course); course.build = (meta && meta.build) || course.build || '';
-    if (!course.icon) course.icon = '📘'; if (!course.color) course.color = '#4c6ef5';
+    if (window.LH && LH.plainDeep) LH.plainDeep(course);   // v67: no emoji, in loaded courses too
+    if (!course.icon) course.icon = ''; if (!course.color) course.color = '#4c6ef5';
     const i = list.findIndex(c => c.id === course.id);
     if (i >= 0) list[i] = course; else list.push(course);
     CF.loaded[course.code || course.id] = course;

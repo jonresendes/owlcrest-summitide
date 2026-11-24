@@ -212,7 +212,7 @@
       src.childNodes.forEach(n => el.appendChild(n.cloneNode(true)));
       const live = src.querySelectorAll('input, textarea, select'); const copies = el.querySelectorAll('input, textarea, select');
       copies.forEach((c, i) => { const o = live[i]; let v = '';
-        if (o.tagName === 'SELECT') { const op = o.options[o.selectedIndex]; v = op ? op.textContent : ''; } else if (o.type === 'checkbox' || o.type === 'radio') v = o.checked ? '☑' : '☐'; else v = o.value;
+        if (o.tagName === 'SELECT') { const op = o.options[o.selectedIndex]; v = op ? op.textContent : ''; } else if (o.type === 'checkbox' || o.type === 'radio') v = o.checked ? '☑︎' : '☐'; else v = o.value;
         const s = document.createElement('span'); s.className = 'pt-val'; s.textContent = v === '' ? '–' : v; c.replaceWith(s); });
       el.querySelectorAll('button, .no-print, script, style').forEach(b => b.remove());
       el.querySelectorAll('a').forEach(a => { const s = document.createElement('span'); while (a.firstChild) s.appendChild(a.firstChild); a.replaceWith(s); });
@@ -348,7 +348,7 @@
   }
 
   /* ---------- the small bar above data tables (staff) ---------- */
-  const BAR = '<span class="muted small">This table:</span><button type="button" class="btn ghost sm" data-tt="print" title="Print just this table, every column">🖨️ Print</button><button type="button" class="btn ghost sm" data-tt="csv" title="A file for Excel, Google Sheets or Numbers">⬇️ CSV</button><button type="button" class="btn ghost sm" data-tt="docx" title="A document for Word, Google Docs or Pages">📄 Word</button>';
+  const BAR = '<span class="muted small">This table:</span><button type="button" class="btn ghost sm" data-tt="print" title="Print just this table, every column">Print</button><button type="button" class="btn ghost sm" data-tt="csv" title="A file for Excel, Google Sheets or Numbers">CSV</button><button type="button" class="btn ghost sm" data-tt="docx" title="A document for Word, Google Docs or Pages">Word</button>';
   function decorate() {
     const root = document.getElementById('app'); if (!root) return;
     if (!(window.Students && window.Students.isStaffSession)) return;

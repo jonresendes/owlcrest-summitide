@@ -51,7 +51,7 @@
     const grade = editable
       ? '<span class="grade-box"><input class="grade-in" type="number" min="0" step="0.5" value="' + (g && g.score !== undefined && g.score !== null ? g.score : '') + '" placeholder="–" ' + ref + ' title="Score out of ' + (g && g.max || DEFAULT_MAX) + ' · work done at Level ' + lv + '"><span class="grade-max">/' + (g && g.max || DEFAULT_MAX) + '</span></span>' + (lg ? '<span class="g-lvl" title="' + lg.raw + '% at Level ' + lg.level + '">→ ' + lg.grade + ' · L' + lg.level + '</span>' : '<span class="g-lvl">L' + lv + '</span>')
       : (lg ? '<span class="grade-show' + (lg.grade >= LEVEL_BANDS[3][0] ? ' ok' : '') + '" title="' + g.score + '/' + (g.max || DEFAULT_MAX) + ' at Level ' + lg.level + '">' + lg.grade + '</span><span class="g-lvl">' + g.score + '/' + (g.max || DEFAULT_MAX) + ' · L' + lg.level + '</span>' : (w && w.text ? '<span class="g-lvl">L' + lv + '</span>' : ''));
-    const note = editable ? '<button class="grade-note-btn' + (g && g.note ? ' has' : '') + '" ' + ref.replace('data-grade=', 'data-note=') + ' title="' + (g && g.note ? esc(g.note) : 'Add a comment') + '">💬</button>' : (g && g.note ? '<span class="grade-note" title="' + esc(g.note) + '">💬</span>' : '');
+    const note = editable ? '<button class="grade-note-btn' + (g && g.note ? ' has' : '') + '" ' + ref.replace('data-grade=', 'data-note=') + ' title="' + (g && g.note ? esc(g.note) : 'Add a comment') + '">' + (g && g.note ? 'note' : '+ note') + '</button>' : (g && g.note ? '<span class="grade-note" title="' + esc(g.note) + '">note</span>' : '');
     const said = (!w || !w.text ? 'not started' : w.done ? 'handed in' : 'draft') + (g && g.score !== undefined && g.score !== null ? ' · ' + g.score + '/' + (g.max || DEFAULT_MAX) + (lg ? ' → ' + lg.grade + ' (Level ' + lg.level + ')' : '') : '') + (g && g.note ? ' · comment: ' + g.note : '');
     return '<td class="d-cell a-cell' + (w && w.done ? ' handed' : '') + '" data-export="' + esc(said) + '">' + state + grade + note + '</td>';
   }
@@ -72,7 +72,7 @@
     lessons.forEach((l, i) => { const as = assignmentsFor(l); const hasQ = lessonQuestions(unit, l._idx).length > 0; const n = (hasQ ? 1 : 0) + as.length; if (!n) return;
       top.push('<th class="d-les" colspan="' + n + '" title="' + esc(l.title) + '">L' + (i + 1) + '</th>');
       if (hasQ) bottom.push('<th class="d-sub" title="Lesson quiz">' + mk('quiz/' + l._idx, 'quiz', 'Lesson ' + (i + 1) + ' quiz') + '</th>');
-      as.forEach((a, k) => bottom.push('<th class="d-sub" title="' + esc(a.title) + '">' + mk('work/' + l._idx + '/' + a._idx, '✍️' + (k + 1), a.title) + '</th>')); });
+      as.forEach((a, k) => bottom.push('<th class="d-sub" title="' + esc(a.title) + '">' + mk('work/' + l._idx + '/' + a._idx, 'A' + (k + 1), a.title) + '</th>')); });
     top.push('<th rowspan="2">' + mk('test', 'Unit test', 'Unit test') + '</th><th rowspan="2" title="Average of every levelled grade in the unit: quizzes, graded assignments and the unit test">Unit avg</th><th rowspan="2">Awards</th>');
     return '<tr>' + top.join('') + '</tr><tr>' + bottom.join('') + '</tr>';
   }
@@ -113,10 +113,10 @@
       students = Students.list.filter(s => ids.has(s.id));
       const cid = sessionStorage.getItem('learnhub.dashCourse'); course = window.LearnHub.courses.find(c => c.id === cid) || window.LearnHub.courses[0];
     }
-    const head = '<div class="page-head"><div><h1>📊 Grades</h1><p class="muted">' + (cur ? esc(cur.name) + (cur.term ? ' · ' + esc(cur.term) : '') + (cur.archived ? ' · 📦 archived' : '') : (Staff.isMaster ? 'All students' : 'All my students')) + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's') + '</p></div>' +
-      '<div class="btn-row"><select class="text-input" id="dashSection" style="max-width:260px"><option value="">' + (Staff.isMaster ? 'All students' : 'All my students') + '</option>' + sections.map(sec => '<option value="' + sec.id + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + (sec.archived ? '📦 ' : '') + esc(sec.name) + '</option>').join('') + '</select>' +
+    const head = '<div class="page-head"><div><h1>Grades</h1><p class="muted">' + (cur ? esc(cur.name) + (cur.term ? ' · ' + esc(cur.term) : '') + (cur.archived ? ' · archived' : '') : (Staff.isMaster ? 'All students' : 'All my students')) + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's') + '</p></div>' +
+      '<div class="btn-row"><select class="text-input" id="dashSection" style="max-width:260px"><option value="">' + (Staff.isMaster ? 'All students' : 'All my students') + '</option>' + sections.map(sec => '<option value="' + sec.id + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + (sec.archived ? '' : '') + esc(sec.name) + '</option>').join('') + '</select>' +
       (!cur ? '<select class="text-input" id="dashCourse" style="max-width:220px">' + window.LearnHub.courses.map(c => '<option value="' + c.id + '"' + (course && c.id === course.id ? ' selected' : '') + '>' + c.icon + ' ' + esc(c.title) + '</option>').join('') + '</select>' : '') +
-      '<button class="btn secondary" id="dashPrint" title="Every unit, every column: wide units are printed in parts so nothing is cut off">🖨️ Print</button><button class="btn secondary" id="dashCsv" title="Every unit in one file for Excel, Google Sheets or Numbers">⬇️ CSV</button><button class="btn secondary" id="dashDocx" title="Every unit in one document for Word, Google Docs or Pages">📄 Word</button><a class="btn ghost" href="#/settings">Settings</a></div></div>';
+      '<button class="btn secondary" id="dashPrint" title="Every unit, every column: wide units are printed in parts so nothing is cut off">Print</button><button class="btn secondary" id="dashCsv" title="Every unit in one file for Excel, Google Sheets or Numbers">CSV</button><button class="btn secondary" id="dashDocx" title="Every unit in one document for Word, Google Docs or Pages">Word</button><a class="btn ghost" href="#/settings">Settings</a></div></div>';
     if (!course) { app.innerHTML = head + '<div class="empty">No course.</div>'; return; }
     Settings.activeCourse = course.id;
     const tables = course.units.map((un, ui) => {
@@ -125,7 +125,7 @@
         const prog = Progress.graded(s.id); const u = (prog[course.id] || {})[un.id] || {};
         const t = Students.trackFor(course.id, s);
         const lvl = t ? '<span class="tag">Mod · ' + ({ k2: 'K–2', g35: '3–5', g68: '6–8' }[t.band]) + '</span>' : '<span class="tag">L' + Students.levelFor(course.id, s) + '</span>';
-        return '<tr><td class="d-name"><a href="#/students" data-open-student="' + esc(s.id) + '">' + esc(s.avatar) + ' ' + esc(s.name) + '</a>' + (s.number ? '<div class="muted small">#' + esc(s.number) + '</div>' : '') + '</td><td>' + lvl + '</td>' + rowCells(course, un, lessons, u, true, s.id, Students.levelFor(course.id, s)) + '</tr>';
+        return '<tr><td class="d-name"><a href="#/students" data-open-student="' + esc(s.id) + '">' + esc(s.name) + '</a>' + (s.number ? '<div class="muted small">#' + esc(s.number) + '</div>' : '') + '</td><td>' + lvl + '</td>' + rowCells(course, un, lessons, u, true, s.id, Students.levelFor(course.id, s)) + '</tr>';
       }).join('');
       return '<details class="card unit-grid"' + (ui === 0 ? ' open' : '') + '><summary class="unit-summary"><h2 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (ui + 1) + ' · ') + esc(un.title) + '</h2><span class="fold-hint">' + lessons.length + ' lessons · tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, false, course) + rows + '</table></div></details>';
     }).join('');
@@ -157,7 +157,7 @@
     const list = courseId ? all.filter(c => c.id === courseId) : all;
     document.documentElement.style.setProperty('--course', 'var(--primary)');
     const graded = Progress.graded(me.id);   // my own work with my teacher's grades laid over it
-    app.innerHTML = '<div class="page-head"><div><h1>📊 Grades</h1><p class="muted">Your quiz and test scores, what you have handed in, and the grades your teacher has given.</p></div>' +
+    app.innerHTML = '<div class="page-head"><div><h1>Grades</h1><p class="muted">Your quiz and test scores, what you have handed in, and the grades your teacher has given.</p></div>' +
       (courseId ? '<a class="btn secondary" href="#/grades">All classes</a>' : '') + '</div>' +
       '<p class="small muted">Each cell is your <strong>grade</strong> for that piece of work — your score placed inside the band of the level you did it at (' + [1, 2, 3, 4].map(l => 'Level ' + l + ' · ' + LEVELS[l].name + ' ' + LEVELS[l].band.replace('%', '')).join(' · ') + '): 50% passes at every level and earns a 50; a perfect score is the top of your band. The small line is the level and your raw score. If your teacher allows rewrites one level up, the higher grade counts. <span class="d-key top">' + LEVEL_BANDS[4][0] + '+</span> <span class="d-key pass">' + LEVEL_BANDS[3][0] + '–' + LEVEL_BANDS[3][1] + '</span> <span class="d-key low">below ' + LEVEL_BANDS[3][0] + '</span> · assignments: <strong>✓</strong> handed in, <strong>✎</strong> draft, <strong>–</strong> not started.</p>' +
       (list.length ? list.map(c => {

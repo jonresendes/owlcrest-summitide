@@ -150,7 +150,7 @@
   function showReturnNotice(secs) {
     const old = document.getElementById('focusReturn'); if (old) old.remove();
     const d = document.createElement('div'); d.id = 'focusReturn'; d.className = 'focus-return'; d.setAttribute('role', 'alertdialog');
-    d.innerHTML = '<div class="focus-return-card"><div class="focus-return-icon">👀</div><h2>You left Summitide for ' + esc(fmtSecs(secs)) + '</h2><p>Focus Mode is on for this ' + (/test/.test(location.hash) ? 'test' : 'quiz') + '. Your teacher can see that you left and for how long. Stay in Summitide until you hand it in.</p><button class="btn lg" id="focusResume">Back to my work</button></div>';
+    d.innerHTML = '<div class="focus-return-card"><div class="focus-return-icon"></div><h2>You left Summitide for ' + esc(fmtSecs(secs)) + '</h2><p>Focus Mode is on for this ' + (/test/.test(location.hash) ? 'test' : 'quiz') + '. Your teacher can see that you left and for how long. Stay in Summitide until you hand it in.</p><button class="btn lg" id="focusResume">Back to my work</button></div>';
     document.body.appendChild(d); d.querySelector('#focusResume').addEventListener('click', () => { d.remove(); goFullscreen(); });
   }
   function goFullscreen() {
@@ -166,7 +166,7 @@
   /** The attempt is over: returns { count, secs } of leaves during it (or null when Focus Mode was off). */
   Live.assessmentDone = () => { S.done = true; S.q = S.n; const a = S.attempt; S.attempt = null; send('done'); leaveFullscreen(); return a && a.focus ? { count: a.count, secs: Math.round(a.secs) } : null; };
   /** A notice for the start screen of a quiz or test while Focus Mode is on. */
-  Live.focusNoticeHtml = () => Live.focusOn() ? '<div class="focus-notice">🎯 <strong>Focus Mode is on.</strong> ' + esc(teacherName(S.active)) + ' can see that you are in Summitide and when you leave it during this ' + (/test/.test(location.hash) ? 'test' : 'quiz') + ' — never what is outside the app. It opens full screen; stay in it until you hand in.</div>' : '';
+  Live.focusNoticeHtml = () => Live.focusOn() ? '<div class="focus-notice"><strong>Focus Mode is on.</strong> ' + esc(teacherName(S.active)) + ' can see that you are in Summitide and when you leave it during this ' + (/test/.test(location.hash) ? 'test' : 'quiz') + ' — never what is outside the app. It opens full screen; stay in it until you hand in.</div>' : '';
   function teacherName(ses) { if (!ses) return 'Your teacher'; const St = window.Staff; const t = St && (St.teachers || []).find(x => x.id === ses.teacherId); if (t) return t.name; if (St && St.master && (ses.teacherId === St.master.uid || ses.teacherId === 'master')) return St.master.name || 'The Headmaster'; return ses.teacherName || 'Your teacher'; }
 
   /** Banner on every student page while a session runs. */
@@ -175,9 +175,9 @@
     const ses = S.active; const a = app(); if (!ses || !a || !isStudentSession()) return;
     const here = onTarget(location.hash, ses);
     const d = document.createElement('div'); d.id = 'liveBanner'; d.className = 'live-banner' + (here ? ' here' : ''); d.setAttribute('role', 'status');
-    d.innerHTML = '<span class="live-dot" aria-hidden="true"></span><span><strong>Live now:</strong> ' + esc(teacherName(ses)) + ' has started <strong>' + esc(ses.target && ses.target.label || 'a session') + '</strong>' + (ses.focus ? ' · <span class="tag accent">🎯 Focus Mode</span>' : '') +
+    d.innerHTML = '<span class="live-dot" aria-hidden="true"></span><span><strong>Live now:</strong> ' + esc(teacherName(ses)) + ' has started <strong>' + esc(ses.target && ses.target.label || 'a session') + '</strong>' + (ses.focus ? ' · <span class="tag accent">Focus Mode</span>' : '') +
       '<span class="muted small live-privacy"> While it runs, your teacher sees that you are in Summitide, which page you are on and when you leave the app — nothing outside it.</span></span>' +
-      (here ? (S.done ? '<span class="tag">✅ handed in</span>' : '<span class="tag">✍ you are on it</span>') : '<a class="btn sm" href="' + esc(ses.target && ses.target.href || '#/') + '">Go to it →</a>');
+      (here ? (S.done ? '<span class="tag">✓ handed in</span>' : '<span class="tag">you are on it</span>') : '<a class="btn sm" href="' + esc(ses.target && ses.target.href || '#/') + '">Go to it →</a>');
     a.insertBefore(d, a.firstChild);
   }
   Live.banner = () => { try { syncStudentWatch(); } catch (e) { console.warn('live watch', e); } banner(); };
@@ -212,7 +212,8 @@
     if (!p.target) return 'elsewhere';
     return p.done ? 'done' : 'writing';
   }
-  const STATUS = { off: ['⚪', 'not here', 'Not in this session'], away: ['🔴', 'left the app', 'Summitide is hidden or closed'], unfocused: ['🟠', 'another window', 'Summitide is open but not the window in use'], elsewhere: ['🔵', 'in the app', 'Signed in, on another page'], writing: ['🟢', 'writing', 'On the item now'], done: ['✅', 'handed in', 'Finished the item'] };
+  const dot = k => '<i class="st-dot st-' + k + '" aria-hidden="true"></i>';   // v67: a drawn coloured dot, where an emoji circle used to be
+  const STATUS = { off: [dot('off'), 'not here', 'Not in this session'], away: [dot('away'), 'left the app', 'Summitide is hidden or closed'], unfocused: [dot('unfocused'), 'another window', 'Summitide is open but not the window in use'], elsewhere: [dot('elsewhere'), 'in the app', 'Signed in, on another page'], writing: [dot('writing'), 'writing', 'On the item now'], done: [dot('done'), 'handed in', 'Finished the item'] };
   /** Presence changed: a late arrival goes on the writing list; a selected student leaving makes a sound (if on). */
   function onPresence(id, before) {
     const ses = T.ses; if (!ses || ses.endedAt) return;
@@ -275,7 +276,7 @@
     else body = boardHtml(sec);
     let main = a.querySelector('#liveMain');
     if (!main) {
-      a.innerHTML = head() + '<div class="page-head"><div><h1>📡 Live Class Board</h1><p class="muted">See who is in Summitide and on the item right now · mark who is writing today · Focus Mode for quizzes and tests. The app sees only itself: never other tabs, apps or the screen.</p></div></div><div id="liveMain"></div><div id="liveNotes"></div>';
+      a.innerHTML = head() + '<div class="page-head"><div><h1>Live Class Board</h1><p class="muted">See who is in Summitide and on the item right now · mark who is writing today · Focus Mode for quizzes and tests. The app sees only itself: never other tabs, apps or the screen.</p></div></div><div id="liveMain"></div><div id="liveNotes"></div>';
       main = a.querySelector('#liveMain');
     }
     main.innerHTML = '<div class="live-top">' + picker + (T.ses && !T.ses.endedAt ? '<span class="live-running"><span class="live-dot"></span> Running since ' + esc(fmtTime(T.ses.startedAt)) + '</span>' : '') + '</div>' + body;
@@ -293,7 +294,7 @@
     if (slot.dataset.key === key) return;
     slot.dataset.key = key;
     if (!key) { slot.innerHTML = ''; return; }
-    slot.innerHTML = '<div class="card live-notes"><h2>📝 Session notes</h2><p class="muted small">Anything worth remembering about this session: who was away and why, a fire drill, extra time given, something to follow up. The notes print on the session report.</p>' +
+    slot.innerHTML = '<div class="card live-notes"><h2>Session notes</h2><p class="muted small">Anything worth remembering about this session: who was away and why, a fire drill, extra time given, something to follow up. The notes print on the session report.</p>' +
       '<textarea class="text-input" id="liveNoteText" maxlength="4000" placeholder="Write here…" aria-label="Session notes"></textarea>' +
       '<div class="live-notes-foot"><span class="muted small" id="liveNoteState" role="status"></span><span class="muted small">Only you can see these notes. Students never do. They are kept until this section\'s next session.</span></div></div>';
     const ta = slot.querySelector('#liveNoteText'), state = slot.querySelector('#liveNoteState'); ta.value = noteFor(sec, ses);
@@ -326,8 +327,8 @@
   const tbl = (t, cls) => '<table class="rep ' + cls + '"><thead><tr>' + t.head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + t.rows.map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
   function reportHtml(sec) {
     const d = reportData(sec);
-    return '<div class="print-toolbar no-print"><div><strong>📄 Session report</strong> <span class="muted small">' + (d.ended ? 'This session has ended.' : 'The session is still running: this is the report so far.') + ' Live Class records are deleted after ' + keepDays() + ' day' + (keepDays() === 1 ? '' : 's') + ' and replaced by this section\'s next session, so print or download the report if you need to keep it.</span></div>' +
-      '<div class="btn-row"><button class="btn" id="liveRepPrint">🖨️ Print / Save as PDF</button><button class="btn secondary" id="liveRepDocx">📄 Word</button><button class="btn secondary" id="liveRepCsv">⬇️ CSV</button><button class="btn ghost" id="liveRepBack">← Back to the board</button></div></div>' +
+    return '<div class="print-toolbar no-print"><div><strong>Session report</strong> <span class="muted small">' + (d.ended ? 'This session has ended.' : 'The session is still running: this is the report so far.') + ' Live Class records are deleted after ' + keepDays() + ' day' + (keepDays() === 1 ? '' : 's') + ' and replaced by this section\'s next session, so print or download the report if you need to keep it.</span></div>' +
+      '<div class="btn-row"><button class="btn" id="liveRepPrint">Print / Save as PDF</button><button class="btn secondary" id="liveRepDocx">Word</button><button class="btn secondary" id="liveRepCsv">CSV</button><button class="btn ghost" id="liveRepBack">← Back to the board</button></div></div>' +
       '<div class="print-doc live-report"><header class="ps-head"><img src="crest.png" alt="" class="ps-crest"><div><div class="ps-brand">Summitide Learning · OwlCrest Academy</div><h1>' + esc(d.title) + '</h1></div></header>' +
       '<dl class="ps-facts">' + d.facts.map(f => '<div><dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd></div>').join('') + '</dl>' +
       '<h2>Students</h2><div class="table-wrap no-table-tools">' + tbl(d.students, 'rep-students') + '</div>' +
@@ -345,17 +346,17 @@
   function setupHtml(sec) {
     const c = window.LH.findCourse(sec.courseId); if (!c) return '<div class="empty">This section\'s course is not loaded.</div>';
     const ts = targetsFor(c); const n = (sec.students || []).length;
-    return '<div class="card live-setup"><h2>▶ Start a live session for ' + esc(sec.name) + '</h2><p class="muted small">' + n + ' student' + (n === 1 ? '' : 's') + ' on the roster · ' + esc(c.title) + '</p>' +
+    return '<div class="card live-setup"><h2>▶︎ Start a live session for ' + esc(sec.name) + '</h2><p class="muted small">' + n + ' student' + (n === 1 ? '' : 's') + ' on the roster · ' + esc(c.title) + '</p>' +
       '<div class="grid-2"><label class="field">What are they writing?<select class="text-input" id="liveTarget">' + ts.map((t, i) => '<option value="' + i + '"' + (t.kind === 'test' && i === 1 ? '' : '') + '>' + esc(t.label) + '</option>').join('') + '</select></label>' +
       '<label class="field live-focus-opt"><span>Focus Mode</span><span class="live-check"><input type="checkbox" id="liveFocus" checked> <span>Quizzes and tests open full screen; every time a student leaves the app it is timed, shown to them, and kept on the attempt.</span></span></label></div>' +
-      '<div class="btn-row" style="margin-top:0.8rem"><button class="btn lg" id="liveStart">📡 Start the session</button><span class="muted small">Students see a "Live now" banner with a link to the item. Presence is sent only while a session runs.</span></div></div>';
+      '<div class="btn-row" style="margin-top:0.8rem"><button class="btn lg" id="liveStart">Start the session</button><span class="muted small">Students see a "Live now" banner with a link to the item. Presence is sent only while a session runs.</span></div></div>';
   }
   function summaryHtml(sec) {
     const ses = T.ses; const rs = roster(sec);
     const rows = rs.map(s => { const p = T.pres[s.id]; const was = !!(p && p.since === ses.startedAt);
-      return '<tr><td>' + esc(s.avatar || '') + ' ' + esc(s.name) + '</td><td>' + ((ses.writing || []).includes(s.id) ? '✍ writing' + ((ses.late || {})[s.id] ? ' · joined late ' + esc(fmtTime(ses.late[s.id])) : '') : '<span class="muted">not writing</span>') + '</td><td>' + (was ? (p.done ? '✅ handed in' : esc(p.label || '')) : '<span class="muted">—</span>') + '</td><td>' + (was && p.leaveCount ? '🔴 ' + p.leaveCount + '× · ' + esc(fmtSecs(p.awaySecs)) : (was ? '—' : '')) + '</td></tr>'; }).join('');
+      return '<tr><td>' + esc(s.name) + '</td><td>' + ((ses.writing || []).includes(s.id) ? 'writing' + ((ses.late || {})[s.id] ? ' · joined late ' + esc(fmtTime(ses.late[s.id])) : '') : '<span class="muted">not writing</span>') + '</td><td>' + (was ? (p.done ? '✓ handed in' : esc(p.label || '')) : '<span class="muted">—</span>') + '</td><td>' + (was && p.leaveCount ? '' + p.leaveCount + '× · ' + esc(fmtSecs(p.awaySecs)) : (was ? '—' : '')) + '</td></tr>'; }).join('');
     return '<div class="card live-summary"><h2>Last session · ' + esc(ses.target && ses.target.label || '') + '</h2><p class="muted small">' + esc(fmtTime(ses.startedAt)) + ' – ' + esc(fmtTime(ses.endedAt)) + (ses.focus ? ' · Focus Mode' : '') + ' · leaves are also on each attempt on the marking screen.</p>' +
-      '<div class="btn-row" style="margin:0.5rem 0"><button class="btn" data-live-report>📄 Session report</button><span class="muted small">Print it, or download it as a Word or CSV file. Your session notes are on it.</span></div>' +
+      '<div class="btn-row" style="margin:0.5rem 0"><button class="btn" data-live-report>Session report</button><span class="muted small">Print it, or download it as a Word or CSV file. Your session notes are on it.</span></div>' +
       '<div class="table-wrap no-table-tools"><table class="live-table"><thead><tr><th>Student</th><th>Writing</th><th>Last seen on</th><th>Left the app</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
   function boardHtml(sec) {
@@ -369,18 +370,18 @@
       const p = T.pres[s.id], k = st[s.id], on = writing.has(s.id); const late = (ses.late || {})[s.id]; const flash = T.flash[s.id] && Date.now() - T.flash[s.id] < 15000;
       const where = k === 'off' ? (p && p.live === ses.id ? 'last seen ' + ago(p.at) : 'not signed in to this session') : k === 'writing' && p.n ? 'Question ' + (p.q || 0) + ' of ' + p.n : k === 'done' ? 'handed in ' + ago(p.at) : (p && p.label) || '';
       return '<button type="button" class="live-tile st-' + k + (on ? ' writing' : ' idle') + (flash ? ' flash' : '') + '" data-tile="' + esc(s.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '" title="' + (on ? 'Click: not writing today' : 'Click: writing today') + '">' +
-        '<span class="live-ava" style="--c:' + esc(s.colour || '#888') + '">' + esc(s.avatar || '🙂') + '</span><span class="live-name">' + esc(s.name) + '</span>' +
+        '<span class="live-ava" style="--c:' + esc(s.colour || '#888') + '">' + esc(LH.initial(s)) + '</span><span class="live-name">' + esc(s.name) + '</span>' +
         '<span class="live-state">' + STATUS[k][0] + ' ' + esc(STATUS[k][1]) + '</span><span class="live-where muted small">' + esc(where) + '</span>' +
         (p && p.live === ses.id && p.leaveCount ? '<span class="live-leaves">left ' + p.leaveCount + '× · ' + esc(fmtSecs(p.awaySecs)) + '</span>' : '') +
-        '<span class="live-mark">' + (on ? '✍ writing today' + (late ? ' · late ' + esc(fmtTime(late)) : '') : 'not writing') + '</span></button>';
+        '<span class="live-mark">' + (on ? 'writing today' + (late ? ' · late ' + esc(fmtTime(late)) : '') : 'not writing') + '</span></button>';
     }).join('');
-    return '<div class="live-bar card"><div><strong>' + esc(ses.target && ses.target.label || '') + '</strong>' + (ses.focus ? ' <span class="tag accent">🎯 Focus Mode</span>' : '') + '<div class="muted small">' + writing.size + ' of ' + rs.length + ' marked as writing · ' + liveNow.length + ' on it now · ' + done.length + ' handed in · click a tile to change who is writing today</div></div>' +
-      '<div class="btn-row"><button class="btn ghost sm" id="liveAll">Everyone is writing</button><button class="btn ghost sm" id="liveHere">Only those here</button><button class="btn ghost sm" id="liveNone">Clear</button><label class="live-check small"><input type="checkbox" id="liveSound"' + (T.sound ? ' checked' : '') + '> 🔔 sound when someone leaves</label><button class="btn ghost sm" data-live-report>📄 Session report</button><button class="btn danger sm" id="liveEnd">⏹ End the session</button></div></div>' +
+    return '<div class="live-bar card"><div><strong>' + esc(ses.target && ses.target.label || '') + '</strong>' + (ses.focus ? ' <span class="tag accent">Focus Mode</span>' : '') + '<div class="muted small">' + writing.size + ' of ' + rs.length + ' marked as writing · ' + liveNow.length + ' on it now · ' + done.length + ' handed in · click a tile to change who is writing today</div></div>' +
+      '<div class="btn-row"><button class="btn ghost sm" id="liveAll">Everyone is writing</button><button class="btn ghost sm" id="liveHere">Only those here</button><button class="btn ghost sm" id="liveNone">Clear</button><label class="live-check small"><input type="checkbox" id="liveSound"' + (T.sound ? ' checked' : '') + '> sound when someone leaves</label><button class="btn ghost sm" data-live-report>Session report</button><button class="btn danger sm" id="liveEnd">⏹︎ End the session</button></div></div>' +
       '<div class="live-layout"><div class="live-grid">' + (tiles || '<div class="empty">No students on this roster.</div>') + '</div>' +
-      '<aside class="live-side"><div class="card"><h3>✍ Writing now <span class="tag">' + liveNow.length + '</span></h3>' + (liveNow.length ? '<ul class="live-list">' + liveNow.map(s => '<li>🟢 ' + esc(s.name) + (T.pres[s.id] && T.pres[s.id].n ? ' <span class="muted small">Q' + (T.pres[s.id].q || 0) + '/' + T.pres[s.id].n + '</span>' : '') + '</li>').join('') + '</ul>' : '<p class="muted small">Nobody is on the item yet.</p>') +
-      (done.length ? '<h3>✅ Handed in <span class="tag">' + done.length + '</span></h3><ul class="live-list">' + done.map(s => '<li>' + esc(s.name) + '</li>').join('') + '</ul>' : '') +
+      '<aside class="live-side"><div class="card"><h3>Writing now <span class="tag">' + liveNow.length + '</span></h3>' + (liveNow.length ? '<ul class="live-list">' + liveNow.map(s => '<li>' + esc(s.name) + (T.pres[s.id] && T.pres[s.id].n ? ' <span class="muted small">Q' + (T.pres[s.id].q || 0) + '/' + T.pres[s.id].n + '</span>' : '') + '</li>').join('') + '</ul>' : '<p class="muted small">Nobody is on the item yet.</p>') +
+      (done.length ? '<h3>✓ Handed in <span class="tag">' + done.length + '</span></h3><ul class="live-list">' + done.map(s => '<li>' + esc(s.name) + '</li>').join('') + '</ul>' : '') +
       '<details class="live-not" open><summary>Not writing <span class="tag">' + notWriting.length + '</span></summary>' + (notWriting.length ? '<ul class="live-list">' + notWriting.map(s => '<li>' + STATUS[st[s.id]][0] + ' ' + esc(s.name) + ' <span class="muted small">' + esc(reason(s)) + '</span></li>').join('') + '</ul>' : '<p class="muted small">Everyone on the list is writing.</p>') + '</details></div>' +
-      '<p class="muted small live-key">🟢 on the item · ✅ handed in · 🔵 in the app, elsewhere · 🟠 another window in use · 🔴 app hidden or closed · ⚪ not here. A student who arrives late and opens the item appears here on their own.</p></aside></div>';
+      '<p class="muted small live-key">' + dot('writing') + ' on the item · ' + dot('done') + ' handed in · ' + dot('elsewhere') + ' in the app, elsewhere · ' + dot('unfocused') + ' another window in use · ' + dot('away') + ' app hidden or closed · ' + dot('off') + ' not here. A student who arrives late and opens the item appears here on their own.</p></aside></div>';
   }
   function bind(sec) {
     const a = app(); const q = s => a.querySelector(s);

@@ -8,7 +8,7 @@
      device under a key like  <studentId>/<course>/<unit>/<lesson>/<slot>.
      Teachers play them back from the Students panel.
    Both are wired by data attributes, so any page can add them:
-     <button data-dictate="#fieldId">🎤</button>
+     <button data-dictate="#fieldId"></button>
      <div data-recorder="key" data-label="Record your answer"></div>
    ========================================================= */
 (function () {
@@ -18,11 +18,11 @@
 
   /* ---------- dictation ---------- */
   let rec = null, activeBtn = null;
-  function stopDictation() { if (rec) { try { rec.stop(); } catch (e) {} } rec = null; if (activeBtn) { activeBtn.classList.remove('on'); activeBtn.textContent = '🎤'; activeBtn.title = 'Dictate'; } activeBtn = null; }
+  function stopDictation() { if (rec) { try { rec.stop(); } catch (e) {} } rec = null; if (activeBtn) { activeBtn.classList.remove('on'); activeBtn.textContent = 'Dictate'; activeBtn.title = 'Dictate'; } activeBtn = null; }
   function startDictation(btn, field) {
     stopDictation();
     rec = new SR(); rec.lang = 'en-CA'; rec.continuous = true; rec.interimResults = true;
-    activeBtn = btn; btn.classList.add('on'); btn.textContent = '⏹️'; btn.title = 'Stop dictating';
+    activeBtn = btn; btn.classList.add('on'); btn.textContent = 'Stop'; btn.title = 'Stop dictating';
     const base = field.value; let finalText = '';
     rec.onresult = e => {
       let interim = '';
@@ -49,7 +49,7 @@
   function dictateBtn(selector) {
     if (!canDictate || Settings.get('dictation') === false) return '';
     if (window.Privacy && !Privacy.dictationAllowed()) return '';   // v59: switched off for the whole school
-    return '<button type="button" class="dictate-btn" data-dictate="' + selector + '" title="Dictate" aria-label="Dictate — speak instead of typing">🎤</button>';
+    return '<button type="button" class="dictate-btn" data-dictate="' + selector + '" title="Dictate" aria-label="Dictate — speak instead of typing">Dictate</button>';
   }
 
   /* ---------- recordings in IndexedDB ---------- */
@@ -101,7 +101,7 @@
       const draw = () => {
         host.innerHTML = '<div class="recorder">' +
           (existing ? '<audio controls src="' + URL.createObjectURL(existing.blob) + '"></audio><span class="small muted">Recorded ' + new Date(existing.at).toLocaleString() + '</span>' + (readOnly ? '' : '<button type="button" class="btn ghost sm" data-rec-del>Delete</button>') : (readOnly && host.dataset.showEmpty === '1' ? '<span class="small muted">No recording.</span>' : '')) +
-          (!readOnly && canRecord ? '<button type="button" class="btn secondary sm" data-rec-start>🎙️ ' + (existing ? 'Record again' : label) + '</button><span class="rec-status small muted"></span>' : (!readOnly && !canRecord ? '<span class="small muted">Recording is not available in this browser.</span>' : '')) + '</div>';
+          (!readOnly && canRecord ? '<button type="button" class="btn secondary sm" data-rec-start>' + (existing ? 'Record again' : label) + '</button><span class="rec-status small muted"></span>' : (!readOnly && !canRecord ? '<span class="small muted">Recording is not available in this browser.</span>' : '')) + '</div>';
         const st = host.querySelector('.rec-status');
         const b = host.querySelector('[data-rec-start]');
         if (b) b.addEventListener('click', async () => {
@@ -112,7 +112,7 @@
           mr.start();
           let secs = 0; const tick = setInterval(() => { secs++; st.textContent = '● Recording ' + secs + 's'; if (secs >= 300) stopBtn.click(); }, 1000);
           b.hidden = true;
-          const stopBtn = document.createElement('button'); stopBtn.type = 'button'; stopBtn.className = 'btn sm'; stopBtn.textContent = '⏹️ Stop'; b.after(stopBtn);
+          const stopBtn = document.createElement('button'); stopBtn.type = 'button'; stopBtn.className = 'btn sm'; stopBtn.textContent = '⏹︎ Stop'; b.after(stopBtn);
           stopBtn.addEventListener('click', () => { clearInterval(tick); mr.stop(); stopBtn.remove(); });
           st.textContent = '● Recording…';
         });
