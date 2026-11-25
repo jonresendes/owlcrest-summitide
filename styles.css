@@ -1668,3 +1668,6 @@ body[data-page="desk"] .final-card { box-shadow: 0 2px 8px rgba(27,47,94,0.08); 
 .unit-release { padding: 0.9rem 1.15rem; margin-bottom: 1rem; } .unit-release > summary { cursor: pointer; }
 .unit-card.unit-held { opacity: 0.72; border-style: dashed; }
 .unit-flag.held { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--muted); }
+
+/* v71 · the ladybug on the "Found a problem?" button (the one emoji the app draws, by request) */
+.report-fab .report-fab-bug { font-size: 1.35rem; line-height: 1; font-weight: 400; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }

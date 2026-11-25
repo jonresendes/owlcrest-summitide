@@ -35,7 +35,7 @@
   btn.type = 'button'; btn.id = 'reportBtn'; btn.className = 'report-fab'; btn.hidden = true;
   btn.setAttribute('data-html2canvas-ignore', 'true');
   btn.title = 'Found a problem? Click here to screenshot and submit.';
-  btn.innerHTML = '<span class="report-fab-mark" aria-hidden="true">?</span><span class="report-fab-text"> Found a problem? <span class="report-fab-more">Click here to screenshot and submit.</span></span>';
+  btn.innerHTML = '<span class="report-fab-mark report-fab-bug" aria-hidden="true">\uD83D\uDC1E</span><span class="report-fab-text"> Found a problem? <span class="report-fab-more">Click here to screenshot and submit.</span></span>';
   btn.setAttribute('aria-label', 'Found a problem? Click here to screenshot and submit.');
   document.body.appendChild(btn);
   function refresh() { btn.hidden = !me() || /^#\/print/.test(location.hash) || !!document.getElementById('reportBox'); }
