@@ -1,3 +1,9 @@
+> **Version 69: the app ships with no courses.** Every course is a `.json` course file that the Headmaster loads under
+> Courses → Load a Course, and can remove there. A course file carries the whole course: lessons, questions, colouring
+> pictures (`course.colouring`) and figures (`course.pictures`). Write a course as a `.js` file as described below, then run
+> `node course2json.js <course>.js` to make the file to load. Sections below that mention course `.js` files being listed in
+> `index.html` describe versions before 69.
+
 # Summitide Learning · OwlCrest Academy
 
 *Formerly The Academy · Learn Hub. Version 56 is the first build under the new name.*

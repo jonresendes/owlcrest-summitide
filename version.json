@@ -1,5 +1,5 @@
 {
- "version": "68",
+ "version": "69",
  "date": "2026-11-24",
- "notes": "Classes at the centre. New desks; each class has Content, Assignments, Quizzes, Tests, CCTs and Exams, with Students, Grades, Mark scheme and Live Class inside it. Teachers set their own mark categories and weights; the final mark follows and can be hidden from or revealed to students. Hide a task for a class, or give one student No Mark. Curriculum shelf, Administration page, Staff list. Sections are now called classes; the Headmaster title can be changed. New firestore.rules to publish."
+ "notes": "The app ships with no courses. Every course is loaded from a file by the Headmaster (Courses, Load a Course) and can be removed there. A course file now carries its colouring pictures and figures. Loaded courses are kept on each device in IndexedDB. Device-only mode can load course files too. No rules to publish beyond version 68."
 }

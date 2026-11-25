@@ -343,7 +343,7 @@
   /* ---------- My Classes (teacher: every class; student: theirs) ---------- */
   function classCard(sec, extra) {
     const c = UI().findCourseAll(sec.courseId); const n = (sec.students || []).length;
-    return '<a class="card class-card" href="#/class/' + esc(sec.id) + '" style="--course:' + esc(c ? c.color || '' : '') + '"><span class="class-card-bar"></span><span class="class-card-text"><strong>' + esc(sec.name) + '</strong><span class="muted small">' + (c ? esc(c.title) : esc(sec.courseId)) + (sec.term ? ' · ' + esc(sec.term) : '') + '</span></span><span class="class-card-tags">' + (extra || '') + '<span class="tag">' + plural(n, 'student') + '</span>' + (sec.archived ? '<span class="tag">archived</span>' : '') + '</span></a>';
+    return '<a class="card class-card" href="#/class/' + esc(sec.id) + '" style="--course:' + esc(c ? c.color || '' : '') + '"><span class="class-card-bar"></span><span class="class-card-text"><strong>' + esc(sec.name) + '</strong><span class="muted small">' + (c ? esc(c.title) : esc(sec.courseId)) + (sec.term ? ' · ' + esc(sec.term) : '') + '</span></span><span class="class-card-tags">' + (extra || '') + '<span class="tag">' + plural(n, 'student') + '</span>' + (sec.archived ? '<span class="tag">archived</span>' : '') + (c ? '' : '<span class="tag accent">course not loaded</span>') + '</span></a>';
   }
   function myClasses() {
     const me = Students.current; UI().setCourseColor(null); UI().setNav('classes');
@@ -424,6 +424,14 @@
   /* ---------- router ---------- */
   function route() { window.dispatchEvent(new HashChangeEvent('hashchange')); }
   function page(parts) {
+    // v69: courses are loaded from files and can be removed; a class whose course is not loaded says so (its work and marks are kept)
+    const sec0 = Sections.byId(parts[1]), me0 = Students.current;
+    if (sec0 && me0 && !UI().findCourseAll(sec0.courseId) && (me0.isStaff ? (Staff.isMaster || sec0.teacherId === me0.staffId) : (sec0.students || []).includes(me0.id))) {
+      UI().setCourseColor(null); UI().setNav('classes');
+      app.innerHTML = UI().crumbs([{ label: UI().deskName(), href: '#/' }, { label: sec0.name }]) + '<div class="empty"><h2>The course for this class is not loaded</h2><p class="muted">' + esc(sec0.name) + ' uses the course <strong>' + esc(String(sec0.courseId || '').toUpperCase()) + '</strong>, which is not in Summitide Learning right now. Nothing is lost: the class list, the work and the marks are kept and come back as soon as the course file is loaded again.</p>' +
+        (me0.role === 'master' ? '<a class="btn" href="#/courses">Load the course file</a>' : '<p class="muted small">' + (me0.isStaff ? 'Ask the ' + esc(LH.headTitle()) + ' to load it under Courses.' : 'Tell your teacher.') + '</p><a class="btn secondary" href="#/">Back to the desk</a>') + '</div>';
+      return;
+    }
     const c = ctx(parts[1]); if (!c) return gone();
     const area = parts[2] || '';
     try {

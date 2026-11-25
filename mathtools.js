@@ -185,7 +185,11 @@
   }
   // v64: a course's own pictures live in a folder named after the course ("mth1w/mth1w-fig-3-1-a.png"). A bare file name
   // (the top folder, as in v62) still works, and a picture not found in its folder is looked for in the top folder once.
-  function figImg(s) { var src = String(s.src), m = /^(?:([a-z0-9][a-z0-9-]*)\/)?([A-Za-z0-9][\w.-]*\.(?:png|jpe?g|webp))$/.exec(src); if (!m || m[2].indexOf('..') >= 0) return ''; return '<img src="' + esc(src) + '"' + (m[1] ? ' data-fig-file="' + esc(m[2]) + '"' : '') + ' alt="' + esc(s.alt || 'Figure') + '" loading="lazy"' + (num(s.w) && num(s.h) ? ' width="' + s.w + '" height="' + s.h + '"' : '') + '>'; }
+  function figImg(s) { var src = String(s.src), m = /^(?:([a-z0-9][a-z0-9-]*)\/)?([A-Za-z0-9][\w.-]*\.(?:png|jpe?g|webp))$/.exec(src); if (!m || m[2].indexOf('..') >= 0) return '';
+    // v69: a course loaded from a file carries its own pictures (course.pictures); they are used before any folder on the site
+    var P = (window.LearnHub && window.LearnHub.pictures) || {}, own = m[1] && P[m[1]] && P[m[1]][m[2]]; if (!own) Object.keys(P).some(function (k) { if (P[k][m[2]]) { own = P[k][m[2]]; return true; } return false; });
+    if (own && /^data:image\/(png|jpeg|webp);base64,/.test(own)) src = own;
+    return '<img src="' + esc(src) + '"' + (m[1] ? ' data-fig-file="' + esc(m[2]) + '"' : '') + ' alt="' + esc(s.alt || 'Figure') + '" loading="lazy"' + (num(s.w) && num(s.h) ? ' width="' + s.w + '" height="' + s.h + '"' : '') + '>'; }
   document.addEventListener('error', function (e) { var t = e.target; if (t && t.tagName === 'IMG' && t.dataset && t.dataset.figFile) { var f = t.dataset.figFile; delete t.dataset.figFile; t.src = f; } }, true);
   function figTable(s) {
     var cell = function (c, tag, extra) { return '<' + tag + (extra || '') + '>' + pretty(c) + '</' + tag + '>'; };

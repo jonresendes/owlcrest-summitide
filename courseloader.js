@@ -23,6 +23,12 @@
    Storage
      courses/{CODE}            { code, id, title, build, type, size, parts, by, at }      meta, small
      courseChunks/{CODE}__{n}  { code, n, data }                                            JSON text in pieces of ≤ 256k characters
+   v69 · THE APP SHIPS WITH NO COURSES. Every course arrives as a file, and a file carries everything the course needs:
+     course.colouring  { "<unitId>": [ { title, svg } ] }      line-art for the Colouring Page (sanitised: shapes only)
+     course.pictures   { "<file>.png": "data:image/png;base64,…" }   the course's own figures (mathtools.js draws them)
+   The device keeps its copy of each loaded course in IndexedDB (database "summitide-courses"), which has room for
+   many large courses; the old localStorage copy is moved across once. Without the cloud (device-only mode) that
+   IndexedDB copy is the course: the Headmaster profile loads and removes files on the device.
    The loaded courses are registered in window.LearnHub.courses at start-up (from a local cache first, then the cloud),
    so they appear in Courses, Sections, Display Case, games and grades exactly like the built-in ones. */
 (function () {
@@ -66,6 +72,8 @@
         if (!ALLOWED_TAGS[tag]) { const frag = doc.createDocumentFragment(); while (ch.firstChild) frag.appendChild(ch.firstChild); ch.replaceWith(frag); walk(node); return; }   // keep the text, drop the tag
         Array.from(ch.attributes).forEach(a => {
           const n = a.name.toLowerCase(); const ok = ALLOWED_TAGS[tag].includes(n) || GLOBAL_ATTRS.includes(n);
+          // v69: a style is kept only when it does nothing but size a box (the bars of a chart): width / height / flex-basis as a number
+          if (n === 'style' && /^(\s*(width|height|min-width|max-width|flex-basis)\s*:\s*\d{1,4}(\.\d{1,3})?(%|px|rem|em)?\s*;?)+\s*$/i.test(a.value)) return;
           if (!ok || /^on/.test(n) || n === 'style') { ch.removeAttribute(a.name); return; }
           if (URL_ATTRS[n] && !URL_ATTRS[n].test(a.value.trim())) ch.removeAttribute(a.name);
           if (n === 'class' && /[^\w\s-]/.test(a.value)) ch.removeAttribute(a.name);
@@ -77,17 +85,44 @@
     walk(doc.body);
     return doc.body.innerHTML;
   };
-  const stripTags = t => String(t).replace(/<[^>]*>/g, '');
+  /* v69 · Colouring pictures are SVG. Only drawing shapes and their geometry and paint attributes are kept: no script, style, links,
+     images, foreign content or event handlers. The picture is rebuilt from what was allowed, never passed through as it came. */
+  const SVG_TAGS = new Set(['svg', 'g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon', 'text', 'tspan', 'title']);
+  const SVG_ATTRS = new Set(['viewBox', 'xmlns', 'class', 'fill', 'stroke', 'stroke-width', 'stroke-linejoin', 'stroke-linecap', 'stroke-dasharray', 'stroke-miterlimit', 'fill-rule', 'fill-opacity', 'stroke-opacity', 'opacity', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'width', 'height', 'points', 'transform', 'font-size', 'font-family', 'font-weight', 'text-anchor', 'dominant-baseline']);
+  const xmlEsc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  CF.sanitizeSvg = function (svg) {
+    if (typeof DOMParser === 'undefined') return '';
+    let doc; try { doc = new DOMParser().parseFromString(String(svg || '').slice(0, 200000), 'image/svg+xml'); } catch (e) { return ''; }
+    const root = doc && doc.documentElement; if (!root || root.nodeName !== 'svg' || doc.getElementsByTagName('parsererror').length) return '';
+    const build = el => { const tag = el.nodeName; if (!SVG_TAGS.has(tag)) return '';
+      let out = '<' + tag;
+      Array.from(el.attributes).forEach(a => { const v = a.value; if (!SVG_ATTRS.has(a.name) || v.length > 60000 || /url\s*\(|javascript:|expression|[<>&]/i.test(v)) return; if (a.name === 'xmlns' && v !== 'http://www.w3.org/2000/svg') return; if (a.name === 'class' && /[^\w\s-]/.test(v)) return; out += ' ' + a.name + '="' + xmlEsc(v) + '"'; });
+      let inner = ''; Array.from(el.childNodes).forEach(ch => { if (ch.nodeType === 1) inner += build(ch); else if (ch.nodeType === 3 && (tag === 'text' || tag === 'tspan' || tag === 'title')) inner += xmlEsc(ch.nodeValue); });
+      return out + (inner ? '>' + inner + '</' + tag + '>' : '/>'); };
+    return build(root);
+  };
+  /** course.pictures: file name → a PNG, JPEG or WebP as a data: address, each at most about 300 kB, at most 200 of them. */
+  CF.cleanPictures = function (map) {
+    const out = {}; if (!map || typeof map !== 'object' || Array.isArray(map)) return out;
+    Object.keys(map).slice(0, 200).forEach(name => { const v = map[name];
+      if (!/^[A-Za-z0-9][\w.-]{0,80}\.(png|jpe?g|webp)$/.test(name) || name.indexOf('..') >= 0 || typeof v !== 'string' || v.length > 420000) return;
+      if (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(v)) out[name] = v; });
+    return out;
+  };
+  // Text is text: the app escapes it when it draws it. Only things shaped like real tags are taken out, so "3 < x and x > 1" in a math course stays as written.
+  const stripTags = t => String(t).replace(/<\/?[a-zA-Z][a-zA-Z0-9-]*(\s+[a-zA-Z_:][-\w:.]*(\s*=\s*("[^"]*"|'[^']*'|[^\s"'<>=`]+))?)*\s*\/?>/g, '').replace(/<!--[\s\S]*?-->/g, '');
+  const PIC_NAME = /^(?:[a-z0-9][a-z0-9-]{0,39}\/)?[A-Za-z0-9][\w.-]{0,80}\.(png|jpe?g|webp)$/;
   const URL_KEYS = new Set(['url', 'src', 'link', 'href', 'embed']);
   /** Deep copy of a course with every value made safe. Strings: html → sanitised; URL fields → http(s) or empty; others → tags removed. */
   CF.scrub = function (v, key, depth) {
     depth = depth || 0; if (depth > 40) return null;
     if (Array.isArray(v)) return v.map(x => CF.scrub(x, key, depth + 1));
-    if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach(k => { if (BAD_KEYS.has(k) || /[<>"'&`]/.test(k) || k.length > 60) return; o[k] = CF.scrub(v[k], k, depth + 1); }); return o; }
+    if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach(k => { if (BAD_KEYS.has(k) || /[<>"'&`]/.test(k) || k.length > 60) return; o[k] = k === 'pictures' && depth === 0 ? CF.cleanPictures(v[k]) : CF.scrub(v[k], k, depth + 1); }); return o; }
     if (typeof v === 'string') {
       if (v.length > 200000) v = v.slice(0, 200000);
       if (key === 'html') return CF.sanitizeHtml(v);
-      if (URL_KEYS.has(key)) return /^https?:\/\//i.test(v.trim()) ? v.trim() : '';
+      if (key === 'svg') return CF.sanitizeSvg(v);
+      if (URL_KEYS.has(key)) return /^https?:\/\//i.test(v.trim()) || PIC_NAME.test(v.trim()) ? v.trim() : '';   // v69: or the name of one of the course's own pictures
       if (key === 'color' || key === 'colour') return /^#[0-9a-fA-F]{3,8}$/.test(v.trim()) ? v.trim() : '';
       if (key === 'id') return String(v).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40);
       return stripTags(v);
@@ -149,54 +184,82 @@
     const i = list.findIndex(c => c.id === course.id);
     if (i >= 0) list[i] = course; else list.push(course);
     CF.loaded[course.code || course.id] = course;
+    // v69: what the course brought with it — colouring pictures per unit and its own figures
+    const col = window.LearnHub.colouring = window.LearnHub.colouring || {}; Object.keys(col).forEach(k => { if (k.indexOf(course.id + '/') === 0) delete col[k]; });
+    if (course.colouring && typeof course.colouring === 'object') Object.keys(course.colouring).forEach(u => { const pics = (Array.isArray(course.colouring[u]) ? course.colouring[u] : []).filter(p => p && p.svg); if (pics.length) col[course.id + '/' + u] = pics; });
+    const pics = window.LearnHub.pictures = window.LearnHub.pictures || {}; if (course.pictures && Object.keys(course.pictures).length) pics[course.id] = course.pictures; else delete pics[course.id];
     try { window.dispatchEvent(new CustomEvent('courses:change', { detail: { id: course.id } })); } catch (e) {}
   };
   CF.unregister = function (code) {
     const c = CF.loaded[code]; if (!c) return;
     const list = window.LearnHub.courses || []; const i = list.findIndex(x => x.id === c.id); if (i >= 0) list.splice(i, 1);
     delete CF.loaded[code];
+    const col = window.LearnHub.colouring || {}; Object.keys(col).forEach(k => { if (k.indexOf(c.id + '/') === 0) delete col[k]; }); if (window.LearnHub.pictures) delete window.LearnHub.pictures[c.id];
     try { window.dispatchEvent(new CustomEvent('courses:change', { detail: { id: c.id, removed: true } })); } catch (e) {}
   };
 
-  /* ---------- local cache (so a loaded course is there at once, and offline) ---------- */
-  function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function writeCache(map) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch (e) { /* too big for this browser: the cloud copy is used each start */ } }
-  CF.cacheCourse = function (code, course, meta) { const m = readCache(); m[code] = { meta: meta || {}, course }; writeCache(m); };
-  CF.uncache = function (code) { const m = readCache(); delete m[code]; writeCache(m); };
-  CF.loadCache = function () { const m = readCache(); Object.keys(m).forEach(code => { try { CF.register(m[code].course, Object.assign({ code }, m[code].meta)); } catch (e) {} }); return Object.keys(m); };
+  /* ---------- the device's copy (so a loaded course is there at once, and offline) ----------
+     v69: kept in IndexedDB, one record per course code: { meta, course }. `mem` mirrors it while the app runs.
+     If IndexedDB is not available (some private windows) the copy lives only until the page is closed. */
+  const mem = {}; let idb = null;
+  const openDb = () => new Promise(res => { try { const r = indexedDB.open('summitide-courses', 1); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('courses')) r.result.createObjectStore('courses'); }; r.onsuccess = () => res(r.result); r.onerror = () => res(null); r.onblocked = () => res(null); } catch (e) { res(null); } });
+  const tx = (mode, fn) => new Promise(res => { if (!idb) return res(null); try { const t = idb.transaction('courses', mode); const out = fn(t.objectStore('courses')); t.oncomplete = () => res(out && out.result !== undefined ? out.result : true); t.onerror = t.onabort = () => res(null); } catch (e) { res(null); } });
+  function readCache() { return mem; }
+  CF.cacheCourse = function (code, course, meta) { mem[code] = { meta: meta || {}, course }; return tx('readwrite', st => st.put(mem[code], code)); };
+  CF.uncache = function (code) { delete mem[code]; return tx('readwrite', st => st.delete(code)); };
+  CF.loadCache = function () { Object.keys(mem).forEach(code => { try { CF.register(mem[code].course, Object.assign({ code }, mem[code].meta)); } catch (e) { console.warn('cached course', code, e); } }); return Object.keys(mem); };
+  /** Resolves when the courses kept on this device are registered. The app waits for it (briefly) before its first screen. */
+  CF.ready = (async () => {
+    idb = await openDb();
+    if (idb) { const keys = await tx('readonly', st => st.getAllKeys()) || [], vals = await tx('readonly', st => st.getAll()) || []; keys.forEach((k, n) => { if (vals[n] && vals[n].course) mem[k] = vals[n]; }); }
+    try { const old = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); if (old && typeof old === 'object') { for (const code of Object.keys(old)) { if (!mem[code] && old[code] && old[code].course) await CF.cacheCourse(code, old[code].course, old[code].meta); } } localStorage.removeItem(CACHE_KEY); } catch (e) {}   // the copy kept by versions before 69
+    return CF.loadCache();
+  })();
+  const localOnly = () => !(window.Cloud && Cloud.enabled);
+  const isHead = () => !!(window.Staff && Staff.isMaster);
 
   /* ---------- cloud storage ---------- */
   const db = () => window.Cloud && Cloud.db;
   CF.save = async function (code, course, extra) {
+    if (localOnly()) {   // v69: no cloud: the course is kept on this device
+      if (!isHead()) throw new Error('Only the Headmaster can load courses.');
+      course = CF.scrub(course); const v0 = CF.validate(course); if (v0.errors.length) throw new Error('The course did not pass the checks: ' + v0.errors[0]);
+      if (!CF.isCode(code)) throw new Error('Not a course code.');
+      const m0 = { code, id: course.id, title: course.title, type: 'course', build: (extra && extra.build) || new Date().toISOString().slice(0, 10), size: JSON.stringify(course).length, parts: 0, by: (extra && extra.by) || '', at: new Date().toISOString(), local: true };
+      await CF.cacheCourse(code, course, m0); CF.register(course, m0); return m0;
+    }
     if (!db()) throw new Error('The cloud is not connected.');
     if (Cloud.role !== 'master') throw new Error('Only the Headmaster can load courses.');
     course = CF.scrub(course); const v = CF.validate(course); if (v.errors.length) throw new Error('The course did not pass the checks: ' + v.errors[0]);
     if (!CF.isCode(code)) throw new Error('Not a course code.');
     const json = JSON.stringify(course); const parts = Math.ceil(json.length / CHUNK) || 1;
     const meta = Object.assign({ code, id: course.id, title: course.title, type: 'course', build: (extra && extra.build) || new Date().toISOString().slice(0, 10), size: json.length, parts, by: (extra && extra.by) || '', at: new Date().toISOString() }, extra && extra.format ? { format: extra.format } : {});
-    const batch = db().batch();
-    for (let n = 0; n < parts; n++) batch.set(db().collection('courseChunks').doc(code.replace('/', '_') + '__' + n), { code, n, data: json.slice(n * CHUNK, (n + 1) * CHUNK) });
-    batch.set(db().collection('courses').doc(code.replace('/', '_')), meta);
-    await batch.commit();
+    // the pieces go up a few at a time (one request has a size limit); the small record that names the course goes last, so a half-sent course is never offered
+    const prev = await db().collection('courses').doc(code.replace('/', '_')).get().catch(() => null); const oldParts = prev && prev.exists ? (+prev.data().parts || 0) : 0;
+    for (let n = 0; n < parts; n += 6) { const batch = db().batch(); for (let k = n; k < Math.min(parts, n + 6); k++) batch.set(db().collection('courseChunks').doc(code.replace('/', '_') + '__' + k), { code, n: k, data: json.slice(k * CHUNK, (k + 1) * CHUNK) }); await batch.commit(); if (extra && extra.progress) extra.progress(Math.min(parts, n + 6), parts); }
+    const last = db().batch(); for (let k = parts; k < oldParts; k++) last.delete(db().collection('courseChunks').doc(code.replace('/', '_') + '__' + k));   // pieces left from a longer earlier build
+    last.set(db().collection('courses').doc(code.replace('/', '_')), meta); await last.commit();
     if (Cloud.log) Cloud.log('course.save', code, course.title + ' · ' + Math.round(json.length / 1024) + ' kB · build ' + meta.build);
-    CF.cacheCourse(code, course, meta); CF.register(course, meta);
+    await CF.cacheCourse(code, course, meta); CF.register(course, meta);
     return meta;
   };
   CF.remove = async function (code) {
+    if (localOnly()) { if (!isHead()) throw new Error('Only the Headmaster can remove courses.'); await CF.uncache(code); CF.unregister(code); return; }
     if (!db()) throw new Error('The cloud is not connected.');
     if (Cloud.role !== 'master') throw new Error('Only the Headmaster can remove courses.');
     const id = code.replace('/', '_');
-    const metaSnap = await db().collection('courses').doc(id).get(); const parts = metaSnap.exists ? (+metaSnap.data().parts || 1) : 1;
+    const metaSnap = await db().collection('courses').doc(id).get(); const parts = metaSnap.exists ? (+metaSnap.data().parts || 1) : 1; const was = metaSnap.exists ? String(metaSnap.data().title || '') : '';
     const batch = db().batch();
     for (let n = 0; n < parts; n++) batch.delete(db().collection('courseChunks').doc(id + '__' + n));
     batch.delete(db().collection('courses').doc(id));
     await batch.commit();
-    if (Cloud.log) Cloud.log('course.remove', code, metaSnap.exists ? String(metaSnap.data().title || '') : '');
-    CF.uncache(code); CF.unregister(code);
+    if (Cloud.log) Cloud.log('course.remove', code, was);
+    await CF.uncache(code); CF.unregister(code);
   };
   /** Pull every loaded course from the cloud and register it (replacing cached copies). */
   CF.loadAll = async function () {
     if (!db()) return [];
+    await CF.ready;
     const metas = await db().collection('courses').get();
     const cached = readCache(); const seen = new Set();
     for (const d of metas.docs) {
@@ -207,14 +270,14 @@
         const parts = +m.parts || 1; const chunks = [];
         for (let n = 0; n < parts; n++) { const s = await db().collection('courseChunks').doc(d.id + '__' + n).get(); chunks.push(s.exists ? s.data().data : ''); }
         const course = JSON.parse(chunks.join(''));
-        CF.cacheCourse(code, course, m); CF.register(course, m);
+        await CF.cacheCourse(code, course, m); CF.register(course, m);
       } catch (e) { console.warn('course load failed', code, e); }
     }
-    Object.keys(cached).forEach(code => { if (!seen.has(code)) { CF.uncache(code); CF.unregister(code); } });   // removed by the Headmaster elsewhere
+    Object.keys(cached).forEach(code => { if (!seen.has(code)) { CF.unregister(code); CF.uncache(code); } });   // removed by the Headmaster elsewhere
     return Array.from(seen);
   };
   CF.list = () => Object.keys(CF.loaded).map(code => ({ code, course: CF.loaded[code] }));
 
-  // courses cached on this device are available immediately, before the cloud answers
-  CF.loadCache();
+  if (!window.LearnHub) window.LearnHub = { courses: [] };
+  window.LearnHub.courses = window.LearnHub.courses || [];
 })();

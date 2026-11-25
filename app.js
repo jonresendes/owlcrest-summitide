@@ -449,7 +449,8 @@
       (Focus.enabled && Object.keys(Focus.data.courses).length ? '<div class="plan-banner"><strong>Focus Plan is on.</strong> Courses with a plan show only the pieces chosen for you.</div>' : '') +
       (window.Classes ? Classes.nextFor(s) : '') +
       '<h2 class="sub-head desk-sub">My Classes</h2>' +
-      (mine.length ? '<div class="class-cards">' + mine.map(classCard).join('') + '</div>' : '<div class="empty">You are not in a class yet. ' + (Cloud.enabled ? 'Your teacher adds you; it appears here as soon as they do.' : 'Join one under Courses.') + '</div>') +
+      (secs.some(x => !x.archived && !findCourseAll(x.courseId)) ? '<div class="class-cards">' + secs.filter(x => !x.archived && !findCourseAll(x.courseId)).map(x => Classes.classCard(x)).join('') + '</div>' : '') +
+      (mine.length ? '<div class="class-cards">' + mine.map(classCard).join('') + '</div>' : secs.some(x => !x.archived) ? '' : '<div class="empty">You are not in a class yet. ' + (Cloud.enabled ? 'Your teacher adds you; it appears here as soon as they do.' : 'Join one under Courses.') + '</div>') +
       '<div class="desk-tiles small-tiles">' +
       tile('#/case', chalkIcon('case'), 'Display Case', awards + ' / ' + total + ' awards', ' data-chalk') +
       tile('#/courses', chalkIcon('courses'), 'Courses', (others.length && !s.coursesLocked ? 'join a class' : mine.length + ' active') + (arch.length ? ' · ' + arch.length + ' archived' : ''), ' data-chalk') +
@@ -466,9 +467,9 @@
       '<div class="area-text"><strong>Load a Course or Class</strong><span class="small muted">Pick a course file · confirm its code · it joins Summitide Learning</span></div></div>' +
       '<div class="loader-body">' +
       '<ol class="loader-steps">' +
-      '<li><span class="loader-num">1</span><div><strong>Select the course file</strong><span class="muted small">A <code>.json</code> course file from the authoring workflow.</span></div></li>' +
+      '<li><span class="loader-num">1</span><div><strong>Select the course file</strong><span class="muted small">A <code>.json</code> course file. One file holds the whole course: lessons, questions, colouring pictures and figures.</span></div></li>' +
       '<li><span class="loader-num">2</span><div><strong>Confirm its Ontario course code</strong><span class="muted small">e.g. ENG3U, GLC2O. We read it from the file; change it if it is wrong.</span></div></li>' +
-      '<li><span class="loader-num">3</span><div><strong>Load it</strong><span class="muted small"><strong>New code</strong> → a new course for every teacher. <strong>Code already here</strong> → a new class of that course for the teacher you pick.</span></div></li>' +
+      '<li><span class="loader-num">3</span><div><strong>Load it</strong><span class="muted small"><strong>New code</strong> → a new course for every teacher. <strong>Code already here</strong> → replace it with this file, or make a new class of the course for the teacher you pick.</span></div></li>' +
       '</ol>' +
       '<div class="loader-pick"><input type="file" id="courseFile" accept=".json,application/json" class="visually-hidden"><label for="courseFile" class="btn loader-btn">Select a course file</label><span class="muted small" id="courseFileName">No file selected yet</span></div>' +
       '<div id="courseFileOut"></div>' +
@@ -499,7 +500,7 @@
     });
     app.querySelectorAll('[data-course-remove]').forEach(b => b.addEventListener('click', async () => {
       const code = b.dataset.courseRemove; const c = CourseFiles.loaded[code]; if (!c) return;
-      if (!confirm('Remove "' + c.title + '" from Summitide Learning?\n\nSections of it stay but their course will be missing until it is loaded again; students\' progress records are kept.')) return;
+      if (!confirm('Remove "' + c.title + '" from Summitide Learning?\n\nClasses that use it stay, and say their course is not loaded until it is loaded again. Students\' work and marks are kept.')) return;
       b.disabled = true; try { await CourseFiles.remove(code); pageCourses(); } catch (e) { alert('Could not remove: ' + (e.message || e)); b.disabled = false; }
     }));
   }
@@ -530,9 +531,9 @@
     if (v.errors.length) return;
     if (!course.id || CourseFiles.existing(code) && CourseFiles.existing(code).id !== course.id && !replacing) course.id = CourseFiles.idFor(code);
     if (replacing) { const ex = CourseFiles.existing(code); if (ex) course.id = ex.id; }
-    out.innerHTML = '<p class="muted small">Saving to the cloud…</p>';
+    out.innerHTML = '<p class="muted small" id="courseSaveMsg">Saving' + (Cloud.enabled ? ' to the cloud' : ' on this device') + '…</p>';
     try {
-      const meta = await CourseFiles.save(code, course, { by: Staff.current ? Staff.current.name : '', build: pendingCourseFile.envelope && pendingCourseFile.envelope.build, format: pendingCourseFile.envelope && pendingCourseFile.envelope.format });
+      const meta = await CourseFiles.save(code, course, { by: Staff.current ? Staff.current.name : '', build: pendingCourseFile.envelope && pendingCourseFile.envelope.build, format: pendingCourseFile.envelope && pendingCourseFile.envelope.format, progress: (a, b) => { const m = document.getElementById('courseSaveMsg'); if (m) m.textContent = 'Saving to the cloud… part ' + a + ' of ' + b; } });
       pendingCourseFile = null;
       pageCourses();
       const n = app.querySelector('#courseFileOut'); if (n) n.innerHTML = '<div class="plan-banner">✓ <strong>' + esc(course.title) + '</strong> is now in Summitide Learning (' + esc(code) + ', build ' + esc(meta.build) + '). <a href="#/course/' + esc(course.id) + '">Preview it</a> · <a href="#/sections?new=' + esc(course.id) + '">create a class</a>.</div>';
@@ -552,6 +553,7 @@
           '<div class="btn-row course-row-actions"><a class="btn secondary sm" href="#/course/' + c.id + '">Preview</a><a class="btn ghost sm" href="#/classes?new=' + esc(c.id) + '">＋ Class</a>' + (c.source === 'cloud' && Staff.isMaster ? '<button class="btn ghost sm" data-course-remove="' + esc(c.code || c.id) + '" title="Remove this loaded course">Remove</button>' : '') + '</div></div>'; };
       app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: 'Courses' }]) +
         '<div class="page-head"><div><h1>Courses</h1><p class="muted">' + allCourses().length + ' courses in ' + groups.length + ' area' + (groups.length === 1 ? '' : 's') + ', in teacher preview. Students see a course through a <strong>class</strong>: your own copy for one roster, where every change you make stays until you copy it into another class.</p></div><div class="btn-row"><a class="btn secondary" href="#/classes">My Classes</a></div></div>' +
+        (allCourses().length ? '' : '<div class="empty slim"><h2 style="margin:0 0 0.3rem">No courses yet</h2><p class="muted" style="margin:0">Summitide Learning starts empty. ' + (Staff.isMaster ? 'Load your first course file below; it is there for every teacher and can be removed again at any time.' : 'The ' + esc(LH.headTitle()) + ' loads course files here.') + '</p></div>') +
         '<div class="area-list">' + groups.map(g => '<details class="area-fold" data-area="' + g.area.key + '" style="--area:' + g.area.colour + '"' + (openKey === g.area.key ? ' open' : '') + '><summary class="area-bar"><span class="area-block">' + esc(g.area.short) + '</span><span class="area-text"><strong>' + esc(g.area.label) + '</strong><span class="muted small">' + g.courses.length + ' course' + (g.courses.length === 1 ? '' : 's') + ' · ' + g.courses.map(c => esc(LH.courseCode(c) || c.id.toUpperCase())).join(' · ') + '</span></span><span class="fold-caret">→</span></summary><div class="area-body">' + g.courses.map(row).join('') + '</div></details>').join('') + '</div>' +
         (Staff.isMaster ? courseLoaderHtml() : '');
       app.querySelectorAll('details.area-fold').forEach(d => d.addEventListener('toggle', () => { if (d.open) { app.querySelectorAll('details.area-fold').forEach(o => { if (o !== d) o.open = false; }); sessionStorage.setItem('learnhub.areaOpen', d.dataset.area); } else if (sessionStorage.getItem('learnhub.areaOpen') === d.dataset.area) sessionStorage.removeItem('learnhub.areaOpen'); }));
@@ -587,7 +589,7 @@
       (hm ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's') + ' · ' + secs.length + ' class' + (secs.length === 1 ? '' : 'es'), ' data-chalk')
           : tile('#/classes', chalkIcon('classes'), 'My Classes', own.length + ' active' + (archived.length ? ' · ' + archived.length + ' archived' : ''), ' data-chalk')) +
       tile('#/students', chalkIcon('students'), 'Students', all.length + (hm ? ' in the school' : ' in my classes') + (sugg ? ' · ' + sugg + ' suggestion' + (sugg === 1 ? '' : 's') : ''), ' data-chalk') +
-      tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length + ' courses · ' + areas + ' area' + (areas === 1 ? '' : 's'), ' data-chalk') +
+      tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length ? allCourses().length + ' course' + (allCourses().length === 1 ? '' : 's') + ' · ' + areas + ' area' + (areas === 1 ? '' : 's') : (hm ? 'none yet · load a file' : 'none loaded yet'), ' data-chalk') +
       tile('#/curriculum', chalkIcon('curriculum'), 'Curriculum', cur ? cur + ' document' + (cur === 1 ? '' : 's') : 'Ministry documents', ' data-chalk') +
       (hm ? tile('#/admin', chalkIcon('admin'), 'Administration', 'school · privacy · records', ' data-chalk') : tile('#/staff', chalkIcon('staff'), 'Staff', 'teachers at this school', ' data-chalk')) +
       '</div>' +
@@ -1886,5 +1888,7 @@
     route();
   });
   Settings.apply();
-  if (Cloud.enabled) Cloud.whenReady().then(route); else route();
+  // v69: the courses kept on this device are registered first (a moment), so a reload on a lesson finds its course
+  const coursesReady = Promise.race([window.CourseFiles ? CourseFiles.ready.catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, 2500))]);
+  if (Cloud.enabled) Promise.all([Cloud.whenReady(), coursesReady]).then(route); else coursesReady.then(route);
 })();
