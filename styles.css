@@ -1671,3 +1671,54 @@ body[data-page="desk"] .final-card { box-shadow: 0 2px 8px rgba(27,47,94,0.08); 
 
 /* v71 · the ladybug on the "Found a problem?" button (the one emoji the app draws, by request) */
 .report-fab .report-fab-bug { font-size: 1.35rem; line-height: 1; font-weight: 400; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+
+/* =========================================================
+   v72 · fixes from the reported problems (phones)
+   ========================================================= */
+/* ---- header. Phone (upright): row 1 is the logo; row 2 is My Classes at the left, the person at the right, My Desk between them. ---- */
+.top-break { display: none; }
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; align-items: center; gap: 0.45rem 0.5rem; padding: 0.5rem 0.75rem; }
+  .topbar .back-btn { order: 0; flex: 0 0 auto; }
+  .topbar .brand { order: 1; flex: 1 1 auto; min-width: 0; }
+  .topbar .install-btn { order: 2; flex: 0 0 auto; }
+  .topbar .top-break { display: block; order: 3; flex: 0 0 100%; height: 0; margin: -0.225rem 0; }
+  .topbar .top-tools { order: 4; flex: 0 1 auto; min-width: 0; }
+  .topbar .topnav { order: 5; flex: 1 1 0; width: auto; min-width: 0; justify-content: center; padding: 0; margin: 0; overflow-x: auto; }
+  .topbar .topnav a { padding: 0.35rem 0.6rem; font-size: 0.9rem; }
+  .topbar .who-chip { order: 6; flex: 0 0 auto; margin-left: auto; max-width: 45%; }
+  .topbar .who-name { display: none; }
+  .class-switch select { max-width: 9.2rem; }
+  .topnav a[hidden] { display: none; }
+}
+/* ---- header. A phone on its side or a small tablet: one row, with everything a little smaller so nothing sits on top of anything else. ---- */
+@media (min-width: 641px) and (max-width: 900px) {
+  .topbar { flex-wrap: nowrap; gap: 0.5rem; padding: 0.45rem 0.75rem; }
+  .topbar .brand { flex: 0 1 auto; min-width: 0; }
+  .topbar .brand-logo { height: 34px; width: auto; max-width: 100%; }
+  .topbar .back-btn { padding: 0.35rem 0.55rem; } .topbar .back-btn .back-label { display: none; }
+  .topbar .topnav { flex: 0 1 auto; order: 2; width: auto; min-width: 0; overflow: visible; }
+  .topbar .topnav a { padding: 0.35rem 0.55rem; font-size: 0.88rem; }
+  .topbar .top-tools { order: 3; margin-left: auto; flex: 0 1 auto; }
+  .topbar .install-btn { order: 4; font-size: 0.78rem; padding: 0.3rem 0.55rem; }
+  .topbar .who-chip { order: 5; flex: 0 0 auto; max-width: none; }
+  .topbar .who-name, .topbar .role-badge-text { display: none; }
+  .topbar .role-badge-short { display: inline; }
+  .class-switch select { max-width: 9rem; height: 2rem; font-size: 0.82rem; }
+}
+/* ---- Jeopardy on a phone: every column fits the screen ---- */
+.jeopardy-board .jcat { overflow-wrap: anywhere; hyphens: auto; display: flex; align-items: center; justify-content: center; min-width: 0; }
+.jeopardy-board .jcell { min-width: 0; }
+@media (max-width: 640px) {
+  .jeopardy-board { gap: 0.25rem; }
+  .jeopardy-board .jcat { font-size: 0.68rem; line-height: 1.15; padding: 0.4rem 0.15rem; border-radius: 6px; }
+  .jeopardy-board .jcell { font-size: 1rem; padding: 0.7rem 0; border-radius: 6px; }
+  .jeopardy-board[data-cols="6"] .jcat, .jeopardy-board[data-cols="7"] .jcat { font-size: 0.6rem; }
+  .jeopardy-board[data-cols="6"] .jcell, .jeopardy-board[data-cols="7"] .jcell { font-size: 0.85rem; }
+}
+/* ---- "How coins are earned": the words wrap, so the Coins column stays on the screen ---- */
+.coin-table-wrap { overflow-x: auto; max-width: 100%; }
+table.coin-table { table-layout: fixed; width: 100%; }
+table.coin-table td, table.coin-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; text-align: left; }
+table.coin-table th:first-child, table.coin-table td:first-child { width: 52%; }
+.sgroup .sg-body { min-width: 0; overflow-wrap: anywhere; }

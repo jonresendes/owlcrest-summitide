@@ -1,5 +1,5 @@
 {
- "version": "71",
+ "version": "72",
  "date": "2026-11-24",
- "notes": "The ladybug is back on the Found a problem? button. No rules to publish."
+ "notes": "Fixes from the reported problems: the header lines up on phones (upright and on its side), Jeopardy fits a phone screen, the How coins are earned table no longer runs off the screen, and the Math Lab number boxes open the full keyboard so / and - can be typed. No rules to publish."
 }

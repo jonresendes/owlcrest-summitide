@@ -294,10 +294,10 @@
     b.addEventListener('click', async () => { try { await Coins.setEnabled(!Coins.on()); } catch (e) { alert(e.message); } try { sessionStorage.setItem('learnhub.sg.coins', '1'); } catch (e) {} if (again) again(); });
   };
   function ratesHtml() {
-    return '<table class="dash coin-table"><tr><th>For</th><th>Coins</th></tr>' +
+    return '<div class="coin-table-wrap"><table class="dash coin-table"><tr><th>For</th><th>Coins</th></tr>' +
       [['Reading every slide of a lesson', RATES.lessonRead], ['Passing a lesson quiz', RATES.quizPassed], ['…and scoring 85% or more on it', '+' + RATES.quizStrong], ['Handing in an assignment', RATES.assignment + ' each'], ['Reading every lesson in a unit', '+' + RATES.unitRead],
         ['Unit test, by best score', RATES.test.slice().reverse().map(r => r[0] + '%+ → ' + r[1]).join(' · ')], ['Games in a unit', RATES.gameFinished + ' per game finished, 1 per ' + RATES.gamePoints.toLocaleString() + ' points, at most ' + RATES.gamesCap]].map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>').join('') +
-      '</table><p class="muted small">Each of these counts once, however many times the work is repeated. A unit of six lessons is worth about 60 to 90 coins.</p>';
+      '</table></div><p class="muted small">Each of these counts once, however many times the work is repeated. A unit of six lessons is worth about 60 to 90 coins.</p>';
   }
 
   /* ====================== requests ====================== */

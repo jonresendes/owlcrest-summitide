@@ -240,7 +240,7 @@
       let score = 0, answered = 0, total = cats.length * rows;
       const board = () => {
         ctx.host.innerHTML = '<div class="game-head"><span class="jscore">Score: ' + score + '</span><span class="muted">' + (total - answered) + ' clues left</span></div>' +
-          '<div class="jeopardy-board" style="grid-template-columns:repeat(' + cats.length + ',1fr)">' +
+          '<div class="jeopardy-board" data-cols="' + cats.length + '" style="grid-template-columns:repeat(' + cats.length + ',minmax(0,1fr))">' +
           cats.map(c => '<div class="jcat">' + esc(c.name) + '</div>').join('') +
           Array.from({ length: rows }).map((_, r) => cats.map((c, ci) =>
             '<button class="jcell" data-c="' + ci + '" data-r="' + r + '"' + (c.qs[r].done ? ' disabled' : '') + '>' + (c.qs[r].done ? '' : (r + 1) * 100) + '</button>').join('')).join('') +

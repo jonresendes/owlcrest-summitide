@@ -514,7 +514,7 @@
       '<div class="mt-tabs" role="tablist">' + Object.keys(TOOLS).map(function (k) { return '<a role="tab" class="mt-tab" aria-selected="' + (k === tool) + '" href="#/mathlab/' + esc(course.id) + '/' + k + '">' + TOOLS[k].icon + ' ' + esc(TOOLS[k].name) + '</a>'; }).join('') + '</div><div class="card mt-tool" id="mtTool"></div></div>';
     TOOLS[tool].draw($('#mtTool')); return true;
   }
-  var numIn = function (id, label, v, extra) { return '<label class="mt-field"><span>' + label + '</span><input class="text-input" id="' + id + '" type="text" inputmode="decimal" autocomplete="off" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '></label>'; };
+  var numIn = function (id, label, v, extra) { return '<label class="mt-field"><span>' + label + '</span><input class="text-input" id="' + id + '" type="text" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(v == null ? '' : v) + '"' + (extra || '') + '></label>'; };
   var read = function (id) { var el = $('#' + id); if (!el || !el.value.trim()) return null; try { return M.val(M.evaluate(M.parse(el.value))); } catch (e) { return NaN; } };
   function toolFormulas(el) {
     var groups = []; FORMULAS.forEach(function (f) { if (groups.indexOf(f[0]) < 0) groups.push(f[0]); });
