@@ -1257,7 +1257,7 @@
 
   /* ----- Teachers (Headmaster only): add a teacher, open a profile, sections, students, reset, remove ----- */
   const tUI = { msg: '', ok: true };
-  const redrawTeachers = () => (/^#\/teachers/.test(location.hash) ? Classes.teachersPage() : /^#\/admin/.test(location.hash) ? pageAdmin() : pageSettings());
+  const redrawTeachers = () => (/^#\/teacher\//.test(location.hash) ? (Staff.teachers.some(t => t.id === decodeURIComponent(location.hash.split('/')[2] || '')) ? Classes.teacherPage(decodeURIComponent(location.hash.split('/')[2])) : (tUI.keep = true, location.hash = '#/teachers')) : /^#\/teachers/.test(location.hash) ? Classes.teachersPage() : /^#\/admin/.test(location.hash) ? pageAdmin() : pageSettings());
   function teachersHtml() {
     const cloud = Cloud.enabled;
     const ts = Staff.teachers.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
@@ -1330,7 +1330,7 @@
       (ts.length ? '<div class="student-list">' + rows + '</div>' : '<p class="muted small">No teachers yet. Add the first one above.</p>');
   }
   function bindTeachers() {
-    if (!app.querySelector('#hmAdd')) return;
+    if (!app.querySelector('#hmAdd') && !app.querySelector('[data-t-remove]')) return;   // v74: also the teacher's own page, which has only the delete button
     const cloud = Cloud.enabled, q = sel => app.querySelector(sel), val = sel => { const el = q(sel); return el ? String(el.value || '').trim() : ''; };
     const on = (sel, ev, fn) => app.querySelectorAll(sel).forEach(el => el.addEventListener(ev, fn));
     const done = (msg, ok) => { tUI.msg = msg || ''; tUI.ok = ok !== false; redrawTeachers(); };
@@ -1814,7 +1814,7 @@
   }
 
   function toast(msg) { const t = document.getElementById('toasts'); if (!t) return; const d = document.createElement('div'); d.className = 'toast'; d.textContent = msg; t.appendChild(d); setTimeout(() => d.remove(), 2200); }
-  window.AppUI = { crumbs, tile, chalkIcon, deskName, teacherName, findCourseAll, avatarHtml, cloudStatusHtml, courseProgress, lessonStatus, setCourseColor, setNav, sectionsHtml, bindSections, teachersHtml, bindTeachers, studentsPage: pageStudents, toast };
+  window.AppUI = { teacherMsg: () => tUI, crumbs, tile, chalkIcon, deskName, teacherName, findCourseAll, avatarHtml, cloudStatusHtml, courseProgress, lessonStatus, setCourseColor, setNav, sectionsHtml, bindSections, teachersHtml, bindTeachers, studentsPage: pageStudents, toast };
   function notFound() { app.innerHTML = '<div class="empty"><h2>Page not found</h2><a class="btn" href="#/">Back to courses</a></div>'; }
 
   /* ---------- router ---------- */
@@ -1830,7 +1830,7 @@
     // profile was left signed in on this device. Once a tile is tapped the session proceeds normally.
     // every collapsible area starts closed when a screen is opened
     // (a redraw of the same screen — a setting changed, data arrived from the cloud — keeps them as they are)
-    if (location.hash !== route.last) tUI.msg = '';
+    if (location.hash !== route.last) { if (tUI.keep) tUI.keep = false; else tUI.msg = ''; }   // v74: the result of deleting a teacher is carried to the Teachers page
     if (location.hash !== route.last) Object.keys(sessionStorage).filter(k => /^learnhub\.(sg\.|studentOpen|workOpen|recOpen|mediaOpen|planOpen|sectionsOpen|focusOpen|teacherOpen|tSecOpen)/.test(k)).forEach(k => sessionStorage.removeItem(k));
     route.last = location.hash;
     if (parts[0] !== 'students' && !(parts[0] === 'class' && parts[2] === 'students')) route.cameFrom = '';

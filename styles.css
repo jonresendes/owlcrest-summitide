@@ -1729,3 +1729,8 @@ table.coin-table th:first-child, table.coin-table td:first-child { width: 52%; }
 /* the header's tools keep their own width (they were being squeezed under the Install button between 900 and 1150 px); the search box waits for a wider screen */
 .topbar .top-tools { flex: 0 0 auto; }
 @media (max-width: 1150px) { .top-search { display: none; } }
+
+/* v74 · delete a teacher, on the teacher's page */
+.danger-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; padding: 1rem 1.15rem; border: 1px solid #e6b8a6; border-left: 6px solid var(--danger); }
+.danger-card > div { flex: 1 1 18rem; min-width: 0; }
+.btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); } .btn.danger:hover { filter: brightness(0.92); }

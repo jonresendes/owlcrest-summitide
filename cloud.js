@@ -846,14 +846,15 @@
     if (Cloud.user && teacherId === Cloud.user.uid) throw new Error('The Headmaster account cannot be removed.');
     try {
       const old = await db.collection('staff').doc(teacherId).get().catch(() => null);
-      const login = old && old.exists ? (old.data() || {}).login : '';
+      const login = old && old.exists ? (old.data() || {}).login : ''; const wasName = old && old.exists ? ((old.data() || {}).name || '') : '';
       const secs = await db.collection('sections').where('teacherId', '==', teacherId).get();
       const b = db.batch();
       secs.docs.forEach(d => b.update(d.ref, { teacherId: null, updatedAt: now() }));
       b.delete(db.collection('staff').doc(teacherId)); b.delete(db.collection('staffPrivate').doc(teacherId)); b.delete(db.collection('staffNotes').doc(teacherId));
       await b.commit();
       if (login) await db.collection('logins').doc(normLogin(login)).delete().catch(() => {});
-      log('remove teacher', teacherId, { name: old && old.exists ? (old.data().name || '') : '' });
+      await db.collection('staffClasses').doc(teacherId).delete().catch(() => {});   // v74: their line on the Staff page goes too
+      log('remove teacher', teacherId, { name: wasName });
     } catch (e) { throw new Error(rulesHint(e)); }
     for (const id of Object.keys(seenStudents)) { const cur = seenStudents[id].teachers || []; if (!cur.includes(teacherId)) continue;
       const next = cur.filter(x => x !== teacherId); try { await db.collection('students').doc(id).update({ teachers: next }); seenStudents[id].teachers = next; } catch (e) { console.warn('access list', id, e); } }

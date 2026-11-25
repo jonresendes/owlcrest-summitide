@@ -370,8 +370,9 @@
       return '<a class="card teacher-card" href="#/teacher/' + esc(id) + '">' + UI().avatarHtml(t, 'who-avatar big') + '<span class="teacher-card-text"><strong>' + esc(t.name) + '</strong><span class="muted small">' + (mineTag ? esc(HT) + ' · you' : 'Teacher' + (t.login ? ' · ID ' + esc(t.login) : '')) + '</span></span><span class="class-card-tags"><span class="tag">' + plural(act.length, 'class', 'classes') + '</span><span class="tag">' + plural(kids.size, 'student') + '</span>' + (arc.length ? '<span class="tag">' + arc.length + ' archived</span>' : '') + '</span></a>'; };
     app.innerHTML = UI().crumbs([{ label: UI().deskName(), href: '#/' }, { label: 'Teachers' }]) +
       '<div class="page-head"><div><h1>Teachers</h1><p class="muted">Open a teacher to see their classes, current and archived. Only the ' + esc(HT) + ' sees this page.</p>' + UI().cloudStatusHtml() + '</div></div>' +
+      (UI().teacherMsg().msg ? '<div class="plan-banner' + (UI().teacherMsg().ok ? '' : ' warn-banner') + '" role="status">' + esc(UI().teacherMsg().msg) + '</div>' : '') +
       '<div class="teacher-cards">' + card('master', Staff.master || me, true) + ts.map(t => card(t.id, t)).join('') + '</div>' +
-      '<details class="card hm-card accounts-fold"' + (ts.length ? '' : ' open') + '><summary><strong>Teacher accounts</strong> <span class="muted small">add a teacher · reset a password · move classes · remove</span></summary><div style="margin-top:0.75rem">' + UI().teachersHtml() + '</div></details>';
+      '<details class="card hm-card accounts-fold"' + (ts.length ? '' : ' open') + '><summary><strong>Teacher accounts</strong> <span class="muted small">add a teacher · reset a password · move classes. To delete a teacher, open their card above.</span></summary><div style="margin-top:0.75rem">' + UI().teachersHtml() + '</div></details>';
     UI().bindTeachers();
   }
   function teacherPage(id) {
@@ -384,7 +385,11 @@
       '<div class="page-head"><div class="teacher-head">' + UI().avatarHtml(t, 'who-avatar big') + '<div><h1>' + esc(t.name) + '</h1><p class="muted">' + (id === 'master' ? esc(LH.headTitle()) : 'Teacher' + (t.login ? ' · ID ' + esc(t.login) : '')) + ' · ' + plural(act.length, 'current class', 'current classes') + (arc.length ? ' · ' + arc.length + ' archived' : '') + '</p></div></div>' +
       '<div class="btn-row"><a class="btn secondary" href="#/classes">Create or move a class</a></div></div>' +
       '<h2 class="sub-head">Current classes</h2>' + (act.length ? '<div class="class-cards">' + act.map(s => classCard(s)).join('') + '</div>' : '<div class="empty">No current classes.</div>') +
-      (arc.length ? '<h2 class="sub-head">Archived classes</h2><div class="class-cards">' + arc.map(s => classCard(s)).join('') + '</div>' : '');
+      (arc.length ? '<h2 class="sub-head">Archived classes</h2><div class="class-cards">' + arc.map(s => classCard(s)).join('') + '</div>' : '') +
+      // v74: deleting a teacher is on the teacher's own page, where the Headmaster looks for it
+      (id === 'master' ? '' : (UI().teacherMsg().msg ? '<div class="plan-banner' + (UI().teacherMsg().ok ? '' : ' warn-banner') + '" role="status" style="margin-top:1rem">' + esc(UI().teacherMsg().msg) + '</div>' : '') +
+        '<div class="card danger-card"><div><h3 style="margin:0 0 0.25rem">Delete this teacher</h3><p class="muted small" style="margin:0">' + esc(t.name) + ' will no longer be able to sign in. ' + (act.length + arc.length ? 'Their ' + plural(act.length + arc.length, 'class', 'classes') + ', the students in them and all work and marks are kept; the classes pass to you until you give them to another teacher.' : 'They have no classes, so nothing else changes.') + ' Their private notes are deleted.</p></div><button class="btn danger" data-t-remove="' + esc(id) + '">Delete ' + esc(t.name) + '</button></div>');
+    UI().bindTeachers();
   }
   function staffPage() {
     const me = Students.current; if (!me || !me.isStaff) { location.replace(location.pathname + '#/'); return; }
