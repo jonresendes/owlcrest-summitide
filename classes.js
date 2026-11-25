@@ -74,7 +74,7 @@
     begin(c); document.body.dataset.page = 'desk'; document.body.dataset.desk = c.staff ? 'staff' : 'student';
     const m = c.sec ? Marks.scheme(c.sec) : Marks.fresh(); if (!c.sec) m.tasks = [];
     const its = Marks.items(c.course); const T = UI().tile, ico = UI().chalkIcon, base = '#/class/' + encodeURIComponent(c.id);
-    const units = unitsFor(c.course), nLessons = units.reduce((n, u) => n + lessonsFor(u).length, 0);
+    const allUnits = unitsFor(c.course), units = allUnits.filter(u => !LH.unitHidden(u)), nLessons = units.reduce((n, u) => n + lessonsFor(u).length, 0), held = allUnits.length - units.length;
     let tiles, tools = '', head = '';
     if (c.staff) {
       const k = staffCounts(c, its, m), n = (c.sec.students || []).length, tot = Marks.total(m);
@@ -87,7 +87,7 @@
         (window.Coins && Coins.on() ? '<a class="ctool" href="#/shop">' + ico('shop') + '<span>My shop</span></a>' : '') +
         '<span class="ctool-gap"></span>' +
         (c.ro ? '<button class="btn ghost sm" data-class-archive="0">Retrieve from the archive</button>' : '<button class="btn ghost sm" data-class-rename>Rename</button><button class="btn ghost sm" data-class-archive="1">Archive</button>') + '</nav>';
-      tiles = T('#/course/' + c.course.id, ico('content'), 'Content', plural(units.length, 'unit') + ' · ' + plural(nLessons, 'lesson'), ' data-chalk') +
+      tiles = T('#/course/' + c.course.id, ico('content'), 'Content', plural(units.length, 'unit') + ' · ' + plural(nLessons, 'lesson') + (held ? ' · ' + held + ' held back' : ''), ' data-chalk') +
         T(base + '/assignments', ico('assignments'), 'Assignments', k.work.n + (k.work.toMark ? ' · ' + k.work.toMark + ' to mark' : ''), ' data-chalk') +
         T(base + '/quizzes', ico('quizzes'), 'Quizzes', plural(k.quiz.n, 'lesson quiz', 'lesson quizzes'), ' data-chalk') +
         T(base + '/tests', ico('tests'), 'Tests', plural(k.test.n, 'unit test'), ' data-chalk') +

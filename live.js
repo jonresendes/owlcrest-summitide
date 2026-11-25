@@ -42,7 +42,7 @@
   /** What a session is about: the item students write. { kind: 'test'|'quiz'|'assign'|'any', unitId, lessonIdx, n, label, href } */
   function targetsFor(course) {
     const out = [{ kind: 'any', label: 'Any work in ' + course.title, href: '#/course/' + course.id }];
-    (window.LH.unitsFor(course) || []).forEach((u, ui) => {
+    (window.LH.unitsFor(course) || []).filter(u => !window.LH.unitHidden(u)).forEach((u, ui) => { ui = course.units.indexOf(u);
       if (!window.LH.testHidden(u)) out.push({ kind: 'test', unitId: u.id, label: 'Unit ' + (ui + 1) + ' test · ' + u.title, href: '#/test/' + course.id + '/' + u.id });
       (window.LH.lessonsFor(u) || []).forEach((les, li) => {
         out.push({ kind: 'quiz', unitId: u.id, lessonIdx: les._idx, label: 'Unit ' + (ui + 1) + ' · Lesson ' + (li + 1) + ' quiz · ' + les.title, href: '#/quiz/' + course.id + '/' + u.id + '/' + les._idx });

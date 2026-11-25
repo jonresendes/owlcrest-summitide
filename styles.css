@@ -1663,3 +1663,8 @@ body[data-page="desk"] .final-card { box-shadow: 0 2px 8px rgba(27,47,94,0.08); 
 .cu-form { margin-bottom: 1rem; } .cu-line .work-what .small { line-height: 1.45; }
 .cu-line { grid-template-columns: minmax(0, 1fr) auto; }
 @media print { .class-tools, .next-strip, .reveal-card .btn { display: none !important; } }
+
+/* v70 · units held back from a class */
+.unit-release { padding: 0.9rem 1.15rem; margin-bottom: 1rem; } .unit-release > summary { cursor: pointer; }
+.unit-card.unit-held { opacity: 0.72; border-style: dashed; }
+.unit-flag.held { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--muted); }

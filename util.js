@@ -160,8 +160,10 @@
   /** Units of a course the student can see (all, or those in an active Focus Plan). */
   function unitsFor(course) {
     course.units.forEach(u => { u.__courseId = course.id; });
-    if (!(window.Focus && Focus.active(course.id))) return course.units;
-    return course.units.filter(u => Focus.unitEntry(course.id, u.id));
+    // v70: a unit the teacher has not released to the class does not exist for its students. Staff still see it (marked), so they can read it and release it.
+    const s = window.Students && Students.current; const list = s && !s.isStaff ? course.units.filter(u => !unitHidden(u)) : course.units;
+    if (!(window.Focus && Focus.active(course.id))) return list;
+    return list.filter(u => Focus.unitEntry(course.id, u.id));
   }
 
   /* ---------- Classroom shell (section overlay) ----------
@@ -353,6 +355,7 @@
   /** The category new questions for a lesson should carry. */
   function lessonCat(unit, lessonIdx) { const c = lessonCats(unit, lessonIdx); const les = lessonAt(unit, lessonIdx); return c[0] || (les ? 'L' + (lessonIdx + 1) + ' ' + les.title : ''); }
   /** v68: a teacher can leave a lesson quiz or a unit test out for one class (kept on the class, like every other customisation). */
+  function unitHidden(unit) { const ov = unitOverlay(unit); return !!(ov && ov.hiddenUnit); }
   function quizHidden(unit, lessonIdx) { const ov = unitOverlay(unit); return !!(ov && ov.lessons && ov.lessons[lessonIdx] && ov.lessons[lessonIdx].noQuiz); }
   function testHidden(unit) { const ov = unitOverlay(unit); return !!(ov && ov.noTest); }
   function lessonQuestions(unit, lessonIdx, level, types, evenHidden) {
@@ -462,7 +465,7 @@
   window.LH = { reviewList, AREAS, courseArea, courseCode, areaInfo, groupByArea, LEVELS, LEVEL_NAMES, LEVEL_DESC, BANDS, band, body, def, byLevel, L, shuffle, sample, esc, safeUrl, num, md, speak, stopSpeaking, speakBtn, termsFor, slidesFor, mcOptions,
                 questionsFor, resolveQuestion, termQuestions, choicePool, normalize, findCourse, findUnit, markSeen,
                 focusFor, unitsFor, lessonsFor, catsOf, allTermKeys, accom, assessmentCount, difficulty, assessmentOrder,
-                lessonCats, lessonCat, lessonQuestions, quizHidden, testHidden, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };
+                lessonCats, lessonCat, lessonQuestions, quizHidden, testHidden, unitHidden, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };
   /* v67 · NO EMOJI. The app draws no emoji of its own. Three helpers replace what they did:
        LH.plain(text)     takes emoji out of text that came from outside the build (a course loaded from a file, an older saved customisation)
        LH.initial(person) the letter shown in a person's coloured circle, where an emoji avatar used to be

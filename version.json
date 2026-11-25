@@ -1,5 +1,5 @@
 {
- "version": "69",
+ "version": "70",
  "date": "2026-11-24",
- "notes": "The app ships with no courses. Every course is loaded from a file by the Headmaster (Courses, Load a Course) and can be removed there. A course file now carries its colouring pictures and figures. Loaded courses are kept on each device in IndexedDB. Device-only mode can load course files too. No rules to publish beyond version 68."
+ "notes": "Hold a unit back from a class and release it later. On a class's Content page the teacher sees Units for this class, with Hold back and Release for each unit. A held-back unit does not exist for that class's students and does not count in marks. No rules to publish."
 }

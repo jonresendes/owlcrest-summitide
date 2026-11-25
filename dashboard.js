@@ -123,7 +123,7 @@
       (cur ? '<a class="btn ghost" href="#/class/' + esc(cur.id) + '/grades">← ' + esc(cur.name) + '</a>' : '') + '<button class="btn secondary" id="dashPrint" title="Every unit, every column: wide units are printed in parts so nothing is cut off">Print</button><button class="btn secondary" id="dashCsv" title="Every unit in one file for Excel, Google Sheets or Numbers">CSV</button><button class="btn secondary" id="dashDocx" title="Every unit in one document for Word, Google Docs or Pages">Word</button></div></div>';
     if (!course) { app.innerHTML = head + '<div class="empty">No course.</div>'; return; }
     Settings.activeCourse = course.id;
-    const tables = unitsFor(course).map((un, ui) => {
+    const tables = unitsFor(course).filter(un => !window.LH.unitHidden(un)).map((un, ui) => { ui = course.units.indexOf(un);
       const lessons = lessonsFor(un);   // v68: through the class in force, so hidden lessons and tasks leave the grid
       const rows = students.map(s => {
         const prog = Progress.graded(s.id); const u = (prog[course.id] || {})[un.id] || {};

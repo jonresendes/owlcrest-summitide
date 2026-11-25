@@ -15,7 +15,7 @@
      progress[course]._tasks.work[taskId][0] = { text, done, at }
    ========================================================= */
 (function () {
-  const { unitsFor, lessonsFor, assignmentsFor, lessonQuestions, quizHidden, testHidden, L } = window.LH;
+  const { unitsFor, lessonsFor, assignmentsFor, lessonQuestions, quizHidden, testHidden, unitHidden, L } = window.LH;
   const TASKS = '_tasks', MARKS = '_marks';
   const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const clampW = v => Math.max(0, Math.min(100, Math.round((+v || 0) * 10) / 10));
@@ -51,7 +51,7 @@
       For a teacher this reads the course through the class they are working in; for a student, through their own class. */
   function items(course, withHidden) {
     const out = [];
-    unitsFor(course).forEach(unit => { const ui = course.units.indexOf(unit);
+    unitsFor(course).filter(u => !unitHidden(u)).forEach(unit => { const ui = course.units.indexOf(unit);   // v70: a unit held back from the class has no work to mark or count
       lessonsFor(unit).forEach((les, li) => {
         const hasQ = lessonQuestions(unit, les._idx, undefined, undefined, true).length > 0, qh = hasQ && quizHidden(unit, les._idx);
         if (hasQ && (withHidden || !qh)) out.push({ kind: 'quiz', unit, ui, l: les._idx, li, title: L(les.title), label: 'Lesson ' + (li + 1) + ' quiz', hidden: qh });
@@ -79,6 +79,14 @@
     else { const lo = u.lessons[it.l] = u.lessons[it.l] || {};
       if (it.kind === 'quiz') { if (on) lo.noQuiz = true; else delete lo.noQuiz; }
       else { lo.assignments = lo.assignments || {}; const a = lo.assignments[it.n] = lo.assignments[it.n] || {}; if (on) a.hidden = true; else { delete a.hidden; if (!Object.keys(a).length) delete lo.assignments[it.n]; } } }
+    Sections.save();
+  }
+
+  /** v70 · Hold a whole unit back from the class, or release it. Kept with the class's other customisations. */
+  function setUnitHidden(sec, course, unit, on) {
+    sec = fresh1(sec); sec.overlay = sec.overlay || {}; const c = sec.overlay[course.id] = sec.overlay[course.id] || {};
+    const u = c[unit.id] = c[unit.id] || { lessonOrder: null, lessons: {}, customLessons: [], questions: { hidden: [], edited: {}, added: [] }, terms: { hidden: [], added: [] } };
+    if (on) u.hiddenUnit = true; else delete u.hiddenUnit;
     Sections.save();
   }
 
@@ -120,5 +128,5 @@
   /** A student's own class for a course (the one whose scheme applies to them). */
   function classFor(courseId, studentId) { const all = Sections.forStudent(studentId, true).filter(x => x.courseId === courseId); return all.find(x => !x.archived) || all[0] || null; }
 
-  window.Marks = { TASKS, MARKS, KIND_NAME, TASK_NAME, newId, fresh, scheme, save, total, unclaimed, items, key, catOf, setHidden, itemGrade, taskMark, taskGrade, taskWork, summary, classFor, isNM, line };
+  window.Marks = { TASKS, MARKS, KIND_NAME, TASK_NAME, newId, fresh, scheme, save, total, unclaimed, items, key, catOf, setHidden, setUnitHidden, itemGrade, taskMark, taskGrade, taskWork, summary, classFor, isNM, line };
 })();
