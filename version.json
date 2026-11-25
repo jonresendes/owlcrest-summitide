@@ -1,5 +1,5 @@
 {
- "version": "72",
+ "version": "73",
  "date": "2026-11-24",
- "notes": "Fixes from the reported problems: the header lines up on phones (upright and on its side), Jeopardy fits a phone screen, the How coins are earned table no longer runs off the screen, and the Math Lab number boxes open the full keyboard so / and - can be typed. No rules to publish."
+ "notes": "Profile pictures are back: under My settings, My profile, anyone can pick an emoji picture or keep their initial. The owl is for the Headmaster only. No rules to publish."
 }

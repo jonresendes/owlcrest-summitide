@@ -152,6 +152,13 @@
     d.querySelector('#acctSwitch').addEventListener('click', () => { close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
     d.querySelector('#acctSignOut').addEventListener('click', () => { if (!confirm('Sign out of Summitide Learning on this device?')) return; close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
   }
+  /** v73 · Grouped picture picker. `attr` is the data attribute on each button. The owl is offered only to the Headmaster. */
+  function avatarPickerHtml(current, attr, isMaster) {
+    const groups = Students.AVATAR_GROUPS.map(g => [g[0], g[1].filter(a => a !== Students.HEADMASTER_AVATAR)]);
+    if (isMaster) groups.unshift([LH.headTitle(), [Students.HEADMASTER_AVATAR]]);
+    return '<div class="avatar-groups"><div class="avatar-group"><div class="avatar-grid"><button type="button" class="btn ghost sm' + (current ? '' : ' on') + '" ' + attr + '="">No picture: my initial</button></div></div>' +
+      groups.map(g => '<div class="avatar-group"><div class="avatar-group-label">' + esc(g[0]) + '</div><div class="avatar-grid">' + g[1].map(a => '<button type="button" class="avatar-pick' + (a === current ? ' on' : '') + '" ' + attr + '="' + esc(a) + '" aria-label="' + esc(g[0]) + ' picture" aria-pressed="' + (a === current) + '">' + a + '</button>').join('') + '</div></div>').join('') + '</div>';
+  }
   const avatarHtml = (s, cls) => '<span class="' + (cls || 'who-avatar') + '" style="background:' + esc(s.colour || '#1f5f8b') + '">' + esc(LH.initial(s)) + '</span>';   // v67: the first letter of the name on the person's colour (no emoji avatars)
 
   /* ---------- pages ---------- */
@@ -1126,6 +1133,7 @@
     const profile = () => accountType +
       (staff ? '<div class="setting-row"><div><label>Name</label><div class="help">Shown on the welcome screen and in the header.</div></div><div class="btn-row"><input class="text-input" id="meName" value="' + esc(me.name) + '" maxlength="30" style="max-width:220px"><button class="btn secondary sm" id="meNameSave">Save</button></div></div>'
              : '<div class="setting-row"><div><label>Name</label><div class="help">Your name is set by your teacher — ask them if it needs changing.</div></div><strong>' + esc(me.name) + '</strong></div>' + (Cloud.enabled ? '<div class="setting-row"><div><label>Profile version</label><div class="help">Changes your teacher makes on another device show here once they arrive.</div></div><span class="small muted">' + profileStamp(me) + '</span></div>' : '')) +
+      '<div class="setting-row avatar-row"><div><label>My picture</label><div class="help">Pick a picture, or keep your initial.' + (me.role === 'master' ? ' The owl is yours alone.' : '') + '</div></div><details class="avatar-details"><summary>' + avatarHtml(me) + ' Change picture</summary>' + avatarPickerHtml(LH.initial(me) === me.avatar ? me.avatar : '', 'data-avatar', me.role === 'master') + '</details></div>' +
       (window.Coins ? Coins.profileRow() : '') +
       (Cloud.enabled
         ? '<div class="setting-row"><div><label>Account</label><div class="help">' + (staff ? 'Teacher ID <strong>' + esc((Staff.current || {}).login || '') + '</strong>. ' : 'Student number <strong>' + esc(me.number || '') + '</strong>. You sign in with the code your teacher gave you; ask your teacher if you need a new one. ') + (Cloud.keepSignedIn() ? 'You stay signed in on this device.' : 'You are signed out after ' + ((window.CLOUD_CONFIG || {}).idleMinutes || 30) + ' minutes without activity.') + '</div></div><div class="btn-row">' + (staff ? '<button class="btn secondary sm" id="changePw">Change password</button>' : '') + '<button class="btn ghost sm" id="signOutBtn">Sign out</button></div></div>'

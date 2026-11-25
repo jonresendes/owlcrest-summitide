@@ -510,7 +510,11 @@
       Object.keys(o).forEach(function (k) { var v = o[k]; if (typeof v === 'string') { if (k !== 'svg' && k !== 'html' && k !== 'src' && k !== 'url') o[k] = LH.plain(v); } else if (v && typeof v === 'object') LH.plainDeep(v, (depth || 0) + 1); });
       return o;
     };
-    LH.initial = function (p) { var n = String((p && p.name) || '').trim(), m = n.match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : '?'; };
+    LH.initial = function (p) {
+      // v73: the person's chosen picture, when it is one they may have (the owl only for the Headmaster); otherwise their initial
+      var S = window.Students, av = p && typeof p.avatar === 'string' ? p.avatar : '';
+      if (av && S && S.avatarAllowed && S.avatarAllowed(av, p.role === 'master')) return av;
+      var n = String((p && p.name) || '').trim(), m = n.match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : '?'; };
     LH.awardMark = function (tier) { return '<span class="award-mark tier-' + LH.esc(/^(badge|medal|trophy)$/.test(tier) ? tier : 'badge') + '" aria-hidden="true"></span>'; };
   })(window.LH);
 })();

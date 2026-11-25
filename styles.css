@@ -1492,7 +1492,7 @@ table.pt .g-num, table.pt .g-lvl { display: block; } table.pt .g-lvl { font-size
 .award-mark.tier-trophy { background: linear-gradient(180deg, #ffe08a, #e0a81c 60%, #b7791f); clip-path: polygon(14% 6%, 86% 6%, 82% 44%, 60% 62%, 60% 78%, 80% 78%, 80% 94%, 20% 94%, 20% 78%, 40% 78%, 40% 62%, 18% 44%); }
 .unit-badges { align-items: center; }
 .award .award-icon { display: flex; justify-content: center; }
-.avatar-row, .avatar-details { display: none; }
+/* v73: the picture row is shown again (v67 had hidden it) */
 
 .role-badge-short { display: none; }
 @media (max-width: 760px) { .role-badge-short { display: inline; } }
@@ -1722,3 +1722,10 @@ table.coin-table { table-layout: fixed; width: 100%; }
 table.coin-table td, table.coin-table th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; text-align: left; }
 table.coin-table th:first-child, table.coin-table td:first-child { width: 52%; }
 .sgroup .sg-body { min-width: 0; overflow-wrap: anywhere; }
+
+/* v73 · profile pictures: an emoji sits in the coloured circle without the heavy letter styling */
+.avatar-details > summary .who-avatar { width: 2.2rem; height: 2.2rem; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.avatar-groups .btn.on { border-color: var(--primary); background: var(--primary-soft); }
+/* the header's tools keep their own width (they were being squeezed under the Install button between 900 and 1150 px); the search box waits for a wider screen */
+.topbar .top-tools { flex: 0 0 auto; }
+@media (max-width: 1150px) { .top-search { display: none; } }

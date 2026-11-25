@@ -141,7 +141,7 @@
         '<p><strong>Who answers questions about the collection:</strong> ' + (p.officerTitle || p.officerAddress || p.officerPhone ? esc([p.officerTitle, p.officerAddress, p.officerPhone].filter(Boolean).join(' · ')) : '<em>the school board officer has not yet been named here.</em>') + '</p>' +
         '<p><strong>Day-to-day questions:</strong> ' + (p.contact ? esc(p.contact) : 'ask your teacher or the school office.') + '</p>') +
       sec('What the app keeps about a student', ul([
-        '<strong>Who you are:</strong> your first name, your student number, and the colour you choose. The app does not ask for your birthday. (If your record has one from before, it is removed when your teacher gives you a sign-in code.)',
+        '<strong>Who you are:</strong> your first name, your student number, and the picture and colour you choose (the picture is one small symbol from a fixed list, not a photo). The app does not ask for your birthday. (If your record has one from before, it is removed when your teacher gives you a sign-in code.)',
         '<strong>How you sign in:</strong> a sign-in code your teacher gives you. A copy of the code is kept where only your teachers and the Headmaster can reach it, so that a teacher can replace it if you lose it.',
         '<strong>How you learn:</strong> your level in each course, and any accommodations, modified program or Focus Plan your teacher has set.',
         '<strong>Your work:</strong> the slides you have read, your quiz and test results (including your answers to the latest attempt), your assignments, anything you write for a class task your teacher collects in the app (such as a culminating task or an exam), your awards, and the history of your level changes.',

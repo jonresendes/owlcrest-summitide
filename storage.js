@@ -127,12 +127,28 @@
   /* ---------- Students ---------- */
   /* v67 · Avatars are no longer emoji. A person is shown as the first letter of their name on their own colour (LH.initial).
      The constants stay, empty, so older code and saved profiles (which may still hold an emoji in `avatar`) keep working; nothing draws that field. */
-  const HEADMASTER_AVATAR = '';
-  const AVATAR_GROUPS = [];
-  const AVATAR_ALL = [];
-  const AVATARS = [''];
+  /* v73: profile pictures are back, by request. A person may choose one emoji from the groups below, or none (their initial on
+     their colour, which is what everyone starts with). The owl belongs to the Headmaster alone: it is offered to nobody else,
+     refused if anyone else saves it, and not drawn for anyone else even if their record holds it. */
+  const HEADMASTER_AVATAR = '🦉';
+  const AVATAR_GROUPS = [
+    ['People', ['🧑', '👩', '👨', '🧒', '👧', '👦', '🧑‍🎓', '👩‍🎓', '👨‍🎓', '🧑‍🏫', '👩‍🏫', '👨‍🏫', '🧑‍🔬', '👩‍🔬', '👨‍🔬', '🧑‍💻', '👩‍💻', '👨‍💻', '🧑‍🎨', '👩‍🎨', '👨‍🎨', '🧑‍🚀', '👩‍🚀', '👨‍🚀', '🧑‍🍳', '🧑‍🌾', '🧑‍🔧', '🧑‍⚕️', '🦸', '🦹', '🧙', '🧝', '🧛', '🧜', '🧚', '🥷', '🤠', '👻', '🤖', '👽', '🎅', '🤶']],
+    ['Animals', ['🦊', '🐼', '🐸', '🐙', '🦁', '🐧', '🦄', '🐢', '🐝', '🦋', '🐨', '🐯', '🦖', '🐬', '🦜', '🐶', '🐱', '🐭', '🐹', '🐰', '🐻', '🐻‍❄️', '🐷', '🐮', '🐵', '🐔', '🐣', '🦆', '🦅', '🦇', '🐺', '🐗', '🐴', '🦓', '🦒', '🐘', '🦏', '🦛', '🐪', '🦘', '🦥', '🦦', '🦨', '🦔', '🐿️', '🦫', '🐍', '🦎', '🐊', '🐳', '🐋', '🦈', '🐠', '🐡', '🦑', '🦀', '🦞', '🐌', '🐞', '🐜', '🦗', '🕷️', '🦂', '🦩', '🦚', '🦢', '🕊️', '🐉', '🦕']],
+    ['School', ['📚', '📖', '✏️', '📝', '🖍️', '🖊️', '📐', '📏', '🎒', '🏫', '🍎', '🧮', '📎', '📌', '🗂️', '📓', '📒', '🔔', '🎓', '🏅', '🥇', '🏆', '⭐', '🌟']],
+    ['Sport', ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🏓', '🏸', '🏒', '🥍', '🏏', '🥅', '⛳', '🏹', '🎣', '🥊', '🥋', '🛹', '🛼', '⛸️', '🎿', '🛷', '🥌', '🏊', '🚴', '🧗', '🏇', '🤸', '⛷️', '🏂', '🏄', '🚣', '🤾', '🏋️', '🤺', '🧘']],
+    ['Art & music', ['🎨', '🖌️', '🖼️', '🎭', '🎬', '🎤', '🎧', '🎼', '🎵', '🎶', '🎹', '🎸', '🎻', '🎺', '🎷', '🪕', '🥁', '🪘', '🪗', '📷', '📸', '🎥', '🎪', '🩰', '🧵', '🧶', '✂️', '🪡']],
+    ['Math', ['➕', '➖', '✖️', '➗', '🟰', '♾️', '📊', '📈', '📉', '🔢', '🔣', '💯', '🧮', '📐', '📏', '⚖️', '🎲', '🧩', '🔷', '🔶', '🟥', '🟩', '🟦', '🟨', '⬛', '⚪', '🔺', '🔻']],
+    ['Tech', ['💻', '🖥️', '⌨️', '🖱️', '🖨️', '💾', '💿', '📱', '📡', '🔋', '🔌', '💡', '🔦', '🕹️', '🎮', '🤖', '🛰️', '🚀', '🛸', '⚙️', '🔧', '🔩', '🛠️', '🧲', '📟', '📠', '🧰', '🔭']],
+    ['Science', ['🔬', '🧪', '🧫', '🧬', '⚗️', '🌡️', '🧲', '⚛️', '🔭', '🪐', '🌍', '🌎', '🌏', '🌕', '🌙', '☀️', '⭐', '☄️', '🌈', '⚡', '🔥', '💧', '🌊', '🌋', '🧊', '🦠', '🌱', '🌿', '🍄', '🐚', '🪨', '💎', '🧠', '🦴', '🫀', '🫁', '🩺', '💊', '🧯', '🧭']],
+    ['Literature & stories', ['📜', '📰', '📗', '📘', '📙', '📕', '📔', '📑', '🔖', '🖋️', '🪶', '🏰', '🗡️', '🛡️', '👑', '🧞', '🧜‍♀️', '🧚‍♂️', '🐲', '🗺️', '🧭', '⚓', '🏴‍☠️', '🔮', '🪄', '🎩', '🕵️', '🕯️', '🗝️', '🧳', '🎠', '🎡', '🧸', '🪁', '🎈']],
+    ['Nature & food', ['🌳', '🌲', '🌴', '🌵', '🌷', '🌹', '🌻', '🌼', '🌸', '💐', '🍀', '🍁', '🍂', '🍃', '🌾', '🍎', '🍏', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍒', '🍑', '🥭', '🍍', '🥝', '🍅', '🥑', '🥕', '🌽', '🥦', '🍕', '🍔', '🌮', '🍣', '🍩', '🍪', '🎂', '🧁', '🍦', '🍫', '🍿', '🥨', '🧇', '🥞', '☕', '🧃']],
+    ['Flags & places', ['🇨🇦', '🍁', '🏔️', '🏕️', '🏖️', '🏝️', '🏞️', '🌅', '🌃', '🌉', '🏙️', '🏟️', '🗽', '🗼', '🎑', '🏠', '🏡', '🏢', '🏥', '🏛️', '⛪', '🕌', '🛕', '🕍', '⛩️', '🚗', '🚌', '🚲', '🛴', '🚂', '✈️', '🚁', '⛵', '🚢']]
+  ];
+  (() => { const seen = new Set(); AVATAR_GROUPS.forEach(g => { g[1] = g[1].filter(a => { if (seen.has(a)) return false; seen.add(a); return true; }); }); })();   // each picture in one group only
+  const AVATAR_ALL = AVATAR_GROUPS.reduce((a, g) => a.concat(g[1]), []).filter(a => a !== HEADMASTER_AVATAR);
+  const AVATARS = [''];   // a new person starts with no picture
   /** May this profile use this avatar? The owl belongs to the Headmaster. */
-  const avatarAllowed = (a, isMaster) => a === HEADMASTER_AVATAR ? !!isMaster : AVATAR_ALL.includes(a);
+  const avatarAllowed = (a, isMaster) => a === '' ? true : a === HEADMASTER_AVATAR ? !!isMaster : AVATAR_ALL.includes(a);
   const COLOURS = ['#3b5bdb', '#2f9e6e', '#f59f00', '#d6336c', '#7048e8', '#15aabf', '#e8590c', '#1f5f8b'];
   function uid() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
