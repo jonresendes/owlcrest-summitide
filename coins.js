@@ -249,7 +249,7 @@
     const key = myShopKey(), mine = sections().filter(s => !s.archived && shopKeyOf(s) === key), onN = mine.filter(s => s.coins === true).length;
     const waiting = mine.filter(s => s.coins === true).reduce((a, s) => a + (s.students || []).reduce((x, id) => { const st = Students.byId(id); return x + (st ? pendingFor(st, key).length : 0); }, 0), 0);
     const ico = '<svg class="chalk-ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 18h32l-3 22H11z"/><path d="M16 18a8 8 0 0 1 16 0"/><circle cx="24" cy="29" r="5"/><path d="M24 27v4"/></svg>';
-    return tile('#/shop', ico, 'My shop', waiting ? plural(waiting, 'request') + ' waiting' : onN ? 'coins on in ' + plural(onN, 'section') : 'coins are off in your sections', ' data-chalk');
+    return tile('#/shop', ico, 'My shop', waiting ? plural(waiting, 'request') + ' waiting' : onN ? 'coins on in ' + plural(onN, 'section') : 'coins are off in your classes', ' data-chalk');
   };
   /** Course page: the student's bag, in the page head's button row. */
   Coins.courseChip = function (course) {
@@ -269,7 +269,7 @@
     if (shopKeyOf(sec) !== myShopKey() && !isHead()) return '';
     const on = sec.coins === true, key = shopKeyOf(sec);
     const waiting = on ? (sec.students || []).reduce((a, id) => { const st = Students.byId(id); return a + (st ? pendingFor(st, key).length : 0); }, 0) : 0;
-    return '<button type="button" class="btn ghost sm coin-switch' + (on ? ' on' : '') + '" data-coin-toggle="' + esc(sec.id) + '" aria-pressed="' + on + '" title="Turn coin earning on or off for this section">' + Coins.icon(1) + ' Coins: ' + (on ? 'on' : 'off') + '</button>' +
+    return '<button type="button" class="btn ghost sm coin-switch' + (on ? ' on' : '') + '" data-coin-toggle="' + esc(sec.id) + '" aria-pressed="' + on + '" title="Turn coin earning on or off for this class">' + Coins.icon(1) + ' Coins: ' + (on ? 'on' : 'off') + '</button>' +
       (on ? '<a class="btn secondary sm" href="#/coins/' + esc(sec.id) + '">' + Coins.icon(10) + ' Redeem coins' + (waiting ? ' <span class="tag accent">' + waiting + '</span>' : '') + '</a>' : '');
   };
   document.addEventListener('click', e => {
@@ -277,14 +277,14 @@
     const sec = Sections.byId(b.dataset.coinToggle); if (!sec) return;
     if (shopKeyOf(sec) !== myShopKey() && !isHead()) return;
     const on = !(sec.coins === true);
-    if (!on && !confirm('Turn coins off for ' + sec.name + '? Students keep the coins and items they have; they stop earning here and the shop is hidden for this section.')) return;
+    if (!on && !confirm('Turn coins off for ' + sec.name + '? Students keep the coins and items they have; they stop earning here and the shop is hidden for this class.')) return;
     Sections.update(sec.id, { coins: on });
     window.dispatchEvent(new HashChangeEvent('hashchange'));
   });
   /** Settings → Headmaster. */
   Coins.settingsHtml = function () {
     const on = Coins.on(), secsOn = sections().filter(s => s.coins === true && !s.archived).length;
-    return '<p class="muted small">Students earn coins for their work and spend them in their teacher\'s shop. Each teacher switches coins on for a section on the Sections page.</p>' +
+    return '<p class="muted small">Students earn coins for their work and spend them in their teacher\'s shop. Each teacher switches coins on for a class on the My Classes page.</p>' +
       '<div class="setting-row"><div><label>Coins and shops for the school</label><div class="help">Off: every coin, shop and locker screen, button and mention is hidden for everyone, and nothing is earned. Bags and items are kept and come back if you switch it on again.</div></div><button class="switch ' + (on ? 'on' : '') + '" data-coins-school role="switch" aria-checked="' + on + '"></button></div>' +
       (on ? '<p class="muted small">Coins are on in ' + plural(secsOn, 'section') + '. <a href="#/shop">Open my shop</a></p>' +
         '<details class="coin-rates"><summary>How coins are earned</summary>' + ratesHtml() + '</details>' : '');
@@ -431,7 +431,7 @@
     const roster = (sec.students || []).map(id => Students.byId(id)).filter(Boolean).sort((a, b) => String(a.name).localeCompare(String(b.name)));
     const draw = () => {
       const s = shop(key);
-      app().innerHTML = crumb('Sections', '#/sections') + '<div class="page-head"><div><h1>' + Coins.icon(10) + ' Redeem coins</h1><p class="muted">' + esc(sec.name) + ' · every student\'s bag, what they have asked for, and what they hold. ' + (sec.coins === true ? '' : '<strong>Coins are off for this section.</strong>') + '</p></div><div class="btn-row"><a class="btn secondary sm" href="#/shop">My shop</a></div></div>' +
+      app().innerHTML = crumb('My Classes', '#/classes') + '<div class="page-head"><div><h1>' + Coins.icon(10) + ' Redeem coins</h1><p class="muted">' + esc(sec.name) + ' · every student\'s bag, what they have asked for, and what they hold. ' + (sec.coins === true ? '' : '<strong>Coins are off for this class.</strong>') + '</p></div><div class="btn-row"><a class="btn secondary sm" href="#/shop">My shop</a></div></div>' +
         (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') +
         (roster.length ? '<div class="coin-roster">' + roster.map(st => { const b = bagOf(st), pend = pendingFor(st, key), items = lockerItems(st.id).filter(i => !i.used && i.shop === key);
           return '<div class="card coin-row"><div class="coin-who"><span class="who-avatar" style="background:' + esc(hex(st.colour, '#1f5f8b')) + '">' + esc(LH.initial(st)) + '</span><span><strong>' + esc(st.name) + '</strong>' + (st.number ? ' <span class="muted small">#' + esc(st.number) + '</span>' : '') + '<br><span class="muted small">earned ' + b.earned + (b.given ? ' · given ' + b.given : '') + ' · spent ' + b.spent + '</span></span></div>' +
@@ -439,7 +439,7 @@
             '<div class="coin-acts"><button type="button" class="btn sm" data-redeem="' + esc(st.id) + '">Redeem coins</button><button type="button" class="btn ghost sm" data-give="' + esc(st.id) + '">Give coins</button></div>' +
             (pend.length ? '<div class="coin-pend">' + pend.map(r => '<div class="coin-req"><span>' + esc(r.icon) + ' <strong>' + esc(r.name) + '</strong> · ' + r.cost + ' coins' + (b.bag < r.cost ? ' <span class="tag">not enough</span>' : '') + '</span><span class="btn-row"><button type="button" class="btn sm" data-approve="' + esc(st.id) + '|' + esc(r.id) + '"' + (b.bag < r.cost ? ' disabled' : '') + '>Hand it over</button><button type="button" class="btn ghost sm" data-decline="' + esc(st.id) + '|' + esc(r.id) + '">Not this time</button></span></div>').join('') + '</div>' : '') +
             (items.length ? '<div class="coin-held"><span class="muted small">Holding:</span> ' + items.map(i => '<span class="tag">' + esc(i.icon) + ' ' + esc(i.item) + ' <button type="button" class="link-btn" data-used="' + esc(st.id) + '|' + esc(i.id) + '">mark used</button> · <button type="button" class="link-btn" data-refund="' + esc(st.id) + '|' + esc(i.id) + '">refund</button></span>').join(' ') + '</div>' : '') + '</div>'; }).join('') + '</div>'
-          : '<div class="empty">No students in this section yet.</div>');
+          : '<div class="empty">No students in this class yet.</div>');
       const q = sel => [...app().querySelectorAll(sel)], find = v => { const [sid, id] = v.split('|'); return { st: Students.byId(sid), id }; };
       const run = async fn => { try { ui.msg = (await fn()) || ''; } catch (e) { ui.msg = '' + (e && e.message); } draw(); };
       q('[data-approve]').forEach(b => b.addEventListener('click', () => { const f = find(b.dataset.approve), r = f.st && pendingFor(f.st, key).find(x => x.id === f.id); if (r) run(async () => { await settle(f.st, r, true); return f.st.name + ' redeemed ' + r.name + ' for ' + plural(r.cost, 'coin') + '.'; }); }));
@@ -487,7 +487,7 @@
     const preview = cleanShop(d, key);
     app().innerHTML = crumb('My shop') + '<div class="page-head"><div><h1>My shop</h1><p class="muted">What your students can spend their coins on. Change anything, then save. Students see it at once.</p></div><div class="btn-row">' + (ui.dirty ? '<span class="tag accent">Not saved</span>' : '') + '<button type="button" class="btn" data-se-save>Save my shop</button></div></div>' +
       (ui.msg ? '<p class="small" role="status"><strong>' + esc(ui.msg) + '</strong></p>' : '') +
-      '<div class="card coin-secs"><strong>Coins in my sections</strong> ' + (mine.length ? mine.map(s => '<span class="coin-sec">' + esc(s.name) + ' ' + Coins.sectionButtons(s) + '</span>').join('') : '<span class="muted small">You have no sections yet.</span>') + '</div>' +
+      '<div class="card coin-secs"><strong>Coins in my classes</strong> ' + (mine.length ? mine.map(s => '<span class="coin-sec">' + esc(s.name) + ' ' + Coins.sectionButtons(s) + '</span>').join('') : '<span class="muted small">You have no classes yet.</span>') + '</div>' +
       '<details class="card sgroup" open><summary><span class="sg-title">Look and feel</span><span class="sg-help muted small">name · colours · banner · sale</span></summary><div class="sg-body">' +
         '<div class="shop-edit-grid"><label>Shop name <input class="text-input" data-se="name" maxlength="40" value="' + esc(d.name) + '"></label><label>A line under the name <input class="text-input" data-se="tagline" maxlength="120" value="' + esc(d.tagline) + '" placeholder="e.g. Work hard, spend wisely"></label>' +
         '<label>Banner word or symbol (optional) <input class="text-input" data-se="banner" maxlength="24" value="' + esc(d.banner) + '"></label><label>Banner photo <span class="btn-row"><input type="file" accept="image/*" data-se-banner class="file-input">' + (d.bannerImg ? '<button type="button" class="btn ghost sm" data-se-nobanner>Remove</button>' : '') + '</span></label></div>' +

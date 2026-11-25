@@ -43,7 +43,7 @@
   function targetsFor(course) {
     const out = [{ kind: 'any', label: 'Any work in ' + course.title, href: '#/course/' + course.id }];
     (window.LH.unitsFor(course) || []).forEach((u, ui) => {
-      out.push({ kind: 'test', unitId: u.id, label: 'Unit ' + (ui + 1) + ' test · ' + u.title, href: '#/test/' + course.id + '/' + u.id });
+      if (!window.LH.testHidden(u)) out.push({ kind: 'test', unitId: u.id, label: 'Unit ' + (ui + 1) + ' test · ' + u.title, href: '#/test/' + course.id + '/' + u.id });
       (window.LH.lessonsFor(u) || []).forEach((les, li) => {
         out.push({ kind: 'quiz', unitId: u.id, lessonIdx: les._idx, label: 'Unit ' + (ui + 1) + ' · Lesson ' + (li + 1) + ' quiz · ' + les.title, href: '#/quiz/' + course.id + '/' + u.id + '/' + les._idx });
         (les.assignments || []).forEach((a, ai) => out.push({ kind: 'assign', unitId: u.id, lessonIdx: les._idx, n: ai, label: 'Unit ' + (ui + 1) + ' · Lesson ' + (li + 1) + ' assignment ' + (ai + 1) + (a.title ? ' · ' + a.title : ''), href: '#/assign/' + course.id + '/' + u.id + '/' + les._idx + '/' + ai }));
@@ -80,6 +80,7 @@
       case 'assign': return code + lesson() + ' (assignment)';
       case 'work': return code + (u ? ' · ' + u.title : '') + ' (work folder)';
       case 'games': case 'game': return code + ' · Game Room';
+      case 'class': return p[2] === 'task' ? 'Class task (CCT or exam)' : 'Class page';
       case 'grades': return 'Grades'; case 'case': return 'Display Case'; case 'settings': return 'Settings'; case 'notes': return 'Notes';
       default: return p[0] || 'Summitide';
     }
@@ -267,10 +268,10 @@
     const a = app(); if (!a || document.body.dataset.page !== 'live') return;
     const act = document.activeElement; if (act && a.contains(act) && /^(SELECT|INPUT)$/.test(act.tagName) && !T.ses) return;   // do not redraw under the set-up form while it is being used
     const secs = mySectionsT(), sec = T.section;
-    const picker = secs.length ? '<label class="field live-pick">Section<select class="text-input" id="liveSec">' + secs.map(s => '<option value="' + esc(s.id) + '"' + (sec && s.id === sec.id ? ' selected' : '') + '>' + esc(s.name) + (s.courseId ? ' · ' + esc((window.LH.findCourse(s.courseId) || {}).title || s.courseId) : '') + '</option>').join('') + '</select></label>' : '';
+    const picker = secs.length ? '<label class="field live-pick">Class<select class="text-input" id="liveSec">' + secs.map(s => '<option value="' + esc(s.id) + '"' + (sec && s.id === sec.id ? ' selected' : '') + '>' + esc(s.name) + (s.courseId ? ' · ' + esc((window.LH.findCourse(s.courseId) || {}).title || s.courseId) : '') + '</option>').join('') + '</select></label>' : '';
     const report = T.view === 'report' && sec && T.ses;
     let body;
-    if (!sec) body = '<div class="empty"><h2>No section yet</h2><p class="muted">Create a section with a course and a roster on the <a href="#/sections">Sections page</a>, then come back.</p></div>';
+    if (!sec) body = '<div class="empty"><h2>No class yet</h2><p class="muted">Create a class with a course and a roster on the <a href="#/classes">My Classes page</a>, then come back.</p></div>';
     else if (report) body = reportHtml(sec);
     else if (!T.ses || T.ses.endedAt) body = setupHtml(sec) + (T.ses && T.ses.endedAt ? summaryHtml(sec) : '');
     else body = boardHtml(sec);
@@ -296,7 +297,7 @@
     if (!key) { slot.innerHTML = ''; return; }
     slot.innerHTML = '<div class="card live-notes"><h2>Session notes</h2><p class="muted small">Anything worth remembering about this session: who was away and why, a fire drill, extra time given, something to follow up. The notes print on the session report.</p>' +
       '<textarea class="text-input" id="liveNoteText" maxlength="4000" placeholder="Write here…" aria-label="Session notes"></textarea>' +
-      '<div class="live-notes-foot"><span class="muted small" id="liveNoteState" role="status"></span><span class="muted small">Only you can see these notes. Students never do. They are kept until this section\'s next session.</span></div></div>';
+      '<div class="live-notes-foot"><span class="muted small" id="liveNoteState" role="status"></span><span class="muted small">Only you can see these notes. Students never do. They are kept until this class\'s next session.</span></div></div>';
     const ta = slot.querySelector('#liveNoteText'), state = slot.querySelector('#liveNoteState'); ta.value = noteFor(sec, ses);
     let timer = null;
     const persist = () => { timer = null; try { Staff.setLiveNote(sec.id, ses.startedAt, ta.value, keepDays()); state.textContent = 'Saved ' + fmtTime(now()); } catch (e) { state.textContent = 'Could not save: ' + (e.message || e); } if (T.view === 'report') draw(); };
@@ -327,7 +328,7 @@
   const tbl = (t, cls) => '<table class="rep ' + cls + '"><thead><tr>' + t.head.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + t.rows.map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
   function reportHtml(sec) {
     const d = reportData(sec);
-    return '<div class="print-toolbar no-print"><div><strong>Session report</strong> <span class="muted small">' + (d.ended ? 'This session has ended.' : 'The session is still running: this is the report so far.') + ' Live Class records are deleted after ' + keepDays() + ' day' + (keepDays() === 1 ? '' : 's') + ' and replaced by this section\'s next session, so print or download the report if you need to keep it.</span></div>' +
+    return '<div class="print-toolbar no-print"><div><strong>Session report</strong> <span class="muted small">' + (d.ended ? 'This session has ended.' : 'The session is still running: this is the report so far.') + ' Live Class records are deleted after ' + keepDays() + ' day' + (keepDays() === 1 ? '' : 's') + ' and replaced by this class\'s next session, so print or download the report if you need to keep it.</span></div>' +
       '<div class="btn-row"><button class="btn" id="liveRepPrint">Print / Save as PDF</button><button class="btn secondary" id="liveRepDocx">Word</button><button class="btn secondary" id="liveRepCsv">CSV</button><button class="btn ghost" id="liveRepBack">← Back to the board</button></div></div>' +
       '<div class="print-doc live-report"><header class="ps-head"><img src="crest.png" alt="" class="ps-crest"><div><div class="ps-brand">Summitide Learning · OwlCrest Academy</div><h1>' + esc(d.title) + '</h1></div></header>' +
       '<dl class="ps-facts">' + d.facts.map(f => '<div><dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd></div>').join('') + '</dl>' +
@@ -344,7 +345,7 @@
     if (window.Cloud && Cloud.log) Cloud.log('live.report', sec.id, kind);
   }
   function setupHtml(sec) {
-    const c = window.LH.findCourse(sec.courseId); if (!c) return '<div class="empty">This section\'s course is not loaded.</div>';
+    const c = window.LH.findCourse(sec.courseId); if (!c) return '<div class="empty">This class\'s course is not loaded.</div>';
     const ts = targetsFor(c); const n = (sec.students || []).length;
     return '<div class="card live-setup"><h2>▶︎ Start a live session for ' + esc(sec.name) + '</h2><p class="muted small">' + n + ' student' + (n === 1 ? '' : 's') + ' on the roster · ' + esc(c.title) + '</p>' +
       '<div class="grid-2"><label class="field">What are they writing?<select class="text-input" id="liveTarget">' + ts.map((t, i) => '<option value="' + i + '"' + (t.kind === 'test' && i === 1 ? '' : '') + '>' + esc(t.label) + '</option>').join('') + '</select></label>' +
@@ -392,7 +393,7 @@
     const rp = q('#liveRepPrint'); if (rp) rp.addEventListener('click', () => window.print());
     const rd = q('#liveRepDocx'); if (rd) rd.addEventListener('click', () => reportFiles(sec, 'docx'));
     const rc = q('#liveRepCsv'); if (rc) rc.addEventListener('click', () => reportFiles(sec, 'csv'));
-    const end = q('#liveEnd'); if (end) end.addEventListener('click', async () => { if (!confirm('End the live session? Students stop sending presence. The summary and the session report stay until this section\'s next session.')) return; try { await endSession(); } catch (e) { alert('Could not end: ' + (e.message || e)); } });
+    const end = q('#liveEnd'); if (end) end.addEventListener('click', async () => { if (!confirm('End the live session? Students stop sending presence. The summary and the session report stay until this class\'s next session.')) return; try { await endSession(); } catch (e) { alert('Could not end: ' + (e.message || e)); } });
     a.querySelectorAll('[data-tile]').forEach(b => b.addEventListener('click', () => { const id = b.dataset.tile; setWriting(id, b.getAttribute('aria-pressed') !== 'true').catch(e => alert('Could not save: ' + (e.message || e))); }));
     const all = q('#liveAll'); if (all) all.addEventListener('click', () => patchWriting(roster(sec).map(s => s.id)));
     const here = q('#liveHere'); if (here) here.addEventListener('click', () => patchWriting(roster(sec).filter(s => status(s.id) !== 'off').map(s => s.id)));

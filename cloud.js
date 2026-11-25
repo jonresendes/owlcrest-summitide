@@ -163,9 +163,15 @@
                 if (emailsLoaded && (r.email || '') !== (emails[id] || '')) { await db.collection('staffPrivate').doc(id).set({ email: String(r.email || '').slice(0, 120), updatedAt: now() }, { merge: true }); emails[id] = r.email || ''; }
               } catch (e) { failed = failed || e; console.warn('staff push failed', id, e); } }
           } else if (key === 'learnhub.sections' && Cloud.role !== 'student') {
-            for (const sec of (v.list || [])) await db.collection('sections').doc(sec.id).set(clean(Object.assign({}, sec, { updatedAt: now() })));
-            for (const id of removedSections(v.list || [])) await db.collection('sections').doc(id).delete().catch(() => {});
-            try { await reconcileAccess(v.list || []); } catch (e) { failed = failed || e; console.warn('access lists', e); }
+            // v68: only the classes that changed are written. Opening a class (which only moves the device's "class I am working in" marker) writes nothing.
+            let touched = 0;
+            for (const sec of (v.list || [])) { const body = clean(Object.assign({}, sec)); delete body.updatedAt; const j = stable(body); if (sentSections[sec.id] === j) continue;
+              await db.collection('sections').doc(sec.id).set(Object.assign(body, { updatedAt: now() })); sentSections[sec.id] = j; touched++; }
+            for (const id of removedSections(v.list || [])) { await db.collection('sections').doc(id).delete().catch(() => {}); delete sentSections[id]; touched++; }
+            if (touched) {
+              try { await reconcileAccess(v.list || []); } catch (e) { failed = failed || e; console.warn('access lists', e); }
+              try { await pushStaffClasses(v.list || [], me); } catch (e) { console.warn('staff class list', e && e.code || e); }   // v68: not fatal (needs the v68 rules)
+            }
           } else if (key.startsWith('learnhub.progress.')) {
             const sid = key.slice('learnhub.progress.'.length); if (sid === 'anon' || sid.startsWith('staff:')) continue;   // a teacher's own course preview stays on the device
             if (Cloud.role === 'student' && sid !== me.uid) continue;
@@ -178,7 +184,7 @@
             if (Cloud.role === 'student') continue;                                          // a Focus Plan is set by a teacher
             await db.collection('focus').doc(sid).set({ student: sid, data: clean(v), updatedAt: now() });
           } else if (key === 'learnhub.settings' && Cloud.role !== 'student') {
-            await db.collection('settings').doc('global').set({ allowSelfSignup: v.allowSelfSignup !== false, colouringEvery: v.colouringEvery === undefined ? 'student' : v.colouringEvery, updatedAt: now() }, { merge: true });
+            await db.collection('settings').doc('global').set(Object.assign({ allowSelfSignup: v.allowSelfSignup !== false, colouringEvery: v.colouringEvery === undefined ? 'student' : v.colouringEvery, updatedAt: now() }, Cloud.role === 'master' ? { headTitle: headTitleOf(v.headTitle) } : {}), { merge: true });
           }
         } catch (e) { failed = failed || e; console.warn('cloud push failed', key, e); }
         inFlightCount--; updateWaiting();
@@ -188,6 +194,23 @@
     else { Cloud.lastError = ''; Cloud.lastConfirmed = now(); setStatus(Cloud.online ? 'synced' : 'offline'); }
   }
   const knownDocs = { progress: new Set(), grades: new Set(), focus: new Set() };
+  /** v68 · what was last read from or written to the cloud for each class, so an unchanged class is not written again. */
+  const sentSections = {};
+  function stable(v) { return JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, key) => { o[key] = x[key]; return o; }, {}) : x); }
+  /** v68 · the title the school uses for its head ("Headmaster" unless changed): letters, spaces and a few marks only. */
+  function headTitleOf(v) { v = String(v || '').replace(/[^\p{L} .'\u2019-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24); return v; }
+  /* v68 · staffClasses/<staff id>: the names of the classes a teacher has now, for the Staff page. Read by staff only.
+     Names, course codes and terms: no rosters, no students. A teacher's app writes its own; the Headmaster's app writes everyone's. */
+  const sentClasses = {};
+  async function pushStaffClasses(list, me, ownOnly) {
+    const mine = id => list.filter(x => !x.archived && (Cloud.role === 'master' && id === me.uid ? !x.teacherId || x.teacherId === id : x.teacherId === id)).slice(0, 30).map(x => ({ name: String(x.name || '').slice(0, 60), course: String(x.courseId || '').slice(0, 40), term: String(x.term || '').slice(0, 40) }));
+    const ids = Cloud.role === 'master' && !ownOnly ? [me.uid].concat(Object.keys(seenStaff).filter(k => k !== me.uid)) : [me.uid];
+    for (const id of ids) { const classes = mine(id), j = J(classes); if (sentClasses[id] === j) continue; await db.collection('staffClasses').doc(id).set({ id, classes, updatedAt: now() }); sentClasses[id] = j; }
+  }
+  Cloud.staffClasses = null;
+  Cloud.loadStaffClasses = async () => { if (!db || !Cloud.user || Cloud.role === 'student') return null;
+    try { await pushStaffClasses((lsGet('learnhub.sections') || {}).list || [], Cloud.user); } catch (e) { console.warn('staff class list', e && e.code || e); }   // make sure this account's own list is there (the Headmaster's app fills in everyone's)
+    const q = await db.collection('staffClasses').get(); const out = {}; q.docs.forEach(d => { const c = (d.data() || {}).classes; out[d.id] = Array.isArray(c) ? c.slice(0, 30).map(x => ({ name: String(x.name || '').slice(0, 60), course: String(x.course || '').slice(0, 40), term: String(x.term || '').slice(0, 40) })) : []; }); Cloud.staffClasses = out; return out; };
   /** Staff records: same idea as students — only the fields that changed since the copy we last saw. */
   const seenStaff = {};
   async function pushStaff(r) {
@@ -322,8 +345,12 @@
       the role written on a staff record is only a fallback for when that record cannot be read. */
   function isMasterDoc(t) { const m = Cloud.masterInfo; return m && m.uid ? t.id === m.uid : t.role === 'master'; }
   function applySections(docs) {
+    // v68: a change to a class made on this device and not sent yet (it waits in `pending`) is not rolled back by the
+    // older copy that arrives while an earlier write is still going up. The copy that follows our own write brings both.
+    if (pending['learnhub.sections'] && Cloud.role !== 'student') { knownSections = new Set(docs.map(d => d.id)); return; }
     const cur = lsGet('learnhub.sections') || { list: [], current: {} };
     const list = docs.map(d => { const s = d.data(); delete s.updatedAt; return s; });
+    Object.keys(sentSections).forEach(k => delete sentSections[k]); list.forEach(s => { if (s && s.id) sentSections[s.id] = stable(clean(s)); });
     knownSections = new Set(list.map(s => s.id));
     // a student's own "current section" map is device-local; keep it
     lsSet('learnhub.sections', { list, current: cur.current || {} }); reloadStores('sections'); syncDocListeners();
@@ -348,7 +375,7 @@
     reloadStores('progress');
   }
   function applyFocus(docs) { knownDocs.focus = new Set(docs.map(d => d.id)); docs.forEach(d => { const f = d.data(); lsSet('learnhub.focus.' + d.id, tidy(f.data || { enabled: false, courses: {} })); }); reloadStores('focus'); }
-  function applySettings(doc) { const g = doc.exists ? doc.data() : {}; const s = lsGet('learnhub.settings') || {}; s.allowSelfSignup = g.allowSelfSignup === true; s.legacyBirthday = g.legacyBirthday !== false;   /* self sign-up is on only when the school has saved it as on (the rules agree) */ if (g.colouringEvery !== undefined) s.colouringEvery = g.colouringEvery; lsSet('learnhub.settings', s); reloadStores('settings'); }
+  function applySettings(doc) { const g = doc.exists ? doc.data() : {}; const s = lsGet('learnhub.settings') || {}; s.allowSelfSignup = g.allowSelfSignup === true; s.legacyBirthday = g.legacyBirthday !== false; s.headTitle = headTitleOf(g.headTitle);   /* self sign-up is on only when the school has saved it as on (the rules agree) */ if (g.colouringEvery !== undefined) s.colouringEvery = g.colouringEvery; lsSet('learnhub.settings', s); reloadStores('settings'); }
   /** Update an object tree in place so pages holding references keep seeing current data. */
   function mergeInPlace(target, src) {
     Object.keys(target).forEach(k => { if (!(k in src)) delete target[k]; });
@@ -673,6 +700,7 @@
       problem reports they sent. Returns a receipt — what was deleted and what this app cannot delete (v59).
       (The unused sign-in stays in Firebase Authentication and opens nothing; it is deleted in the Firebase console.) */
   Cloud.removeStudent = async id => {
+    if (Cloud.role !== 'master') throw new Error('Only the Headmaster can delete a student from the school. You can take a student out of your class instead. Nothing was deleted.');   // v68 (the rules agree)
     const was = seenStudents[id] || {};
     { const why = await Cloud.heldReason(id); if (why) throw new Error(why + ' Nothing was deleted.'); }
     // v66: the sign-in itself can now be deleted too, because the app holds the code (or, for an older record, the birthday)
@@ -702,7 +730,7 @@
     } catch (e) { throw new Error(rulesHint(e)); }
     delete seenStudents[id];
     const dropped = was.number && dropPw ? await dropAuthUser(studentEmail(was.number), dropPw) : false;
-    receipt.deleted = ['Profile (name, student number, level, accommodations, notes)', 'Work and results' + (work ? ' (' + work + ' course record' + (work === 1 ? '' : 's') + ')' : ''), 'Teacher grades and comments' + (grades ? ' (' + grades + ' course record' + (grades === 1 ? '' : 's') + ')' : ''), 'Focus Plan', 'Live Class presence record', 'Coin bag, shop requests and locker items', 'Directory card', 'Places on section rosters', 'Sign-in code record and correction requests' + (Cloud.role === 'master' ? ', and the record of corrections' : '')];
+    receipt.deleted = ['Profile (name, student number, level, accommodations, notes)', 'Work and results' + (work ? ' (' + work + ' course record' + (work === 1 ? '' : 's') + ')' : ''), 'Teacher grades and comments' + (grades ? ' (' + grades + ' course record' + (grades === 1 ? '' : 's') + ')' : ''), 'Focus Plan', 'Live Class presence record', 'Coin bag, shop requests and locker items', 'Directory card', 'Places on class rosters', 'Sign-in code record and correction requests' + (Cloud.role === 'master' ? ', and the record of corrections' : '')];
     if (dropped) receipt.deleted.push('The sign-in itself (student number ' + was.number + ' can be used again)');
     if (Cloud.role === 'master') receipt.deleted.push('Problem reports they sent' + (reports ? ' (' + reports + ')' : ''));
     receipt.kept = (dropped ? [] : ['The sign-in itself, which now opens nothing: delete it in the Firebase console (Authentication) or with unused-signins.py']).concat(['Lines in the change log that name this student (the log cannot be edited)',

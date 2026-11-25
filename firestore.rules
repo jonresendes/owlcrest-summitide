@@ -1,5 +1,8 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v66 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v68 (free-plan edition: no Cloud Functions).
+// v68 adds: only the Headmaster can delete a student from the school (a teacher takes a student out of a class instead);
+// the names of each teacher's classes for the Staff page (staffClasses, staff only); the Curriculum shelf (curriculum,
+// curriculumChunks: staff read, the Headmaster writes); and the head of the school's title on settings/global, which only the Headmaster may change.
 // v66 adds: sign-in codes (signin), holds, corrections, the longer policy record, and two refusals:
 // nothing of a student on hold can be deleted, and a device holding an old copy cannot write over a record that was cleaned up.
 // Paste the whole file into Firebase console → Firestore Database → Rules → Publish.
@@ -118,7 +121,10 @@ service cloud.firestore {
                     || (isStaff() && request.auth.uid in resource.data.teachers && onlyOwnEntryChanges() && !changed().hasAny(['id', 'number']))
                     || (isStaff() && changed().hasOnly(['teachers']) && onlyOwnEntryChanges())
                     || (request.auth.uid == sid && changed().hasOnly(studentOwnFields()) && tidyOwnFields()));
-      allow delete: if signedIn() && (isMaster() || (isStaff() && request.auth.uid in resource.data.teachers)) && !held(sid);
+      // v68: only the Headmaster deletes a student from the school. A teacher takes a student out of a class (the class roster and their own entry on the access list).
+      // The one exception: a teacher's app may undo a student it has just created when the sign-in code could not be saved (no signin record exists).
+      allow delete: if signedIn() && !held(sid) && (isMaster()
+                    || (isStaff() && resource.data.teachers == [request.auth.uid] && !exists(/databases/$(database)/documents/signin/$(sid))));
     }
     // Name, number and picture of every student, so a teacher can add an existing student to a section. Staff only.
     match /directory/{sid} {
@@ -224,7 +230,38 @@ service cloud.firestore {
     // Not secret (two switches). The sign-in screen reads it before anyone is signed in, to know whether to offer "I'm new".
     match /settings/global {
       allow read: if true;
-      allow write: if isStaff();
+      // v68: headTitle (what the school calls its head) is the Headmaster's to set; a teacher's write must leave it as it is.
+      allow create: if isMaster() || (isStaff() && !('headTitle' in request.resource.data));
+      allow update: if isMaster() || (isStaff() && !changed().hasAny(['headTitle']));
+      allow delete: if isMaster();
+    }
+
+    // ----- the Staff page (v68) -----
+    // staffClasses/<staff id>: the names, course codes and terms of the classes a teacher has now. No rosters and no students.
+    // Staff read them; a teacher writes their own; the Headmaster writes anyone's. Students cannot read them.
+    match /staffClasses/{tid} {
+      allow read: if isStaff();
+      allow create, update: if (isMaster() || (isStaff() && request.auth.uid == tid))
+                    && request.resource.data.keys().hasOnly(['id', 'classes', 'updatedAt'])
+                    && request.resource.data.id == tid && request.resource.data.classes is list && request.resource.data.classes.size() <= 30;
+      allow delete: if isMaster();
+    }
+
+    // ----- the Curriculum shelf (v68) -----
+    // Published documents (Ministry curriculum, policy documents, course outlines): a link, or a PDF kept in pieces.
+    // Nothing about a person. Staff read; only the Headmaster adds or removes.
+    match /curriculum/{id} {
+      allow read: if isStaff();
+      allow create, update: if isMaster()
+                    && request.resource.data.keys().hasOnly(['id', 'title', 'course', 'province', 'kind', 'year', 'note', 'link', 'file', 'addedBy', 'addedAt'])
+                    && plainLine(request.resource.data.title, 140) && plainLine(request.resource.data.link, 400);
+      allow delete: if isMaster();
+    }
+    match /curriculumChunks/{part} {
+      allow read: if isStaff();
+      allow create, update: if isMaster() && request.resource.data.keys().hasOnly(['doc', 'n', 'data'])
+                    && request.resource.data.data is string && request.resource.data.data.size() <= 800000;
+      allow delete: if isMaster();
     }
 
     // ----- coins, shops and lockers (v60) -----

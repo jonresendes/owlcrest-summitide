@@ -28,6 +28,12 @@
     Settings.activeCourse = course ? course.id : null;   // the level in force follows the course being viewed
   }
   function crumbs(parts) {
+    // v68: Desk › the class › Content › … whenever the course on screen is being read through a class
+    try { const cid = Settings.activeCourse, c = cid && findCourseAll(cid), me = Students.current;
+      if (c && me && parts.length > 1 && parts[0].href === '#/' && parts[1].label === c.title && (/^#\/course\//.test(parts[1].href || '') || (!parts[1].href && /^#\/course\//.test(location.hash))) && !parts.some(p => /^#\/class\//.test(p.href || ''))) {
+        const sec = LH.overlaySection(cid);
+        if (sec || !me.isStaff) parts = [parts[0], { label: sec ? sec.name : c.title, href: '#/class/' + (sec ? sec.id : 'c~' + c.id) }, { label: 'Content', href: parts[1].href }].concat(parts.slice(2)); }
+    } catch (e) {}
     return '<div class="crumbs">' + parts.map(p => p.href ? '<a href="' + p.href + '">' + esc(p.label) + '</a>' : esc(p.label)).join(' › ') + '</div>';
   }
   function unitProgress(course, unit) {
@@ -86,23 +92,43 @@
   }
   function setNav(key) {
     document.querySelectorAll('.topnav a').forEach(a => a.classList.toggle('active', a.dataset.nav === key));
-    const d = document.querySelector('[data-nav="dashboard"]'); if (d) d.hidden = Settings.locked || !Staff.master;
-    const g = document.querySelector('[data-nav="grades"]'); if (g) g.hidden = !Students.current || Students.current.isStaff;
-    const h = document.querySelector('[data-nav="home"]'); if (h) { const full = deskName(); h.innerHTML = '<span class="nav-full">' + esc(full) + '</span><span class="nav-short">' + (full === 'Student Desk' ? 'My Desk' : full === "Teacher's Desk" ? 'My Desk' : 'HM Desk') + '</span>'; h.title = full; }
-    const cs = document.querySelector('[data-nav="case"]'); if (cs) cs.hidden = !Students.current || Students.current.isStaff;
-    const sn = document.querySelector('[data-nav="sections"]'); if (sn) sn.hidden = !Students.current;
-    const st = document.querySelector('[data-nav="students"]'); if (st) st.hidden = !Students.current || !Students.current.isStaff;
-    const tn = document.querySelector('[data-nav="teachers"]'); if (tn) tn.hidden = !(Students.current && Students.current.role === 'master');
+    const me = Students.current;
+    const h = document.querySelector('[data-nav="home"]'); if (h) { const full = deskName(); h.textContent = 'My Desk'; h.title = full; }
+    const cs = document.querySelector('[data-nav="case"]'); if (cs) cs.hidden = !me || me.isStaff;
+    const cl = document.querySelector('[data-nav="classes"]'); if (cl) cl.hidden = !me || !me.isStaff;
   }
-  function setNavRoles() { const tn = document.querySelector('[data-nav="teachers"]'); if (tn) tn.hidden = !(Students.current && Students.current.role === 'master'); }
+  function setNavRoles() { setNav((document.querySelector('.topnav a.active') || { dataset: {} }).dataset.nav || ''); }
+  /** v68 · The tools in the header: jump straight to a class, find a student (staff), and a marker while a Live Class session runs. */
+  function renderTools() {
+    const el = document.getElementById('topTools'); if (!el) return;
+    const s = Students.current; if (!s || !sessionStorage.getItem('learnhub.entered')) { el.innerHTML = ''; return; }
+    const here = decodeURIComponent((location.hash.match(/^#\/class\/([^/?]+)/) || [])[1] || '');
+    const opt = (id, label) => '<option value="' + esc(id) + '"' + (id === here ? ' selected' : '') + '>' + esc(label) + '</option>';
+    let opts = '', n = 0;
+    if (s.isStaff) {
+      const secs = Sections.visible(s.staffId, false); n = secs.length;
+      const own = s.role === 'master' ? secs.filter(x => !x.teacherId) : secs, rest = s.role === 'master' ? secs.filter(x => x.teacherId) : [];
+      opts = own.map(x => opt(x.id, x.name)).join('') + (rest.length ? '<optgroup label="Teachers\u2019 classes">' + rest.map(x => opt(x.id, x.name + ' · ' + teacherName(x))).join('') + '</optgroup>' : '') + '<option value="#all">All classes · create…</option>';
+    } else {
+      const secs = mySections().filter(x => !x.archived); const cs = courses(); n = cs.length;
+      opts = cs.map(c => { const sec = secs.find(x => x.courseId === c.id); return opt(sec ? sec.id : 'c~' + c.id, sec ? sec.name : c.title); }).join('');
+    }
+    const live = s.isStaff && window.Live && /^running/.test(Live.deskDetail());
+    el.innerHTML = (n || s.isStaff ? '<label class="class-switch" title="Go to a class"><span class="sr-only">Go to a class</span><select id="classSwitch"><option value="">My Classes</option>' + opts + '</select></label>' : '') +
+      (s.isStaff ? '<form class="top-search" id="topSearch" role="search"><input type="search" id="topSearchQ" placeholder="Find a student" aria-label="Find a student by name or number" autocomplete="off"></form>' : '') +
+      (live ? '<a class="live-pill" href="#/live" title="A Live Class session is running"><span class="live-dot"></span> Live</a>' : '');
+    const sw = el.querySelector('#classSwitch'); if (sw) sw.addEventListener('change', () => { const v = sw.value; if (!v) return; location.hash = v === '#all' ? '#/classes' : '#/class/' + encodeURIComponent(v); });
+    const f = el.querySelector('#topSearch'); if (f) f.addEventListener('submit', e => { e.preventDefault(); const q = f.querySelector('input').value.trim(); if (!q) return; sessionStorage.setItem('learnhub.studentQ', q); Sections.setCurrent(s.staffId, null); route.cameFrom = 'students';
+      if (/^#\/students/.test(location.hash)) pageStudents(); else location.hash = '#/students'; });
+  }
   /** The "signed in as" chip in the header. */
   function renderWho() {
     const el = document.getElementById('whoChip'); if (!el) return;
     const s = Students.current;
     const hm = !!(s && s.role === 'master');
     document.body.dataset.role = !s ? '' : hm ? 'master' : s.isStaff ? 'teacher' : 'student';   // the Headmaster session is marked in the header
-    el.innerHTML = s ? '<button class="who' + (hm ? ' who-master' : '') + '" type="button" id="whoBtn" title="' + (hm ? 'Signed in as the Headmaster (admin)' : 'Account') + '"><span class="who-avatar" style="background:' + esc(s.colour) + '">' + esc(LH.initial(s)) + '</span><span class="who-name">' + esc(s.name) + (s.isStaff && !hm ? ' <span class="muted small">(teacher)</span>' : '') + '</span>' + (hm ? '<span class="role-badge" aria-label="Headmaster"><span class="role-badge-short">HM</span><span class="role-badge-text">Headmaster</span></span>' : '') + '<span class="who-switch">▾</span></button>' : '';
-    setNavRoles();
+    el.innerHTML = s ? '<button class="who' + (hm ? ' who-master' : '') + '" type="button" id="whoBtn" title="' + (hm ? 'Signed in as the Headmaster (admin)' : 'Account') + '"><span class="who-avatar" style="background:' + esc(s.colour) + '">' + esc(LH.initial(s)) + '</span><span class="who-name">' + esc(s.name) + (s.isStaff && !hm ? ' <span class="muted small">(teacher)</span>' : '') + '</span>' + (hm ? '<span class="role-badge" aria-label="' + esc(LH.headTitle()) + '"><span class="role-badge-short">' + esc(LH.headShort()) + '</span><span class="role-badge-text">' + esc(LH.headTitle()) + '</span></span>' : '') + '<span class="who-switch">▾</span></button>' : '';
+    setNavRoles(); try { renderTools(); } catch (e) { console.warn('header tools', e); }
     const b = el.querySelector('#whoBtn'); if (b) b.addEventListener('click', accountMenu);
     if (window.fitTopbar) setTimeout(window.fitTopbar, 0);
   }
@@ -115,14 +141,14 @@
       '<div class="account-actions">' +
       '<button class="btn secondary" id="acctSwitch">Switch user</button>' +
       '<button class="btn secondary" id="acctSignOut">Sign out</button>' +
-      '<a class="btn ghost" href="#/settings" id="acctSettings">Settings</a>' +
+      '<a class="btn ghost" href="#/settings" id="acctSettings">My settings</a>' + (s.role === 'master' ? '<a class="btn ghost" href="#/admin" id="acctAdmin">Administration</a>' : '') +
       '<button class="btn ghost" id="acctClose">Stay signed in</button></div>' +
       (Cloud.enabled ? '<p class="muted small" style="margin:0.75rem 0 0">' + (Cloud.keepSignedIn() ? 'This device keeps you signed in.' : 'You are signed out automatically after ' + ((window.CLOUD_CONFIG || {}).idleMinutes || 30) + ' minutes without activity.') + '</p>' : '') + '</div>';
     document.body.appendChild(d);
     const close = () => d.remove();
     d.addEventListener('click', e => { if (e.target === d) close(); });
     d.querySelector('#acctClose').addEventListener('click', close);
-    d.querySelector('#acctSettings').addEventListener('click', close);
+    d.querySelector('#acctSettings').addEventListener('click', close); const aa = d.querySelector('#acctAdmin'); if (aa) aa.addEventListener('click', close);
     d.querySelector('#acctSwitch').addEventListener('click', () => { close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
     d.querySelector('#acctSignOut').addEventListener('click', () => { if (!confirm('Sign out of Summitide Learning on this device?')) return; close(); sessionStorage.setItem('learnhub.switch', '1'); location.hash = '#/welcome'; });
   }
@@ -161,7 +187,7 @@
         '<div class="btn-row" style="margin-top:1rem"><button class="btn lg" id="suCreate">Create my profile</button></div></div>';
     } else if (welcomeState.mode === 'teacher') {
       form = '<div class="card signup"><div class="btn-row between"><h3>New teacher</h3><button class="btn ghost sm" id="welcomeCancel">✕</button></div>' +
-        (Staff.master ? '<p class="muted small">Teacher profiles are created with the master account\'s PIN (ask ' + esc(Staff.master.name) + ').</p>' : '<p class="muted small">You are the first teacher here, so this profile becomes the <strong>master account</strong> for this device: it can add other teachers, create sections and run exports.</p>') +
+        (Staff.master ? '<p class="muted small">Teacher profiles are created with the master account\'s PIN (ask ' + esc(Staff.master.name) + ').</p>' : '<p class="muted small">You are the first teacher here, so this profile becomes the <strong>master account</strong> for this device: it can add other teachers, create classes and run exports.</p>') +
         '<div class="signup-grid"><label>Name <input class="text-input" id="tName" maxlength="40" placeholder="e.g. Ms Patel"></label>' +
         '<label>Your 6-digit PIN <input class="text-input pin-input" id="tPin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN"></label>' +
         (Staff.master ? '<label>Master PIN <input class="text-input pin-input" id="tMaster" type="password" inputmode="numeric" maxlength="6" placeholder="Master PIN"></label>' : '<label>School e-mail (optional) <input class="text-input" id="tEmail" placeholder="name@school.ca"></label>') + '</div>' +
@@ -283,7 +309,7 @@
     const first = app.querySelector('#siUser, #suNumber'); if (first) first.focus();
   }
   function pageMasterSetup() {
-    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Set up the Headmaster account</h1><p class="muted">The Headmaster is the admin account: it adds teachers, creates sections and sees every student. There is only one, and it can only be created while none exists — after that, teachers are added by the Headmaster in the Teachers tab.</p></div>' +
+    app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Set up the Headmaster account</h1><p class="muted">The Headmaster is the admin account: it adds teachers, creates classes and sees every student. There is only one, and it can only be created while none exists — after that, teachers are added by the Headmaster in the Teachers tab.</p></div>' +
       '<div class="card signin-card"><label class="signin-field">Your name<input class="text-input" id="mName" maxlength="40" placeholder="e.g. Ms Patel"></label><label class="signin-field">Teacher ID (what you will sign in with)<input class="text-input" id="mLogin" placeholder="e.g. jresendes"></label><label class="signin-field">Password (at least 10 characters)<input class="text-input" id="mPass" type="password"></label><label class="signin-field">School e-mail (optional)<input class="text-input" id="mEmail" placeholder="name@school.ca"></label>' +
       '<div class="btn-row" style="margin-top:0.75rem"><button class="btn lg" id="mGo">Create Headmaster account</button><button class="btn ghost" id="mBack">Cancel</button></div><p class="muted small" id="mMsg"></p></div></div>';
     app.querySelector('#mBack').addEventListener('click', () => { signinState.signup = false; location.hash = '#/signin'; pageCloudSignIn(); });
@@ -328,7 +354,7 @@
       '<h3 style="margin-top:1rem">Data upgrade</h3><p class="muted small">Runs by itself the first time the Headmaster signs in on version 43. Safe to run again if a teacher cannot see their students.</p><div class="btn-row"><button class="btn ghost sm" id="secMigrate">Run the data upgrade again</button></div>';
   }
   function bindSecurity() {
-    const go = (id, label, fn) => { const b = app.querySelector(id); if (b) b.addEventListener('click', async () => { b.disabled = true; b.textContent = label; sessionStorage.setItem('learnhub.sg.security', '1'); try { await fn(); } catch (e) { secUI.msg = '' + e.message; } pageSettings(); }); };
+    const go = (id, label, fn) => { const b = app.querySelector(id); if (b) b.addEventListener('click', async () => { b.disabled = true; b.textContent = label; sessionStorage.setItem('learnhub.sg.security', '1'); try { await fn(); } catch (e) { secUI.msg = '' + e.message; } redrawAdmin(); }); };
     go('#secLog', 'Loading…', async () => { secUI.msg = ''; secUI.log = await Cloud.auditLog(50); });
     go('#secMigrate', 'Working…', async () => { const r = await Cloud.runMigration(); secUI.msg = 'Data upgrade finished: ' + r.students + ' students, ' + r.progress + ' work records, ' + r.staff + ' staff records checked.'; });
   }
@@ -360,7 +386,7 @@
   }
   window.addEventListener('cloud:status', () => { document.querySelectorAll('[data-cloud-status]').forEach(el => { const n = document.createElement('div'); n.innerHTML = cloudStatusHtml(); if (n.firstChild) el.replaceWith(n.firstChild); }); });
   function possessive(n) { n = String(n || '').trim(); return n + (/s$/i.test(n) ? '\u2019' : '\u2019s'); }
-  function deskName() { const s = Students.current; return s && s.role === 'master' ? "The Headmaster's Desk" : s && s.isStaff ? "Teacher's Desk" : 'Student Desk'; }
+  function deskName() { const s = Students.current; return s && s.role === 'master' ? 'The ' + possessive(LH.headTitle()) + ' Desk' : s && s.isStaff ? "Teacher's Desk" : 'Student Desk'; }
   /** Sections the signed-in student is enrolled in (active first). */
   function mySections() { const me = Students.current; if (!me || me.isStaff) return []; return Sections.list.filter(sec => (sec.students || []).includes(me.id)).sort((a, b) => (a.archived ? 1 : 0) - (b.archived ? 1 : 0)); }
   function teacherName(sec) { if (!sec.teacherId) return Staff.master ? Staff.master.name : ''; const t = Staff.teachers.find(x => x.id === sec.teacherId); return t ? t.name : ''; }
@@ -374,7 +400,21 @@
     courses: '<path d="M8 10h14a4 4 0 0 1 4 4v26a4 4 0 0 0-4-4H8z"/><path d="M40 10H26a4 4 0 0 0-4 4v26a4 4 0 0 1 4-4h14z"/>',
     grades: '<path d="M6 42h36"/><rect x="10" y="24" width="7" height="18"/><rect x="21" y="14" width="7" height="28"/><rect x="32" y="30" width="7" height="12"/>',
     teachers: '<rect x="6" y="8" width="36" height="24" rx="2"/><path d="M14 40h20M24 32v8"/><path d="M14 20l6-6 6 6 8-8"/>',
-    live: '<circle cx="24" cy="26" r="4"/><path d="M24 30v12"/><path d="M15 17a12 12 0 0 1 18 0"/><path d="M9 11a20 20 0 0 1 30 0"/><path d="M18 22a8 8 0 0 1 12 0"/>'
+    live: '<circle cx="24" cy="26" r="4"/><path d="M24 30v12"/><path d="M15 17a12 12 0 0 1 18 0"/><path d="M9 11a20 20 0 0 1 30 0"/><path d="M18 22a8 8 0 0 1 12 0"/>',
+    /* v68: the Headmaster's new tiles, the six work tiles of a class and the class tools */
+    classes: '<rect x="5" y="9" width="38" height="24" rx="2"/><path d="M12 17h14M12 23h9"/><path d="M16 41l8-8 8 8"/><path d="M24 5v4"/>',
+    curriculum: '<path d="M13 5h17l8 8v30H13z"/><path d="M30 5v8h8"/><path d="M19 22l3 3 6-7"/><path d="M19 33h13"/><path d="M9 11v32"/>',
+    admin: '<circle cx="24" cy="24" r="6"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2"/>',
+    staff: '<circle cx="24" cy="14" r="6"/><path d="M11 40c0-8 6-13 13-13s13 5 13 13"/><path d="M24 27l-3 6 3 4 3-4z"/>',
+    content: '<path d="M6 12c6-3 12-3 18 1 6-4 12-4 18-1v26c-6-3-12-3-18 1-6-4-12-4-18-1z"/><path d="M24 13v26"/><path d="M11 20h8M11 27h8M29 20h8M29 27h8"/>',
+    assignments: '<path d="M10 6h20l8 8v28H10z"/><path d="M30 6v8h8"/><path d="M16 22h16M16 29h16M16 36h9"/>',
+    quizzes: '<circle cx="24" cy="24" r="18"/><path d="M18 19a6 6 0 1 1 9 5c-2 1.4-3 2.6-3 5"/><path d="M24 35v.5"/>',
+    tests: '<rect x="9" y="8" width="30" height="34" rx="2"/><path d="M18 5h12v6H18z"/><path d="M15 21l2.5 2.5L22 19M15 31l2.5 2.5L22 29"/><path d="M27 22h7M27 32h7"/>',
+    ccts: '<path d="M24 5l5.6 11.6 12.4 1.8-9 9 2.2 12.6L24 34l-11.2 6 2.2-12.6-9-9 12.4-1.8z"/>',
+    exams: '<path d="M4 18l20-9 20 9-20 9z"/><path d="M13 23v10c3 3.5 7 5 11 5s8-1.5 11-5V23"/><path d="M44 18v12"/>',
+    scheme: '<circle cx="24" cy="24" r="18"/><path d="M24 6v18l14 11"/><path d="M24 24L8 32"/>',
+    case: '<path d="M14 7h20v10a10 10 0 0 1-20 0z"/><path d="M14 10H7c0 7 3 10 8 10M34 10h7c0 7-3 10-8 10"/><path d="M24 27v8M16 41h16M19 35h10"/>',
+    shop: '<path d="M7 18l3-10h28l3 10"/><path d="M7 18a5.7 5.7 0 0 0 11.3 0 5.7 5.7 0 0 0 11.4 0A5.7 5.7 0 0 0 41 18"/><path d="M10 23v18h28V23"/><path d="M20 41V31h8v10"/>'
   };
   const chalkIcon = k => '<svg class="chalk-ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CHALK[k] + '</svg>';
   function tile(href, icon, title, detail, extra) { const chalk = /data-chalk/.test(extra || ''); return '<a class="card tile desk-fold' + (chalk ? ' chalk' : '') + '" href="' + href + '"' + (extra || '') + '><span class="tile-icon">' + icon + '</span><span class="tile-text"><h2>' + title + '</h2><span class="muted small">' + detail + '</span></span>' + (chalk ? '<span class="chalk-tray" aria-hidden="true"><i></i><i></i></span>' : '') + '</a>'; }
@@ -401,14 +441,18 @@
     const teachers = Array.from(new Set(secs.filter(x => !x.archived).map(teacherName).filter(Boolean)));
     const handedIn = (() => { let n = 0; mine.forEach(c => c.units.forEach(un => { const u = Progress.unit(c.id, un.id); Object.values(u.work || {}).forEach(w => Object.values(w).forEach(x => { if (x && x.done) n++; })); })); return n; })();
     document.body.dataset.page = 'desk'; document.body.dataset.desk = 'student';
-    app.innerHTML = '<div class="page-head"><div><h1>' + esc(possessive(s.name)) + ' Desk</h1><p class="muted">Welcome back, ' + esc(s.name) + '! Your sections, your courses, and how you are doing.</p>' + (Cloud.enabled ? '<p class="muted small">' + profileStamp(s) + '</p>' : '') + '</div></div>' +
+    // v68: the desk is the student's classes. Each one opens the same six tiles the teacher sees.
+    const classCard = c => { const sec = secs.find(x => x.courseId === c.id && !x.archived) || secs.find(x => x.courseId === c.id); const pct = courseProgress(c); const t = Students.trackFor(c.id);
+      return '<a class="card class-card big" href="#/class/' + esc(sec ? sec.id : 'c~' + c.id) + '" style="--course:' + esc(c.color || '') + '"><span class="class-card-bar"></span><span class="class-card-text"><strong>' + esc(sec ? sec.name : c.title) + '</strong><span class="muted small">' + (sec ? esc(c.title) + (teacherName(sec) ? ' · ' + esc(teacherName(sec)) : '') : esc(c.subtitle || '')) + '</span><span class="progress"><span style="width:' + pct + '%"></span></span></span>' +
+        '<span class="class-card-tags"><span class="tag">' + (t ? 'Modified' : 'Level ' + Students.levelFor(c.id)) + '</span>' + (Focus.active(c.id) ? '<span class="tag accent">Focus Plan</span>' : '') + '<span class="tag ok">' + (pct ? pct + '%' : 'Start') + '</span></span></a>'; };
+    app.innerHTML = '<div class="page-head"><div><h1>' + esc(possessive(s.name)) + ' Desk</h1><p class="muted">Welcome back, ' + esc(s.name) + '. Pick a class to see what is in it and what to do next.</p>' + (Cloud.enabled ? '<p class="muted small">' + profileStamp(s) + '</p>' : '') + '</div></div>' +
       (Focus.enabled && Object.keys(Focus.data.courses).length ? '<div class="plan-banner"><strong>Focus Plan is on.</strong> Courses with a plan show only the pieces chosen for you.</div>' : '') +
-      '<div class="case-stats"><div class="stat"><div class="n">' + mine.length + '</div><div class="l">Active class' + (mine.length === 1 ? '' : 'es') + '</div></div><div class="stat"><div class="n">' + awards + ' / ' + total + '</div><div class="l">Awards</div></div><div class="stat"><div class="n">' + (avg === null ? '–' : avg + '%') + '</div><div class="l">Average best test</div></div><div class="stat"><div class="n">' + arch.length + '</div><div class="l">Archived</div></div></div>' +
-      '<div class="desk-tiles">' +
-      tile('#/sections', '', 'Sections', secs.filter(x => !x.archived).length ? secs.filter(x => !x.archived).length + (teachers.length ? ' with ' + esc(teachers.join(', ')) : '') : 'none yet') +
-      tile('#/courses', '', 'Courses', mine.length + ' active' + (arch.length ? ' · ' + arch.length + ' archived' : '')) +
-      tile(mine.length === 1 ? '#/grades/' + mine[0].id : '#/sections', '', 'Grades', handedIn ? handedIn + ' handed in' : 'your marks') +
-      tile('#/case', '', 'Display Case', awards + ' / ' + total + ' awards') +
+      (window.Classes ? Classes.nextFor(s) : '') +
+      '<h2 class="sub-head desk-sub">My Classes</h2>' +
+      (mine.length ? '<div class="class-cards">' + mine.map(classCard).join('') + '</div>' : '<div class="empty">You are not in a class yet. ' + (Cloud.enabled ? 'Your teacher adds you; it appears here as soon as they do.' : 'Join one under Courses.') + '</div>') +
+      '<div class="desk-tiles small-tiles">' +
+      tile('#/case', chalkIcon('case'), 'Display Case', awards + ' / ' + total + ' awards', ' data-chalk') +
+      tile('#/courses', chalkIcon('courses'), 'Courses', (others.length && !s.coursesLocked ? 'join a class' : mine.length + ' active') + (arch.length ? ' · ' + arch.length + ' archived' : ''), ' data-chalk') +
       (window.Coins ? Coins.deskTiles(tile) : '') +   // v60: Shop and Locker, only where coins are on
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageHome);
@@ -419,12 +463,12 @@
     const loaded = CourseFiles.list();
     return '<div class="area-fold loader-fold" id="courseLoader">' +
       '<div class="area-bar static loader-bar"><div class="area-block loader-block" aria-hidden="true"></div>' +
-      '<div class="area-text"><strong>Load a Course or Section</strong><span class="small muted">Pick a course file · confirm its code · it joins Summitide Learning</span></div></div>' +
+      '<div class="area-text"><strong>Load a Course or Class</strong><span class="small muted">Pick a course file · confirm its code · it joins Summitide Learning</span></div></div>' +
       '<div class="loader-body">' +
       '<ol class="loader-steps">' +
       '<li><span class="loader-num">1</span><div><strong>Select the course file</strong><span class="muted small">A <code>.json</code> course file from the authoring workflow.</span></div></li>' +
       '<li><span class="loader-num">2</span><div><strong>Confirm its Ontario course code</strong><span class="muted small">e.g. ENG3U, GLC2O. We read it from the file; change it if it is wrong.</span></div></li>' +
-      '<li><span class="loader-num">3</span><div><strong>Load it</strong><span class="muted small"><strong>New code</strong> → a new course for every teacher. <strong>Code already here</strong> → a new section of that course for the teacher you pick.</span></div></li>' +
+      '<li><span class="loader-num">3</span><div><strong>Load it</strong><span class="muted small"><strong>New code</strong> → a new course for every teacher. <strong>Code already here</strong> → a new class of that course for the teacher you pick.</span></div></li>' +
       '</ol>' +
       '<div class="loader-pick"><input type="file" id="courseFile" accept=".json,application/json" class="visually-hidden"><label for="courseFile" class="btn loader-btn">Select a course file</label><span class="muted small" id="courseFileName">No file selected yet</span></div>' +
       '<div id="courseFileOut"></div>' +
@@ -466,16 +510,16 @@
       if (!CourseFiles.isCode(code)) { out.innerHTML = '<p class="small" style="color:#b91c1c">That is not an Ontario course code. Codes look like ENG3U, GLC2O or SNC1L/2L.</p>'; return; }
       const ex = CourseFiles.existing(code); const course = pendingCourseFile.courses[0]; const v = CourseFiles.validate(course);
       if (ex) {
-        out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">✓ <strong>' + esc(code) + '</strong> is already in Summitide Learning: <em>' + esc(ex.title) + '</em>' + (ex.source === 'cloud' ? ' (loaded from a file' + (ex.build ? ', build ' + esc(ex.build) : '') + ')' : ' (built in)') + '. The file is not added again — create a section of it instead' + (ex.source === 'cloud' ? ', or <button class="btn ghost sm" id="courseReplace">replace the loaded copy with this file</button>' : '') + '.</div>' +
-          '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Create a section of ' + esc(ex.title) + '</div><div class="grid-2">' +
-          '<label class="field">Section name<input class="text-input" id="lcSecName" placeholder="e.g. Period 2"></label><label class="field">Term<input class="text-input" id="lcSecTerm" placeholder="e.g. Fall 2026"></label>' +
+        out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem">✓ <strong>' + esc(code) + '</strong> is already in Summitide Learning: <em>' + esc(ex.title) + '</em>' + (ex.source === 'cloud' ? ' (loaded from a file' + (ex.build ? ', build ' + esc(ex.build) : '') + ')' : ' (built in)') + '. The file is not added again — create a class of it instead' + (ex.source === 'cloud' ? ', or <button class="btn ghost sm" id="courseReplace">replace the loaded copy with this file</button>' : '') + '.</div>' +
+          '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Create a class of ' + esc(ex.title) + '</div><div class="grid-2">' +
+          '<label class="field">Class name<input class="text-input" id="lcSecName" placeholder="e.g. Period 2"></label><label class="field">Term<input class="text-input" id="lcSecTerm" placeholder="e.g. Fall 2026"></label>' +
           '<label class="field">Teacher<select class="text-input" id="lcSecTeacher"><option value="">Me (Headmaster)</option>' + Staff.teachers.map(t => '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>').join('') + '</select></label></div>' +
-          '<div class="btn-row" style="margin-top:0.5rem"><button class="btn" id="lcSecCreate">Create the section</button></div></div>';
-        app.querySelector('#lcSecCreate').addEventListener('click', () => { const name = app.querySelector('#lcSecName').value.trim(); if (!name) return alert('Give the section a name.'); const t = app.querySelector('#lcSecTeacher').value || null; const sec = Sections.add(name, ex.id, t, app.querySelector('#lcSecTerm').value.trim()); if (Cloud.enabled) Cloud.flushNow().catch(() => {}); Sections.setCurrent(Staff.current.id, sec.id); location.hash = '#/sections'; });
+          '<div class="btn-row" style="margin-top:0.5rem"><button class="btn" id="lcSecCreate">Create the class</button></div></div>';
+        app.querySelector('#lcSecCreate').addEventListener('click', () => { const name = app.querySelector('#lcSecName').value.trim(); if (!name) return alert('Give the class a name.'); const t = app.querySelector('#lcSecTeacher').value || null; const sec = Sections.add(name, ex.id, t, app.querySelector('#lcSecTerm').value.trim()); if (Cloud.enabled) Cloud.flushNow().catch(() => {}); Sections.setCurrent(Staff.current.id, sec.id); location.hash = '#/sections'; });
         const rp = app.querySelector('#courseReplace'); if (rp) rp.addEventListener('click', () => saveCourse(code, course, v, out, true));
       } else {
         out.innerHTML = '<div class="plan-banner" style="margin-top:0.5rem"><strong>' + esc(code) + '</strong> is not in Summitide Learning yet.' + (v.errors.length ? ' Fix the errors above before it can be added.' : '') + '</div>' +
-          (v.errors.length ? '' : '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Load the course</div><div class="btn-row"><button class="btn" id="courseAdd">Load ' + esc(code) + ' into Summitide Learning</button><span class="muted small">It appears in Courses for every teacher at once; students see it once a section of it includes them (or they join it).</span></div></div>');
+          (v.errors.length ? '' : '<div class="plan-section"><div class="plan-label"><span class="loader-num">3</span> Load the course</div><div class="btn-row"><button class="btn" id="courseAdd">Load ' + esc(code) + ' into Summitide Learning</button><span class="muted small">It appears in Courses for every teacher at once; students see it once a class of it includes them (or they join it).</span></div></div>');
         const add = app.querySelector('#courseAdd'); if (add) add.addEventListener('click', () => saveCourse(code, course, v, out, false));
       }
     };
@@ -491,7 +535,7 @@
       const meta = await CourseFiles.save(code, course, { by: Staff.current ? Staff.current.name : '', build: pendingCourseFile.envelope && pendingCourseFile.envelope.build, format: pendingCourseFile.envelope && pendingCourseFile.envelope.format });
       pendingCourseFile = null;
       pageCourses();
-      const n = app.querySelector('#courseFileOut'); if (n) n.innerHTML = '<div class="plan-banner">✓ <strong>' + esc(course.title) + '</strong> is now in Summitide Learning (' + esc(code) + ', build ' + esc(meta.build) + '). <a href="#/course/' + esc(course.id) + '">Preview it</a> · <a href="#/sections?new=' + esc(course.id) + '">create a section</a>.</div>';
+      const n = app.querySelector('#courseFileOut'); if (n) n.innerHTML = '<div class="plan-banner">✓ <strong>' + esc(course.title) + '</strong> is now in Summitide Learning (' + esc(code) + ', build ' + esc(meta.build) + '). <a href="#/course/' + esc(course.id) + '">Preview it</a> · <a href="#/sections?new=' + esc(course.id) + '">create a class</a>.</div>';
       n && n.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) { out.innerHTML = '<p class="small" style="color:#b91c1c">Could not save: ' + esc(e.message || String(e)) + '</p>'; }
   }
@@ -504,10 +548,10 @@
       const groups = LH.groupByArea(allCourses());
       const openKey = sessionStorage.getItem('learnhub.areaOpen') || '';
       const row = c => { const secs = mine.filter(x => x.courseId === c.id); const code = LH.courseCode(c) || c.id.toUpperCase();
-        return '<div class="course-row" style="--course:' + esc(c.color || '') + '"><span class="course-row-icon">' + (c.icon || '') + '</span><div class="course-row-text"><div class="course-row-title"><span class="tag code">' + esc(code) + '</span> <strong>' + esc(c.title.replace(/^[A-Z0-9/]+ - /, '')) + '</strong></div><div class="muted small">' + esc(c.subtitle || '') + (c.subtitle ? ' · ' : '') + c.units.length + ' unit' + (c.units.length === 1 ? '' : 's') + ' · ' + c.units.reduce((n, u) => n + u.lessons.length, 0) + ' lessons' + (secs.length ? ' · your sections: ' + secs.map(x => esc(x.name)).join(', ') : '') + (c.source === 'cloud' ? ' · loaded from a file' + (c.build ? ' (build ' + esc(c.build) + ')' : '') : '') + '</div></div>' +
-          '<div class="btn-row course-row-actions"><a class="btn secondary sm" href="#/course/' + c.id + '">Preview</a><a class="btn ghost sm" href="#/sections?new=' + esc(c.id) + '">＋ Section</a>' + (c.source === 'cloud' && Staff.isMaster ? '<button class="btn ghost sm" data-course-remove="' + esc(c.code || c.id) + '" title="Remove this loaded course">Remove</button>' : '') + '</div></div>'; };
+        return '<div class="course-row" style="--course:' + esc(c.color || '') + '"><span class="course-row-icon">' + (c.icon || '') + '</span><div class="course-row-text"><div class="course-row-title"><span class="tag code">' + esc(code) + '</span> <strong>' + esc(c.title.replace(/^[A-Z0-9/]+ - /, '')) + '</strong></div><div class="muted small">' + esc(c.subtitle || '') + (c.subtitle ? ' · ' : '') + c.units.length + ' unit' + (c.units.length === 1 ? '' : 's') + ' · ' + c.units.reduce((n, u) => n + u.lessons.length, 0) + ' lessons' + (c.source === 'cloud' ? ' · loaded from a file' + (c.build ? ' (build ' + esc(c.build) + ')' : '') : '') + '</div>' + (secs.length ? '<div class="course-classes small"><span class="muted">Classes running this course:</span> ' + secs.map(x => '<a class="tag link-tag" href="#/class/' + esc(x.id) + '">' + esc(x.name) + (Staff.isMaster && teacherName(x) && x.teacherId ? ' · ' + esc(teacherName(x)) : '') + '</a>').join(' ') + '</div>' : '') + '</div>' +
+          '<div class="btn-row course-row-actions"><a class="btn secondary sm" href="#/course/' + c.id + '">Preview</a><a class="btn ghost sm" href="#/classes?new=' + esc(c.id) + '">＋ Class</a>' + (c.source === 'cloud' && Staff.isMaster ? '<button class="btn ghost sm" data-course-remove="' + esc(c.code || c.id) + '" title="Remove this loaded course">Remove</button>' : '') + '</div></div>'; };
       app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: 'Courses' }]) +
-        '<div class="page-head"><div><h1>Courses</h1><p class="muted">' + allCourses().length + ' courses in ' + groups.length + ' area' + (groups.length === 1 ? '' : 's') + ', in teacher preview. Students see a course through a <strong>section</strong> — your own copy for one class, where every change you make stays until you copy it into another section.</p></div><div class="btn-row"><a class="btn secondary" href="#/sections">Sections</a></div></div>' +
+        '<div class="page-head"><div><h1>Courses</h1><p class="muted">' + allCourses().length + ' courses in ' + groups.length + ' area' + (groups.length === 1 ? '' : 's') + ', in teacher preview. Students see a course through a <strong>class</strong>: your own copy for one roster, where every change you make stays until you copy it into another class.</p></div><div class="btn-row"><a class="btn secondary" href="#/classes">My Classes</a></div></div>' +
         '<div class="area-list">' + groups.map(g => '<details class="area-fold" data-area="' + g.area.key + '" style="--area:' + g.area.colour + '"' + (openKey === g.area.key ? ' open' : '') + '><summary class="area-bar"><span class="area-block">' + esc(g.area.short) + '</span><span class="area-text"><strong>' + esc(g.area.label) + '</strong><span class="muted small">' + g.courses.length + ' course' + (g.courses.length === 1 ? '' : 's') + ' · ' + g.courses.map(c => esc(LH.courseCode(c) || c.id.toUpperCase())).join(' · ') + '</span></span><span class="fold-caret">→</span></summary><div class="area-body">' + g.courses.map(row).join('') + '</div></details>').join('') + '</div>' +
         (Staff.isMaster ? courseLoaderHtml() : '');
       app.querySelectorAll('details.area-fold').forEach(d => d.addEventListener('toggle', () => { if (d.open) { app.querySelectorAll('details.area-fold').forEach(o => { if (o !== d) o.open = false; }); sessionStorage.setItem('learnhub.areaOpen', d.dataset.area); } else if (sessionStorage.getItem('learnhub.areaOpen') === d.dataset.area) sessionStorage.removeItem('learnhub.areaOpen'); }));
@@ -530,22 +574,26 @@
   }
   /** Teacher / Headmaster desk: tiles for sections, students, courses, grades, notes (and teachers). */
   function pageTeacherHome() {
-    const s = Students.current;
+    const s = Students.current, hm = s.role === 'master', HT = LH.headTitle();
     const secs = Sections.visible(s.staffId, false), archived = Sections.visible(s.staffId, true).filter(x => x.archived);
-    const scope = studentsInScope();
-    const sugg = scope.filter(x => Object.keys(x.suggestions || {}).length).length;
-    const cur = Sections.currentFor(s.staffId);
+    const own = hm ? secs.filter(x => !x.teacherId) : secs;
+    const all = hm ? Students.list.filter(x => !x.demo) : studentsInScopeAll().filter(x => !x.demo);
+    const sugg = all.filter(x => Object.keys(x.suggestions || {}).length).length;
+    const cur = (window.Curriculum && Curriculum.count()) || 0;
     document.body.dataset.page = 'desk'; document.body.dataset.desk = 'staff';
-    app.innerHTML = '<div class="page-head"><div><h1>' + (s.role === 'master' ? 'The Headmaster\'s Desk' : 'Teacher\'s Desk') + '</h1><p class="muted">Welcome, ' + esc(s.name) + ' · ' + (s.role === 'master' ? '<span class="tag hm-tag">Headmaster</span>' : 'Teacher') + ' · ' + secs.length + ' active section' + (secs.length === 1 ? '' : 's') + ' · ' + scope.length + ' student' + (scope.length === 1 ? '' : 's') + '</p></div></div>' +
+    const areas = LH.groupByArea(allCourses()).length;
+    app.innerHTML = '<div class="page-head"><div><h1>' + esc(deskName()) + '</h1><p class="muted">Welcome, ' + esc(s.name) + ' · ' + (hm ? '<span class="tag hm-tag">' + esc(HT) + '</span>' : 'Teacher') + ' · ' + (hm ? Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's') + ' · ' + secs.length + ' class' + (secs.length === 1 ? '' : 'es') : own.length + ' class' + (own.length === 1 ? '' : 'es')) + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's') + '</p></div></div>' +
       '<div class="desk-tiles">' +
-      tile('#/sections', chalkIcon('sections'), 'Sections', secs.length + ' active' + (archived.length ? ' · ' + archived.length + ' archived' : ''), ' data-chalk') +
-      tile('#/students', chalkIcon('students'), 'Students', scope.length + (cur ? ' in ' + esc(cur.name) : s.role === 'master' ? ' in the school' : ' in your sections') + (sugg ? ' · ' + sugg + ' suggestion' + (sugg === 1 ? '' : 's') : ''), ' data-chalk') +
-      tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length + ' courses · ' + LH.groupByArea(allCourses()).length + ' area' + (LH.groupByArea(allCourses()).length === 1 ? '' : 's'), ' data-chalk') +
-      tile('#/dashboard', chalkIcon('grades'), 'Grades', cur ? esc(cur.name) : 'quizzes · assignments · tests', ' data-chalk') +
-      tile('#/live', chalkIcon('live'), 'Live Class', window.Live ? esc(Live.deskDetail()) : 'who is writing · Focus Mode', ' data-chalk') +
-      (window.Coins ? Coins.staffTile(tile) : '') +
-      (s.role === 'master' ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's'), ' data-chalk') : '') +
-      '</div>' + deskNotesHtml();
+      (hm ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's') + ' · ' + secs.length + ' class' + (secs.length === 1 ? '' : 'es'), ' data-chalk')
+          : tile('#/classes', chalkIcon('classes'), 'My Classes', own.length + ' active' + (archived.length ? ' · ' + archived.length + ' archived' : ''), ' data-chalk')) +
+      tile('#/students', chalkIcon('students'), 'Students', all.length + (hm ? ' in the school' : ' in my classes') + (sugg ? ' · ' + sugg + ' suggestion' + (sugg === 1 ? '' : 's') : ''), ' data-chalk') +
+      tile('#/courses', chalkIcon('courses'), 'Courses', allCourses().length + ' courses · ' + areas + ' area' + (areas === 1 ? '' : 's'), ' data-chalk') +
+      tile('#/curriculum', chalkIcon('curriculum'), 'Curriculum', cur ? cur + ' document' + (cur === 1 ? '' : 's') : 'Ministry documents', ' data-chalk') +
+      (hm ? tile('#/admin', chalkIcon('admin'), 'Administration', 'school · privacy · records', ' data-chalk') : tile('#/staff', chalkIcon('staff'), 'Staff', 'teachers at this school', ' data-chalk')) +
+      '</div>' +
+      '<div class="btn-row between desk-sub"><h2 class="sub-head" style="margin:0">My Classes</h2>' + (hm || own.length ? '<a class="btn secondary sm" href="#/classes">' + (own.length ? 'All classes · create' : 'Create a class') + '</a>' : '') + '</div>' +
+      (own.length ? '<div class="class-cards">' + own.map(sec => Classes.classCard(sec)).join('') + '</div>' : '<div class="empty slim">' + (hm ? 'You are not teaching a class yourself. Teachers\' classes are under Teachers.' : 'No classes yet. <a href="#/classes">Create your first class</a>.') + '</div>') +
+      deskNotesHtml();
     bindDeskNotes(pageTeacherHome);
   }
 
@@ -598,29 +646,7 @@
   }
 
   /* ----- Sections page (top menu) ----- */
-  function pageSections() {
-    setCourseColor(null); setNav('sections');
-    const me = Students.current;
-    if (me.isStaff) {
-      const secs = Sections.visible(me.staffId, false), archived = Sections.visible(me.staffId, true).filter(x => x.archived);
-      const nc = (location.hash.split('?')[1] || '').match(/new=([^&]+)/); if (nc) { sessionStorage.setItem('learnhub.newSectionCourse', decodeURIComponent(nc[1])); history.replaceState(history.state, '', location.pathname + '#/sections'); }
-      app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: 'Sections' }]) +
-        '<div class="page-head"><div><h1>Sections</h1><p class="muted">' + (Staff.isMaster ? 'Every class in the school: its course, teacher, roster and grades.' : 'Each class you teach, with its grades, course and students.') + '</p></div></div>' +
-        '<div class="card" style="padding:1rem 1.25rem;margin-bottom:1rem">' + sectionsHtml() + '</div>' +
-        (secs.length ? '<div class="section-list">' + secs.map(sec => teacherSectionCard(sec)).join('') + '</div>' : '<div class="empty">No sections yet — create your first one above.</div>') +
-        (archived.length ? '<details class="other-courses"><summary>Archived sections (' + archived.length + ')</summary><div class="section-list" style="margin-top:1rem">' + archived.map(sec => teacherSectionCard(sec)).join('') + '</div></details>' : '');
-      app.querySelectorAll('[data-section]').forEach(a => a.addEventListener('click', () => Sections.setCurrent(me.staffId, a.dataset.section)));
-      bindSections();
-    } else {
-      const secs = mySections();
-      app.innerHTML = '<div class="page-head"><div><h1>Sections</h1><p class="muted">The classes you are in, with their teacher, course, grades and awards.</p></div></div>' +
-        (secs.length ? '<div class="section-list">' + secs.map(sec => { const c = findCourseAll(sec.courseId); if (!c) return ''; const pct = Students.enrolled(c.id) ? courseProgress(c) : 0;
-          return '<details class="card class-fold section-card" style="--course:' + esc(c.color || '') + '"><summary class="class-summary"><span class="card-icon">' + c.icon + '</span><span class="class-text"><h2>' + esc(sec.name) + '</h2><span class="muted small">' + esc(c.title) + (sec.term ? ' · ' + esc(sec.term) : '') + (teacherName(sec) ? ' · ' + esc(teacherName(sec)) : '') + (sec.archived ? ' · archived' : '') + '</span></span><span class="btn-row class-tags"><span class="tag ok">' + (pct ? pct + '%' : 'Start') + '</span></span></summary>' +
-            '<div class="class-body">' + unitsFor(c).map(un => { const u = Progress.unit(c.id, un.id); const ls = lessonsFor(un); const done = ls.filter(l => lessonStatus(c, un, l).complete).length; return '<a class="unit-line" href="#/course/' + c.id + '"><span class="tag">Unit ' + (c.units.indexOf(un) + 1) + '</span><span class="unit-line-title">' + esc(un.title) + '</span><span class="muted small">' + done + '/' + ls.length + ' lessons' + (u.testBest ? ' · test ' + u.testBest + '%' : '') + '</span><span class="progress mini"><span style="width:' + unitProgress(c, un) + '%"></span></span></a>'; }).join('') +
-            '<div class="btn-row" style="margin-top:0.75rem"><a class="btn" href="#/course/' + c.id + '">▶︎ Open class</a><a class="btn secondary sm" href="#/grades/' + c.id + '">Grades</a><a class="btn secondary sm" href="#/work/' + c.id + '/' + c.units[0].id + '">Work folder</a><a class="btn ghost sm" href="#/case/' + c.id + '">Display Case</a></div></div></details>'; }).join('') + '</div>'
-         : '<div class="empty">You are not in a section yet. Your teacher adds you; it appears here as soon as they do.</div>');
-    }
-  }
+  function pageSections() { return Students.current.isStaff ? Classes.myClasses() : pageHome(); }   // v68: #/sections is the old address of My Classes
 
   /* ----- Course page: units → lessons ----- */
   const courseSearch = { q: '' };
@@ -670,7 +696,7 @@
         const u = Progress.unit(course.id, unit.id);
         const facts = Badges.unitFacts(course, unit);
         const touched = Object.keys(u.slides || {}).length || u.testAttempts || Object.keys(u.quiz || {}).length || Object.keys(u.work || {}).length;
-        const status = facts.allRead && facts.allQuizzes !== false && (facts.allQuizzes || !facts.lessons.some(l => l.hasQuiz)) && u.testPassed ? 'complete' : touched ? 'active' : 'new';
+        const status = facts.allRead && facts.allQuizzes !== false && (facts.allQuizzes || !facts.lessons.some(l => l.hasQuiz)) && (u.testPassed || LH.testHidden(unit)) ? 'complete' : touched ? 'active' : 'new';
         return '<details class="card unit-card unit-' + status + '"' + (q ? ' open' : '') + '><summary class="unit-summary">' + (status === 'complete' ? '<span class="unit-flag">✓ Unit complete</span>' : status === 'active' ? '<span class="unit-flag">In progress</span>' : '') + '<div class="unit-head"><div><span class="tag">Unit ' + (idx + 1) + '</span><h2 style="margin-top:0.4rem">' + esc(unit.title) + '</h2>' +
           '<p class="muted small">' + esc(L(unit.description) || '') + '</p></div>' +
           '<div class="unit-side"><div class="progress"><span style="width:' + pct + '%"></span></div>' +
@@ -678,7 +704,7 @@
           '<div class="lesson-list">' + (q ? hits : lessons).map((les, k) => lessonRow(course, unit, les, lessons.indexOf(les) + 1, q && hits.includes(les)) + Overlay.lessonTools(course, unit, les)).join('') + '</div>' + Overlay.unitTools(course, unit) +
           '<div class="unit-foot">' + goalsHtml(course, unit) +
           '<div class="rooms">' +
-          '<a class="room" href="#/test/' + course.id + '/' + unit.id + '"><span class="room-icon"></span><span>Unit test' + (u.testBest ? ' <span class="muted">· best ' + u.testBest + '%</span>' : '') + '</span></a>' +
+          (LH.testHidden(unit) ? '' : '<a class="room" href="#/test/' + course.id + '/' + unit.id + '"><span class="room-icon"></span><span>Unit test' + (u.testBest ? ' <span class="muted">· best ' + u.testBest + '%</span>' : '') + '</span></a>') +
           '<a class="room" href="#/games/' + course.id + '/' + unit.id + '"><span class="room-icon"></span><span>Game Room</span></a>' +
           '<a class="room" href="#/work/' + course.id + '/' + unit.id + '"><span class="room-icon"></span><span>Work folder' + (function () { const w = u.work || {}; let d = 0, h = 0; Object.values(w).forEach(l => Object.values(l).forEach(x => { if (x && x.text) { if (x.done) h++; else d++; } })); return h || d ? '</span><span class="room-sub">' + h + ' handed in · ' + d + ' draft' + (d === 1 ? '' : 's') : ''; })() + '</span></a>' +
           '<a class="room" href="#/print/' + course.id + '/' + unit.id + '/unit"><span class="room-icon"></span><span>Print unit</span></a>' +
@@ -715,7 +741,7 @@
                  : '<div class="card part muted"><div class="card-icon"></div><h3>Quiz</h3><p class="small">No quiz for this lesson.</p></div>') +
       (as.length ? as.map((a, k) => { const w = work[a._idx] || {}; return '<a class="card link part" href="#/assign' + base + '/' + a._idx + '"><div class="card-icon"></div><h3>Assignment ' + (k + 1) + '</h3><p class="muted small">' + esc(a.title) + '</p>' + (w.done ? '<span class="tag ok">✓ Handed in</span>' : w.text ? '<span class="tag accent">Draft saved</span>' : '<span class="tag">To do</span>') + '</a>'; }).join('')
                  : '') + '</div>' +
-      (pos === lessons.length - 1 ? '<div class="card center" style="margin-top:1.25rem"><h3>Finished every lesson in the unit?</h3><p class="muted small">The unit test covers all ' + lessons.length + ' lessons.</p><a class="btn" href="#/test/' + course.id + '/' + unit.id + '">Take the unit test</a></div>' : '') +
+      (pos === lessons.length - 1 && !LH.testHidden(unit) ? '<div class="card center" style="margin-top:1.25rem"><h3>Finished every lesson in the unit?</h3><p class="muted small">The unit test covers all ' + lessons.length + ' lessons.</p><a class="btn" href="#/test/' + course.id + '/' + unit.id + '">Take the unit test</a></div>' : '') +
       Overlay.lessonEditor(course, unit, les);
     Overlay.bindLessonEditor(course, unit, les, () => pageLesson(courseId, unitId, lessonIdx));
   }
@@ -869,7 +895,7 @@
         (i < slides.length - 1 ? '<button class="btn" id="nextBtn">Next →</button>' :
           (lessonQuestions(unit, lessonIdx).length ? '<a class="btn success" href="#/quiz/' + course.id + '/' + unit.id + '/' + lessonIdx + '">Take the quiz →</a>' :
             pos < lessons.length - 1 ? '<a class="btn success" href="#/lesson/' + course.id + '/' + unit.id + '/' + lessons[pos + 1]._idx + '">Next lesson →</a>' :
-            '<a class="btn success" href="#/test/' + course.id + '/' + unit.id + '">Go to the unit test →</a>')) +
+            LH.testHidden(unit) ? '<a class="btn success" href="#/course/' + course.id + '">Back to the unit →</a>' : '<a class="btn success" href="#/test/' + course.id + '/' + unit.id + '">Go to the unit test →</a>')) +
         '</div></div>' +
         '<p class="muted small center" style="margin-top:1rem">Slide ' + (i + 1) + ' of ' + slides.length + ' · Lesson ' + (pos + 1) + ' of ' + lessons.length + '</p>' +
         Overlay.slideEditor(course, unit, lesson, s);
@@ -962,6 +988,7 @@
     const u = Progress.unit(course.id, unit.id);
     const head = crumbs([{ label: deskName(), href: '#/' }, { label: course.title, href: '#/course/' + course.id }, { label: unit.title, href: '#/course/' + course.id }, { label: 'Unit test' }]) +
       '<div class="page-head"><div><h1>Unit test</h1><p class="muted">' + esc(unit.title) + ' · covers every lesson in the unit</p></div></div>';
+    if (LH.testHidden(unit)) { app.innerHTML = head + '<div class="empty">Your teacher has left the unit test out for this class.</div>'; return; }
     const base = Settings.level, level = assessLevel(course, at);
     const count = assessmentCount(byLevel(level, [5, 8, 12, 15]));
     const qs = buildAssessment(questionsFor(unit, level), count);
@@ -1098,12 +1125,12 @@
              : '<div class="setting-row"><div><label>Switch profile</label><div class="help">Go back to the welcome screen.</div></div><a class="btn secondary sm" href="#/welcome">Welcome screen</a></div>');
     const hm = staff && me.role === 'master', mi = Cloud.masterInfo || null, myLogin = (Staff.current || {}).login || '';
     const accountType = !staff ? '' : '<div class="setting-row"><div><label>Account type</label><div class="help">' +
-      (hm ? 'This is the <strong>Headmaster (admin) account</strong> — the only one. It adds, changes and removes teachers, sees every section and student, and runs exports.'
-          : 'This is a <strong>teacher account</strong>: it sees its own sections and students.' + (Cloud.enabled && mi ? ' The Headmaster account on record is <strong>' + esc(mi.name || 'unnamed') + '</strong>.' : '') +
+      (hm ? 'This is the <strong>Headmaster (admin) account</strong> — the only one. It adds, changes and removes teachers, sees every class and student, and runs exports.'
+          : 'This is a <strong>teacher account</strong>: it sees its own classes and students.' + (Cloud.enabled && mi ? ' The Headmaster account on record is <strong>' + esc(mi.name || 'unnamed') + '</strong>.' : '') +
             (Cloud.enabled && Cloud.user ? '<details class="hm-fix"><summary>This should be the Headmaster account?</summary>Only one account is the Headmaster, and the cloud names it in one place. In the Firebase console open Firestore → <code>meta</code> → <code>master</code> and set <code>uid</code> to this account\'s ID: <code>' + esc(Cloud.user.uid) + '</code> (and <code>name</code> to your name). Then sign out and sign in again.</details>' : '')) +
       '</div></div><span class="tag ' + (hm ? 'hm-tag' : '') + '">' + (hm ? 'Headmaster' : 'Teacher') + '</span></div>';
-    let html = (hm ? '<div class="hm-banner" role="status"><strong>Headmaster account</strong> · signed in as ' + esc(me.name) + (myLogin ? ' · ID ' + esc(myLogin) : '') + ' <a href="#/teachers">Manage teachers →</a></div>' : '') +
-      '<div class="page-head"><div><h1>Settings</h1><p class="muted">' + (hm ? 'Your profile, every section, every student and the teachers.' : staff ? 'Your profile, your sections and your students.' : 'Your profile, how the app looks and reads, and your classes.') + '</p>' + cloudStatusHtml() + '</div></div>';
+    let html = (hm ? '<div class="hm-banner" role="status"><strong>Headmaster account</strong> · signed in as ' + esc(me.name) + (myLogin ? ' · ID ' + esc(myLogin) : '') + ' <a href="#/admin">Administration →</a></div>' : '') +
+      '<div class="page-head"><div><h1>My settings</h1><p class="muted">' + (hm ? 'Your own profile and how the app looks and reads for you. Everything for the whole school is under Administration.' : staff ? 'Your own profile and how the app looks and reads for you.' : 'Your profile, how the app looks and reads, and your classes.') + '</p>' + cloudStatusHtml() + '</div>' + (hm ? '<a class="btn secondary" href="#/admin">Administration</a>' : '') + '</div>';
     if (!staff) {
       const classes = '<p class="muted small">Where you are working right now, and the level you start each class at. Archived classes are on your dashboard.</p>' +
         (courses().map(c => { const t = Students.trackFor(c.id); const prev = Students.previousLevel(c.id); const lv = Students.levelFor(c.id);
@@ -1120,15 +1147,9 @@
         group('updates', 'Updates', 'version ' + (window.PWA ? PWA.APP_VERSION : '?'), '<div id="updatesCard"><p class="muted small">Checking…</p></div>');
     } else {
       html += group('profile', 'My profile', esc(me.name) + ' · ' + (me.role === 'master' ? 'Headmaster' : 'teacher'), profile()) +
-        '<p class="muted small" style="margin:0 0 1rem">Sections and students have their own pages: <a href="#/sections">Sections</a> · <a href="#/students">Students</a>.</p>' +
         group('demo', 'Student View', 'a demo student only you can see', studentViewHtml(me)) +
-        (me.role === 'master' ? group('teachers', 'Teachers', 'add a teacher · ' + Staff.teachers.length + ' profile' + (Staff.teachers.length === 1 ? '' : 's') + ' · sections · students · reset · remove', teachersHtml()) + group('issues', 'Reported problems', 'screenshots and messages from the Found a problem? button', '<div id="issuesList"><p class="muted small">Loading…</p></div>') + (Cloud.enabled ? group('security', 'Security', 'unused sign-ins · change log · data upgrade', securityHtml()) : '') + group('drive', 'Google Drive &amp; exports', '', driveHtml()) : '') +
-        (window.Coins && me.role === 'master' ? group('coins', 'Coins and shops', Coins.on() ? 'on for the school' : 'off for the school', Coins.settingsHtml()) : '') +
-        (window.Privacy ? (me.role === 'master' ? group('privacy', 'Privacy and retention', 'notice · dictation · how long things are kept · end-of-term clean-up', Privacy.settingsHtml()) : group('privacy', 'Privacy', 'what is kept and who can see it', Privacy.summaryHtml())) : '') +
+        (window.Privacy && me.role !== 'master' ? group('privacy', 'Privacy', 'what is kept and who can see it', Privacy.summaryHtml()) : '') +
         group('media', 'Media checklist', 'images and videos to add', mediaChecklistHtml()) +
-        group('options', 'Class options', 'colouring breaks · welcome screen', '<h3>Colouring page learning breaks</h3>' +
-          seg('colouringEvery', 'Show a learning card every…', 'How many areas the student colours before a lesson card appears. "Student chooses" lets them pick inside the game.', [['student', 'Student chooses'], [1, '1'], [3, '3'], [5, '5'], [10, '10'], [0, 'Off']], Settings.get('colouringEvery')) +
-          '<h3 style="margin-top:1rem">Welcome screen</h3>' + sw('allowSelfSignup', 'Students may create their own profile', 'Off: only students added here appear on the welcome screen.', Settings.get('allowSelfSignup') !== false)) +
         group('access', 'My accessibility', 'text, dyslexia-friendly text, contrast, overlay, read-aloud', accessibility) +
         group('app', 'App', 'install and offline', '<div id="appCard"><p class="muted small">Checking…</p></div>') +
         group('updates', 'Updates', 'version ' + (window.PWA ? PWA.APP_VERSION : '?'), '<div id="updatesCard"><p class="muted small">Checking…</p></div>');
@@ -1154,9 +1175,41 @@
       const v = await askPasswords('Change my password', '', [{ key: 'old', label: 'Current password' }, { key: 'pw', label: 'New password (at least ' + min + ' characters)', min }, { key: 'again', label: 'Type the new one once more' }]); if (!v) return;
       if (v.pw !== v.again) return alert('The two new passwords did not match. Nothing was changed.');
       try { await Cloud.changeMyPassword(v.old, v.pw); alert('Password changed.'); } catch (e) { alert(e.message); } });
-    if (staff) { bindTeachers(); bindDrive(); bindSecurity(); bindStudentView(); }
+    if (staff) bindStudentView();
     if (window.Privacy) Privacy.bind(app, pageSettings);
-    if (window.Coins) Coins.bindSettings(app, pageSettings);
+  }
+
+  /* ----- Administration (v68): everything that is set once for the whole school. Only the head of the school opens it. ----- */
+  function pageAdmin() {
+    const me = Students.current; if (!me || me.role !== 'master') return pageHome();
+    setCourseColor(null); setNav('admin');
+    const HT = LH.headTitle();
+    const school = '<div class="setting-row"><div><label for="headTitle">Title of the head of the school</label><div class="help">Shown wherever the app names this account: the desk, the badge beside your name, messages to teachers and students. For example Principal, Head of School or Director.</div></div><div class="btn-row"><input class="text-input" id="headTitle" maxlength="24" value="' + esc(HT) + '" style="max-width:200px"><button class="btn secondary sm" id="headTitleSave">Save</button></div></div>' +
+      sw('allowSelfSignup', 'Students may create their own profile', 'Off: only students added by a teacher can sign in.', Settings.get('allowSelfSignup') !== false) +
+      seg('colouringEvery', 'Colouring page: show a learning card every…', 'How many areas the student colours before a lesson card appears. "Student chooses" lets them pick inside the game.', [['student', 'Student chooses'], [1, '1'], [3, '3'], [5, '5'], [10, '10'], [0, 'Off']], Settings.get('colouringEvery'));
+    const people = '<div class="setting-row"><div><label>Teachers</label><div class="help">' + Staff.teachers.length + ' teacher account' + (Staff.teachers.length === 1 ? '' : 's') + '. Add a teacher, reset a password, move classes or remove an account.</div></div><a class="btn secondary sm" href="#/teachers">Open Teachers</a></div>' +
+      '<div class="setting-row"><div><label>Students</label><div class="help">' + Students.list.filter(x => !x.demo).length + ' students. Sign-in codes, record copies, corrections and holds are on each student\'s panel. Deleting a student from the school is done there, by you only.</div></div><a class="btn secondary sm" href="#/students">Open Students</a></div>' +
+      '<div class="setting-row"><div><label>Curriculum</label><div class="help">Ministry documents and course outlines for staff.</div></div><a class="btn secondary sm" href="#/curriculum">Open Curriculum</a></div>';
+    const later = '<ul class="plain-list small muted"><li><strong>Schools and boards:</strong> more than one school, each with its own Principal, kept apart from every other board.</li><li><strong>Reporting periods:</strong> midterm and final dates, and a mark frozen at each.</li><li><strong>Report card comments</strong> and learning skills.</li><li><strong>Announcements</strong> to every class.</li><li><strong>Curriculum coverage:</strong> which expectations each lesson and task meets.</li></ul>';
+    app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: 'Administration' }]) +
+      '<div class="page-head"><div><h1>Administration</h1><p class="muted">Set once for the whole school. Only the ' + esc(HT) + ' opens this page.</p>' + cloudStatusHtml() + '</div><a class="btn secondary" href="#/settings">My settings</a></div>' +
+      group('school', 'School', 'title of the head of the school · sign-up · colouring breaks', school, true) +
+      group('people', 'People and documents', 'teachers · students · curriculum', people) +
+      (window.Privacy ? group('privacy', 'Privacy and retention', 'notice · dictation · how long things are kept · holds · end-of-term clean-up', Privacy.settingsHtml()) : '') +
+      (Cloud.enabled ? group('security', 'Security and the change log', 'unused sign-ins · change log · data upgrade', securityHtml()) : '') +
+      group('issues', 'Reported problems', 'screenshots and messages from the Found a problem? button', '<div id="issuesList"><p class="muted small">Loading…</p></div>') +
+      (window.Coins ? group('coins', 'Coins and shops', Coins.on() ? 'on for the school' : 'off for the school', Coins.settingsHtml()) : '') +
+      group('drive', 'Google Drive &amp; exports', '', driveHtml()) +
+      group('later', 'Planned for this page', 'not built yet', later);
+    if (window.Report) Report.mount(app.querySelector('#issuesList'));
+    const og = sessionStorage.getItem('learnhub.openGroup'); if (og) { sessionStorage.removeItem('learnhub.openGroup'); const d = app.querySelector('details[data-sgroup="' + og + '"]'); if (d) { d.open = true; setTimeout(() => d.scrollIntoView({ block: 'start' }), 50); } }
+    app.querySelectorAll('details.sgroup').forEach(d => d.addEventListener('toggle', () => sessionStorage.setItem('learnhub.sg.' + d.dataset.sgroup, d.open ? '1' : '0')));
+    app.querySelectorAll('.sgroup[data-sgroup="school"] [data-seg]').forEach(b => b.addEventListener('click', () => { const v = b.dataset.v; Settings.set(b.dataset.seg, isNaN(v) ? v : +v); pageAdmin(); }));
+    app.querySelectorAll('.sgroup[data-sgroup="school"] [data-switch]').forEach(b => b.addEventListener('click', () => { Settings.set(b.dataset.switch, !(Settings.get(b.dataset.switch) !== false)); pageAdmin(); }));
+    app.querySelector('#headTitleSave').addEventListener('click', () => { const v = app.querySelector('#headTitle').value.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24); if (!/^[\p{L}][\p{L} .'\u2019-]*$/u.test(v)) { alert('Type a title made of letters, for example Principal.'); return; } Settings.set('headTitle', v); if (Cloud.enabled && Cloud.setHeadTitle) Cloud.setHeadTitle(v); renderWho(); pageAdmin(); });
+    bindDrive(); bindSecurity();
+    if (window.Privacy) Privacy.bind(app, pageAdmin);
+    if (window.Coins) Coins.bindSettings(app, pageAdmin);
   }
 
   /* ----- Sections (classes) ----- */
@@ -1167,32 +1220,28 @@
     const open = sessionStorage.getItem('learnhub.sectionsOpen') === '1' || !!sessionStorage.getItem('learnhub.newSectionCourse');
     const preCourse = sessionStorage.getItem('learnhub.newSectionCourse') || '';
     const teachers = Staff.teachers;
-    return '<div class="btn-row between"><h3 style="margin:0">Create and manage</h3><a class="btn secondary sm" href="#/dashboard">Open the dashboard</a></div><p class="muted small">A section is one class: your own copy of a course for one roster' + (Staff.isMaster ? ', assigned to a teacher (or kept by you)' : '') + '. Everything you customise in it — hidden lessons, edited slides, extra questions, your own lessons — stays in that section, even after it is archived, unless you copy it into another section. Pick the section you are working with: the Students page and the Grades dashboard follow it.</p>' +
-      '<div class="search-row" style="grid-template-columns:1fr auto auto"><select class="text-input" id="sectionSelect"><option value=""' + (!cur ? ' selected' : '') + '>' + (Staff.isMaster ? 'All students on this device' : 'All my students') + '</option>' +
-        mine.map(sec => '<option value="' + esc(sec.id) + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + esc(sec.name) + (sec.term ? ' · ' + esc(sec.term) : '') + ' (' + (sec.students || []).length + ')</option>').join('') +
-        (archived.length ? '<optgroup label="Archived">' + archived.map(sec => '<option value="' + esc(sec.id) + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + esc(sec.name) + (sec.term ? ' · ' + esc(sec.term) : '') + '</option>').join('') + '</optgroup>' : '') + '</select>' +
-        (cur ? '<button class="btn ghost sm" data-section-archive="' + esc(cur.id) + '">' + (cur.archived ? 'Retrieve' : 'Archive') + '</button>' : '<span></span>') +
-        '<button class="btn secondary sm" id="sectionsToggle">' + (open ? '▾ Hide' : '＋ New section') + '</button></div>' +
-      (cur ? '<div class="small" style="margin:0.5rem 0 0">Classroom shell: <strong>' + Overlay.countChanges(cur, cur.courseId) + '</strong> customisation' + (Overlay.countChanges(cur, cur.courseId) === 1 ? '' : 's') + ' · <a href="#/course/' + cur.courseId + '">open the course to customise</a>' +
+    return '<div class="btn-row between"><h3 style="margin:0">Create and manage</h3></div><p class="muted small">A class is your own copy of a course for one roster' + (Staff.isMaster ? ', assigned to a teacher (or kept by you)' : '') + '. Everything you customise in it — hidden lessons, edited slides, extra questions, your own lessons — stays in that class, even after it is archived, unless you copy it into another class. Open a class from the cards above to work in it.</p>' +
+      '<div class="btn-row"><button class="btn secondary sm" id="sectionsToggle">' + (open ? '▾ Hide' : '＋ New class') + '</button></div>' +
+      (cur ? '<div class="small" style="margin:0.75rem 0 0"><strong>' + esc(cur.name) + '</strong> (the class you last worked in) · classroom shell: <strong>' + Overlay.countChanges(cur, cur.courseId) + '</strong> customisation' + (Overlay.countChanges(cur, cur.courseId) === 1 ? '' : 's') + ' · <a href="#/course/' + cur.courseId + '">open the course to customise</a>' +
         (Sections.list.filter(x => x.id !== cur.id && x.courseId === cur.courseId && x.overlay).length ? ' · <select class="text-input" id="ovCopyFrom" style="max-width:280px;display:inline-block"><option value="">copy customisations from…</option>' + Sections.list.filter(x => x.id !== cur.id && x.courseId === cur.courseId && x.overlay).map(x => '<option value="' + esc(x.id) + '">' + esc(x.name) + (x.term ? ' · ' + esc(x.term) : '') + '</option>').join('') + '</select>' : '') +
         (Overlay.countChanges(cur, cur.courseId) ? ' · <button class="btn ghost sm" id="ovReset">Reset to the program</button>' : '') + '</div>' : '') +
-      (cur ? '<p class="small muted" style="margin:0.4rem 0 0">' + (cur.archived ? 'Archived section — ' : '') + 'Course: <strong>' + esc((findCourseAll(cur.courseId) || { title: cur.courseId }).title) + '</strong>' + (cur.teacherId ? ' · Teacher: ' + esc((teachers.find(t => t.id === cur.teacherId) || { name: '?' }).name) : Staff.isMaster ? ' · no teacher assigned' : '') + ' · ' + (cur.students || []).length + ' student' + ((cur.students || []).length === 1 ? '' : 's') + '</p>' : '') +
-      (open ? '<div class="plan-unit" style="margin-top:0.6rem"><div class="plan-label">New section</div><div class="search-row" style="grid-template-columns:1fr 1fr 1fr' + (Staff.isMaster ? ' 1fr' : '') + ' auto"><input class="text-input" id="secName" placeholder="Name, e.g. HRF3O Period 2"><select class="text-input" id="secCourse">' + allCourses().map(c => '<option value="' + esc(c.id) + '"' + (c.id === preCourse ? ' selected' : '') + '>' + c.icon + ' ' + esc(c.title) + '</option>').join('') + '</select><input class="text-input" id="secTerm" placeholder="Term, e.g. Fall 2026">' +
+      (cur ? '<p class="small muted" style="margin:0.4rem 0 0">' + (cur.archived ? 'Archived class — ' : '') + 'Course: <strong>' + esc((findCourseAll(cur.courseId) || { title: cur.courseId }).title) + '</strong>' + (cur.teacherId ? ' · Teacher: ' + esc((teachers.find(t => t.id === cur.teacherId) || { name: '?' }).name) : Staff.isMaster ? ' · no teacher assigned' : '') + ' · ' + (cur.students || []).length + ' student' + ((cur.students || []).length === 1 ? '' : 's') + '</p>' : '') +
+      (open ? '<div class="plan-unit" style="margin-top:0.6rem"><div class="plan-label">New class</div><div class="search-row" style="grid-template-columns:1fr 1fr 1fr' + (Staff.isMaster ? ' 1fr' : '') + ' auto"><input class="text-input" id="secName" placeholder="Name, e.g. HRF3O Period 2"><select class="text-input" id="secCourse">' + allCourses().map(c => '<option value="' + esc(c.id) + '"' + (c.id === preCourse ? ' selected' : '') + '>' + c.icon + ' ' + esc(c.title) + '</option>').join('') + '</select><input class="text-input" id="secTerm" placeholder="Term, e.g. Fall 2026">' +
         (Staff.isMaster ? '<select class="text-input" id="secTeacher"><option value="">Teacher: me (Headmaster)</option>' + teachers.map(t => '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>').join('') + '</select>' : '') + '<button class="btn" id="secCreate">Create</button></div></div>' : '');
   }
-  function bindSections() {
-    const sid = Staff.current.id;
+  function bindSections(redraw) {
+    const sid = Staff.current.id; const pageSections = redraw || (() => Classes.myClasses());
     const sel = app.querySelector('#sectionSelect'); if (sel) sel.addEventListener('change', () => { Sections.setCurrent(sid, sel.value || null); pageSections(); });
     const tg = app.querySelector('#sectionsToggle'); if (tg) tg.addEventListener('click', () => { sessionStorage.setItem('learnhub.sectionsOpen', sessionStorage.getItem('learnhub.sectionsOpen') === '1' ? '0' : '1'); pageSections(); });
-    const cr = app.querySelector('#secCreate'); if (cr) cr.addEventListener('click', () => { const name = app.querySelector('#secName').value.trim(); if (!name) return alert('Give the section a name.'); const tSel = app.querySelector('#secTeacher'); const sec = Sections.add(name, app.querySelector('#secCourse').value, tSel && tSel.value ? tSel.value : (Staff.isMaster ? null : sid), app.querySelector('#secTerm').value.trim()); Sections.setCurrent(sid, sec.id); sessionStorage.setItem('learnhub.sectionsOpen', '0'); sessionStorage.removeItem('learnhub.newSectionCourse'); pageSections(); });
+    const cr = app.querySelector('#secCreate'); if (cr) cr.addEventListener('click', () => { const name = app.querySelector('#secName').value.trim(); if (!name) return alert('Give the class a name.'); const tSel = app.querySelector('#secTeacher'); const sec = Sections.add(name, app.querySelector('#secCourse').value, tSel && tSel.value ? tSel.value : (Staff.isMaster ? null : sid), app.querySelector('#secTerm').value.trim()); Sections.setCurrent(sid, sec.id); sessionStorage.setItem('learnhub.sectionsOpen', '0'); sessionStorage.removeItem('learnhub.newSectionCourse'); location.hash = '#/class/' + sec.id; });
     app.querySelectorAll('[data-section-archive]').forEach(b => b.addEventListener('click', () => { const sec = Sections.byId(b.dataset.sectionArchive); Sections.setArchived(sec.id, !sec.archived); if (sec.archived) Sections.setCurrent(sid, null); pageSections(); }));
-    const cf = app.querySelector('#ovCopyFrom'); if (cf) cf.addEventListener('change', () => { const cur = Sections.currentFor(sid); if (cf.value && confirm('Copy all customisations from that section into ' + cur.name + '? This replaces any customisations ' + cur.name + ' already has.')) { Overlay.copyOverlay(cf.value, cur.id); pageSections(); } });
+    const cf = app.querySelector('#ovCopyFrom'); if (cf) cf.addEventListener('change', () => { const cur = Sections.currentFor(sid); if (cf.value && confirm('Copy all customisations from that class into ' + cur.name + '? This replaces any customisations ' + cur.name + ' already has.')) { Overlay.copyOverlay(cf.value, cur.id); pageSections(); } });
     const rs = app.querySelector('#ovReset'); if (rs) rs.addEventListener('click', () => { const cur = Sections.currentFor(sid); if (confirm('Remove every customisation in ' + cur.name + ' and show the program version?')) { Overlay.resetOverlay(cur.id); pageSections(); } });
   }
 
   /* ----- Teachers (Headmaster only): add a teacher, open a profile, sections, students, reset, remove ----- */
   const tUI = { msg: '', ok: true };
-  const redrawTeachers = () => (/^#\/teachers/.test(location.hash) ? pageTeachers() : pageSettings());
+  const redrawTeachers = () => (/^#\/teachers/.test(location.hash) ? Classes.teachersPage() : /^#\/admin/.test(location.hash) ? pageAdmin() : pageSettings());
   function teachersHtml() {
     const cloud = Cloud.enabled;
     const ts = Staff.teachers.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
@@ -1211,7 +1260,7 @@
             fld('Teacher ID <span class="muted">(what they sign in with)</span>', '<input class="text-input" id="hmLogin" placeholder="e.g. mpatel" autocomplete="off" autocapitalize="off" spellcheck="false">') +
             fld('Password <span class="muted">(at least 10 characters)</span>', '<input class="text-input" id="hmPass" type="password" autocomplete="new-password">') +
             fld('School e-mail <span class="muted">(optional)</span>', '<input class="text-input" id="hmEmail" type="email" placeholder="name@school.ca" autocomplete="off">') +
-            fld('First section <span class="muted">(optional)</span>', '<select class="text-input" id="hmSec"><option value="">None yet — assign later</option>' + free.map(sec => '<option value="' + esc(sec.id) + '">' + esc(sec.name) + ' · ' + esc(courseTitle(sec)) + '</option>').join('') + '</select>') +
+            fld('First class <span class="muted">(optional)</span>', '<select class="text-input" id="hmSec"><option value="">None yet — assign later</option>' + free.map(sec => '<option value="' + esc(sec.id) + '">' + esc(sec.name) + ' · ' + esc(courseTitle(sec)) + '</option>').join('') + '</select>') +
           '</div><div class="btn-row" style="margin-top:0.6rem"><button class="btn" id="hmAdd">＋ Add teacher</button><label class="chk"><input type="checkbox" id="hmShow"> Show password</label></div>' +
           '<p class="small muted" id="hmMsg" style="margin:0.4rem 0 0">The teacher signs in on any device with this teacher ID and password, and can change the password in Settings → My profile.</p>'
         : '<div class="hm-grid">' + fld('Name', '<input class="text-input" id="hmName" maxlength="40" placeholder="e.g. Ms Patel">') + fld('6-digit PIN', '<input class="text-input pin-input" id="hmPass" inputmode="numeric" maxlength="6">') + '</div>' +
@@ -1231,33 +1280,33 @@
             '</div><div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" data-t-save="' + esc(t.id) + '">Save profile</button>' +
             '<span class="small muted">' + (cloud ? 'Teacher ID <strong>' + esc(t.login || '—') + '</strong> (cannot be changed)' : '') + (t.createdAt ? ' · added ' + esc(date(t.createdAt)) : '') + (t.passwordResetAt ? ' · password reset ' + esc(date(t.passwordResetAt)) : '') + '</span></div></div>' +
 
-          '<div class="plan-section"><div class="plan-label">Sections (' + secs.length + ')</div>' +
+          '<div class="plan-section"><div class="plan-label">Classes (' + secs.length + ')</div>' +
             (secs.length ? secs.map(sec => {
               const sOpen = openS === sec.id, roster = Students.list.filter(s => (sec.students || []).includes(s.id)), rest = Students.list.filter(s => !(sec.students || []).includes(s.id));
               return '<div class="hm-sec' + (sOpen ? ' open' : '') + '"><div class="course-line"><label>' + esc(sec.name) + ' <span class="muted small">' + esc(courseTitle(sec)) + (sec.term ? ' · ' + esc(sec.term) : '') + (sec.archived ? ' · archived' : '') + '</span></label><span class="btn-row">' +
                 '<button class="btn ghost sm" data-tsec-open="' + esc(sec.id) + '">' + (sOpen ? '▾' : '▸') + ' ' + roster.length + ' student' + (roster.length === 1 ? '' : 's') + '</button>' +
-                '<select class="text-input hm-move" data-sec-move="' + esc(sec.id) + '" aria-label="Move this section to another teacher"><option value="__keep">Move to…</option><option value="">Headmaster (me)</option>' + ts.filter(o => o.id !== t.id).map(o => '<option value="' + esc(o.id) + '">' + esc(o.name) + '</option>').join('') + '</select></span></div>' +
+                '<select class="text-input hm-move" data-sec-move="' + esc(sec.id) + '" aria-label="Move this class to another teacher"><option value="__keep">Move to…</option><option value="">Headmaster (me)</option>' + ts.filter(o => o.id !== t.id).map(o => '<option value="' + esc(o.id) + '">' + esc(o.name) + '</option>').join('') + '</select></span></div>' +
                 (sOpen ? '<div class="hm-roster">' +
-                  (roster.length ? roster.map(s => '<div class="course-line"><label>' + avatarHtml(s) + ' ' + esc(s.name) + (s.number ? ' <span class="tag">#' + esc(s.number) + '</span>' : '') + '</label><button class="btn ghost sm" data-tsec-unenrol="' + esc(s.id) + '" data-sec="' + esc(sec.id) + '">Remove from section</button></div>').join('') : '<p class="muted small">No students in this section yet.</p>') +
+                  (roster.length ? roster.map(s => '<div class="course-line"><label>' + avatarHtml(s) + ' ' + esc(s.name) + (s.number ? ' <span class="tag">#' + esc(s.number) + '</span>' : '') + '</label><button class="btn ghost sm" data-tsec-unenrol="' + esc(s.id) + '" data-sec="' + esc(sec.id) + '">Remove from class</button></div>').join('') : '<p class="muted small">No students in this class yet.</p>') +
                   '<div class="hm-grid" style="margin-top:0.6rem">' +
                     fld('Add a student who already has an account', '<select class="text-input" data-tsec-enrol="' + esc(sec.id) + '"><option value="">Choose a student…</option>' + rest.map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + (s.number ? ' (#' + esc(s.number) + ')' : '') + '</option>').join('') + '</select>') + '</div>' +
-                  '<div class="plan-label" style="margin-top:0.75rem">Or create a new student in this section</div><div class="hm-grid">' +
+                  '<div class="plan-label" style="margin-top:0.75rem">Or create a new student in this class</div><div class="hm-grid">' +
                     fld('First name', '<input class="text-input" id="hmStName" maxlength="30" autocomplete="off">') +
                     (cloud ? fld('Student number', '<input class="text-input" id="hmStNumber" inputmode="numeric" autocomplete="off">') : '') +
                   '</div><div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" data-tsec-newstudent="' + esc(sec.id) + '">＋ Add student</button><span class="small muted" id="hmStMsg"></span></div></div>' : '') + '</div>';
-            }).join('') : '<p class="muted small">No sections yet. Assign one below or create a new one.</p>') +
-            '<div class="hm-grid" style="margin-top:0.75rem">' + fld('Assign an existing section to ' + esc(t.name), '<select class="text-input" data-t-assign="' + esc(t.id) + '"><option value="">Choose a section…</option>' + others.map(sec => '<option value="' + esc(sec.id) + '">' + esc(sec.name) + ' · ' + esc(courseTitle(sec)) + ' (now: ' + esc(owner(sec)) + ')</option>').join('') + '</select>') + '</div>' +
-            '<div class="plan-label" style="margin-top:0.75rem">Or create a new section for ' + esc(t.name) + '</div><div class="hm-grid">' +
-              fld('Section name', '<input class="text-input" id="hmSecName" placeholder="e.g. HRF3O Period 2" maxlength="60">') + fld('Course', '<select class="text-input" id="hmSecCourse">' + courseOpts + '</select>') + fld('Term', '<input class="text-input" id="hmSecTerm" placeholder="e.g. Fall 2026">') +
-            '</div><div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" data-t-newsec="' + esc(t.id) + '">＋ Create section</button></div></div>' +
+            }).join('') : '<p class="muted small">No classes yet. Assign one below or create a new one.</p>') +
+            '<div class="hm-grid" style="margin-top:0.75rem">' + fld('Assign an existing class to ' + esc(t.name), '<select class="text-input" data-t-assign="' + esc(t.id) + '"><option value="">Choose a class…</option>' + others.map(sec => '<option value="' + esc(sec.id) + '">' + esc(sec.name) + ' · ' + esc(courseTitle(sec)) + ' (now: ' + esc(owner(sec)) + ')</option>').join('') + '</select>') + '</div>' +
+            '<div class="plan-label" style="margin-top:0.75rem">Or create a new class for ' + esc(t.name) + '</div><div class="hm-grid">' +
+              fld('Class name', '<input class="text-input" id="hmSecName" placeholder="e.g. HRF3O Period 2" maxlength="60">') + fld('Course', '<select class="text-input" id="hmSecCourse">' + courseOpts + '</select>') + fld('Term', '<input class="text-input" id="hmSecTerm" placeholder="e.g. Fall 2026">') +
+            '</div><div class="btn-row" style="margin-top:0.5rem"><button class="btn secondary sm" data-t-newsec="' + esc(t.id) + '">＋ Create class</button></div></div>' +
 
           '<div class="plan-section"><div class="plan-label">Account</div><div class="btn-row">' +
             '<button class="btn secondary sm" data-t-reset="' + esc(t.id) + '">Reset ' + (cloud ? 'password' : 'PIN') + '</button>' +
             '<button class="btn ghost sm hm-danger" data-t-remove="' + esc(t.id) + '">Remove teacher</button></div>' +
-            '<p class="small muted" style="margin:0.4rem 0 0">' + (cloud ? 'Resetting gives ' + esc(t.name) + ' a new password behind the same teacher ID; the old password stops working. ' : '') + 'Removing a teacher keeps their sections and students — the sections pass to you until you assign them to someone else.</p></div></div>';
+            '<p class="small muted" style="margin:0.4rem 0 0">' + (cloud ? 'Resetting gives ' + esc(t.name) + ' a new password behind the same teacher ID; the old password stops working. ' : '') + 'Removing a teacher keeps their classes and students — the classes pass to you until you assign them to someone else.</p></div></div>';
       }
       return '<div class="student-row' + (isOpen ? ' open' : '') + '"><button class="student-head" data-t-open="' + esc(t.id) + '">' + avatarHtml(t) + '<span class="student-name">' + esc(t.name) + '</span>' +
-        (cloud ? '<span class="tag">ID ' + esc(t.login || '—') + '</span>' : '') + '<span class="tag">' + secs.length + ' section' + (secs.length === 1 ? '' : 's') + '</span><span class="tag">' + ids.size + ' student' + (ids.size === 1 ? '' : 's') + '</span><span class="muted">' + (isOpen ? '▾' : '▸') + '</span></button>' + body + '</div>';
+        (cloud ? '<span class="tag">ID ' + esc(t.login || '—') + '</span>' : '') + '<span class="tag">' + secs.length + ' class' + (secs.length === 1 ? '' : 's') + '</span><span class="tag">' + ids.size + ' student' + (ids.size === 1 ? '' : 's') + '</span><span class="muted">' + (isOpen ? '▾' : '▸') + '</span></button>' + body + '</div>';
     }).join('');
 
     return (tUI.msg ? '<div class="plan-banner hm-msg' + (tUI.ok ? ' ok' : ' bad') + '" role="status">' + esc(tUI.msg) + '</div>' : '') + addForm +
@@ -1289,7 +1338,7 @@
     on('[data-tsec-open]', 'click', e => { const id = e.currentTarget.dataset.tsecOpen; sessionStorage.setItem('learnhub.tSecOpen', sessionStorage.getItem('learnhub.tSecOpen') === id ? '' : id); done(''); });
     on('[data-sec-move]', 'change', e => { const sel = e.currentTarget; if (sel.value === '__keep') return; const sec = Sections.byId(sel.dataset.secMove); const to = sel.value ? teacher(sel.value) : null; Sections.update(sec.id, { teacherId: sel.value || null }); done('"' + sec.name + '" now belongs to ' + (to ? to.name : 'the Headmaster') + '.'); });
     on('[data-t-assign]', 'change', e => { const sel = e.currentTarget; if (!sel.value) return; const sec = Sections.byId(sel.value), t = teacher(sel.dataset.tAssign); Sections.update(sec.id, { teacherId: t.id }); done('"' + sec.name + '" is now assigned to ' + t.name + '.'); });
-    on('[data-t-newsec]', 'click', e => { const t = teacher(e.currentTarget.dataset.tNewsec), name = val('#hmSecName'); if (!name) return alert('Give the section a name.'); const sec = Sections.add(name, val('#hmSecCourse'), t.id, val('#hmSecTerm')); sessionStorage.setItem('learnhub.tSecOpen', sec.id); done('Section "' + sec.name + '" was created for ' + t.name + '.'); });
+    on('[data-t-newsec]', 'click', e => { const t = teacher(e.currentTarget.dataset.tNewsec), name = val('#hmSecName'); if (!name) return alert('Give the class a name.'); const sec = Sections.add(name, val('#hmSecCourse'), t.id, val('#hmSecTerm')); sessionStorage.setItem('learnhub.tSecOpen', sec.id); done('Class "' + sec.name + '" was created for ' + t.name + '.'); });
     on('[data-tsec-enrol]', 'change', e => { const sel = e.currentTarget; if (!sel.value) return; const s = Students.byId(sel.value), sec = Sections.byId(sel.dataset.tsecEnrol); Sections.enrol(sec.id, s.id, true); done(s.name + ' was added to "' + sec.name + '".'); });
     on('[data-tsec-unenrol]', 'click', e => { const b = e.currentTarget, s = Students.byId(b.dataset.tsecUnenrol), sec = Sections.byId(b.dataset.sec); if (!confirm('Remove ' + s.name + ' from "' + sec.name + '"? Their account and work are kept.')) return; Sections.enrol(sec.id, s.id, false); done(s.name + ' was removed from "' + sec.name + '".'); });
     on('[data-tsec-newstudent]', 'click', async e => {
@@ -1313,7 +1362,7 @@
     });
     on('[data-t-remove]', 'click', async e => {
       const btn = e.currentTarget, t = teacher(btn.dataset.tRemove); const n = Sections.list.filter(sec => sec.teacherId === t.id).length;
-      if (!confirm('Remove ' + t.name + '? They will no longer be able to sign in.' + (n ? ' Their ' + n + ' section' + (n === 1 ? '' : 's') + ' and the students in ' + (n === 1 ? 'it' : 'them') + ' are kept and pass to you.' : ''))) return;
+      if (!confirm('Remove ' + t.name + '? They will no longer be able to sign in.' + (n ? ' Their ' + n + ' class' + (n === 1 ? '' : 's') + ' and the students in ' + (n === 1 ? 'it' : 'them') + ' are kept and pass to you.' : ''))) return;
       if (!cloud) { Staff.removeTeacher(t.id); return done(t.name + ' was removed.'); }
       btn.disabled = true; btn.textContent = 'Removing…';
       try { await Cloud.removeStaff(t.id); sessionStorage.removeItem('learnhub.teacherOpen'); done(t.name + ' was removed.'); }
@@ -1324,7 +1373,7 @@
   function pageTeachers() {
     const me = Students.current; if (!me || me.role !== 'master') return pageHome();
     setCourseColor(null); setNav('teachers');
-    app.innerHTML = '<div class="page-head"><div><h1>Teachers</h1><p class="muted">Every teacher profile at Summitide Learning. Add a teacher, open a profile to change it, assign sections and add students. Only the Headmaster sees this page.</p>' + cloudStatusHtml() + '</div></div><div class="card hm-card">' + teachersHtml() + '</div>';
+    app.innerHTML = '<div class="page-head"><div><h1>Teachers</h1><p class="muted">Every teacher profile at Summitide Learning. Add a teacher, open a profile to change it, assign classes and add students. Only the Headmaster sees this page.</p>' + cloudStatusHtml() + '</div></div><div class="card hm-card">' + teachersHtml() + '</div>';
     bindTeachers();
   }
 
@@ -1342,9 +1391,9 @@
     const on = (id, fn) => { const el = app.querySelector(id); if (el) el.addEventListener('click', fn); };
     on('#gSave', () => { Settings.set('googleClientId', app.querySelector('#gClientId').value.trim()); st('Client ID saved.'); });
     on('#gDownload', () => { const e = Export.download(); st('Downloaded the export for ' + e.students + ' student' + (e.students === 1 ? '' : 's') + '.'); });
-    on('#gPull', async () => { if (!confirm('Pull the latest export from Google Drive and merge it into this device? Students already here keep their names; their progress is replaced by the export.')) return; try { const r = await Drive.pull(st); st('✓ Imported ' + r.students + ' students from ' + r.file + '.'); pageSettings(); } catch (e) { st(e.message, true); } });
-    on('#gPush', async () => { try { const r = await Drive.push(st); st('✓ Uploaded ' + r.files.map(f => f.name).join(' and ') + ' for ' + r.students + ' students to "' + Drive.FOLDER + '".'); pageSettings(); } catch (e) { st(e.message, true); } });
-    const imp = app.querySelector('#gImport'); if (imp) imp.addEventListener('change', async () => { const f = imp.files[0]; if (!f) return; try { const n = Export.importJson(await f.text()); st('Imported ' + n + ' student' + (n === 1 ? '' : 's') + '.'); pageSettings(); } catch (e) { st('Could not import: ' + e.message, true); } });
+    on('#gPull', async () => { if (!confirm('Pull the latest export from Google Drive and merge it into this device? Students already here keep their names; their progress is replaced by the export.')) return; try { const r = await Drive.pull(st); st('✓ Imported ' + r.students + ' students from ' + r.file + '.'); redrawAdmin(); } catch (e) { st(e.message, true); } });
+    on('#gPush', async () => { try { const r = await Drive.push(st); st('✓ Uploaded ' + r.files.map(f => f.name).join(' and ') + ' for ' + r.students + ' students to "' + Drive.FOLDER + '".'); redrawAdmin(); } catch (e) { st(e.message, true); } });
+    const imp = app.querySelector('#gImport'); if (imp) imp.addEventListener('change', async () => { const f = imp.files[0]; if (!f) return; try { const n = Export.importJson(await f.text()); st('Imported ' + n + ' student' + (n === 1 ? '' : 's') + '.'); redrawAdmin(); } catch (e) { st('Could not import: ' + e.message, true); } });
   }
 
   /* ----- Media checklist (inside Teacher Lock) ----- */
@@ -1362,19 +1411,20 @@
   }
 
   /* ----- Students panel (inside Teacher Lock) ----- */
-  const redrawStudents = () => (/^#\/students/.test(location.hash) ? pageStudents() : pageSettings());
+  const redrawAdmin = () => (/^#\/admin/.test(location.hash) ? pageAdmin() : pageSettings());   // v68: these tools sit on the Administration page now
+  const redrawStudents = () => (/^#\/(students|class\/[^/]+\/students)/.test(location.hash) ? pageStudents() : pageSettings());
   /** A student's sections and teachers: where they are now, and everywhere they have been. */
   function studentHistoryHtml(s) {
     const hist = Sections.historyFor(s.id);
     const date = iso => iso ? new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-    const row = h => { const c = findCourseAll(h.course); return '<div class="hist-item' + (h.current ? '' : ' past') + '"><strong>' + esc(h.name || '(section removed)') + '</strong><span class="muted small">' + (c ? c.icon + ' ' + esc(c.title) : esc(h.course || '')) + (h.term ? ' · ' + esc(h.term) : '') + '</span><span class="tag">' + (h.teacherName ? '' + esc(h.teacherName) : 'no teacher') + '</span>' +
-      (h.current ? (h.archived ? '<span class="tag">archived section</span>' : '<span class="tag ok">current</span>') : '<span class="tag">left ' + esc(date(h.until)) + '</span>') + (h.since ? '<span class="muted small">since ' + esc(date(h.since)) + '</span>' : '') + '</div>'; };
+    const row = h => { const c = findCourseAll(h.course); return '<div class="hist-item' + (h.current ? '' : ' past') + '"><strong>' + esc(h.name || '(class removed)') + '</strong><span class="muted small">' + (c ? c.icon + ' ' + esc(c.title) : esc(h.course || '')) + (h.term ? ' · ' + esc(h.term) : '') + '</span><span class="tag">' + (h.teacherName ? '' + esc(h.teacherName) : 'no teacher') + '</span>' +
+      (h.current ? (h.archived ? '<span class="tag">archived class</span>' : '<span class="tag ok">current</span>') : '<span class="tag">left ' + esc(date(h.until)) + '</span>') + (h.since ? '<span class="muted small">since ' + esc(date(h.since)) + '</span>' : '') + '</div>'; };
     const now = hist.filter(h => h.current && !h.archived), past = hist.filter(h => !h.current || h.archived);
     const teachers = Array.from(new Set(now.map(h => h.teacherName).filter(Boolean)));
-    return '<div class="plan-section"><div class="plan-label">Sections and teachers</div>' +
-      '<p class="muted small" style="margin:0 0 0.3rem">Currently assigned to: <strong>' + (teachers.length ? esc(teachers.join(', ')) : 'no teacher') + '</strong>' + (now.length ? ' · ' + now.length + ' active section' + (now.length === 1 ? '' : 's') : '') + '</p>' +
-      (now.length ? '<div class="hist-list">' + now.map(row).join('') + '</div>' : '<p class="muted small">Not in an active section.</p>') +
-      (past.length ? '<details class="other-courses" style="margin-top:0.5rem"><summary>Past sections and teachers (' + past.length + ')</summary><div class="hist-list" style="margin-top:0.5rem">' + past.map(row).join('') + '</div></details>' : '') + '</div>';
+    return '<div class="plan-section"><div class="plan-label">Classes and teachers</div>' +
+      '<p class="muted small" style="margin:0 0 0.3rem">Currently assigned to: <strong>' + (teachers.length ? esc(teachers.join(', ')) : 'no teacher') + '</strong>' + (now.length ? ' · ' + now.length + ' active class' + (now.length === 1 ? '' : 's') : '') + '</p>' +
+      (now.length ? '<div class="hist-list">' + now.map(row).join('') + '</div>' : '<p class="muted small">Not in an active class.</p>') +
+      (past.length ? '<details class="other-courses" style="margin-top:0.5rem"><summary>Past classes and teachers (' + past.length + ')</summary><div class="hist-list" style="margin-top:0.5rem">' + past.map(row).join('') + '</div></details>' : '') + '</div>';
   }
   /* ----- Student View: a demo student that lives inside a staff account ----- */
   function demoOwnerKey(me) { return me.role === 'master' ? 'master' : me.staffId; }
@@ -1429,16 +1479,20 @@
     const me = Students.current; if (!me || !me.isStaff) { location.hash = '#/'; return; }
     setCourseColor(null); setNav('students');
     const sid = me.staffId;
+    // v68: inside a class (#/class/<id>/students) the list is that class; from the desk it is everyone, with the picker
+    const inClass = (location.hash.match(/^#\/class\/([^/?]+)\/students/) || [])[1]; const cc = inClass && window.Classes ? Classes.ctx(decodeURIComponent(inClass)) : null;
+    if (!inClass && Sections.currentFor(sid) && route.cameFrom !== 'students') Sections.setCurrent(sid, null);
+    route.cameFrom = 'students';
     const mine = Sections.visible(sid, false), archived = Sections.visible(sid, true).filter(x => x.archived);
     const cur = Sections.currentFor(sid);
     const q = sessionStorage.getItem('learnhub.studentQ') || '';
     const total = studentsInScope().length;
-    app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: 'Students' }]) +
-      '<div class="page-head"><div><h1>Students</h1><p class="muted">' + (Staff.isMaster ? 'Every student in the school.' : 'The students in your sections.') + ' Search by name or student number, see who they are assigned to now and have been before, and set their level, courses, accommodations and Focus Plan.</p>' + cloudStatusHtml() + '</div></div>' +
+    app.innerHTML = (cc ? Classes.trail(cc, 'Students') : crumbs([{ label: deskName(), href: '#/' }, { label: 'Students' }])) +
+      '<div class="page-head"><div><h1>Students</h1><p class="muted">' + (cc ? esc(cc.name) + ': the students in this class.' : Staff.isMaster ? 'Every student in the school.' : 'The students in your classes.') + ' Search by name or student number, see who they are assigned to now and have been before, and set their level, courses, accommodations and Focus Plan.</p>' + cloudStatusHtml() + '</div></div>' +
       '<div class="student-search"><input class="text-input" id="studentQ" type="search" placeholder="Find a student by name or number…" value="' + esc(q) + '" autocomplete="off">' +
-        '<select class="text-input" id="studentScope"><option value=""' + (!cur ? ' selected' : '') + '>' + (Staff.isMaster ? 'All students' : 'All my students') + ' (' + (cur ? studentsInScopeAll().length : total) + ')</option>' +
+        '<select class="text-input" id="studentScope"' + (cc ? ' hidden' : '') + '><option value=""' + (!cur ? ' selected' : '') + '>' + (Staff.isMaster ? 'All students' : 'All my students') + ' (' + (cur ? studentsInScopeAll().length : total) + ')</option>' +
         mine.map(sec => '<option value="' + esc(sec.id) + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + esc(sec.name) + (sec.term ? ' · ' + esc(sec.term) : '') + ' (' + (sec.students || []).length + ')</option>').join('') +
-        (archived.length ? '<optgroup label="Archived sections">' + archived.map(sec => '<option value="' + esc(sec.id) + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + esc(sec.name) + (sec.term ? ' · ' + esc(sec.term) : '') + '</option>').join('') + '</optgroup>' : '') + '</select></div>' +
+        (archived.length ? '<optgroup label="Archived classes">' + archived.map(sec => '<option value="' + esc(sec.id) + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + esc(sec.name) + (sec.term ? ' · ' + esc(sec.term) : '') + '</option>').join('') + '</optgroup>' : '') + '</select></div>' +
       '<div class="card" style="padding:1rem 1.25rem">' + studentsPanelHtml(q) + '</div>';
     const inp = app.querySelector('#studentQ'); let t = null;
     inp.addEventListener('input', () => { sessionStorage.setItem('learnhub.studentQ', inp.value); clearTimeout(t); t = setTimeout(() => { const pos = inp.selectionStart; pageStudents(); const n = app.querySelector('#studentQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} }, 250); });
@@ -1467,7 +1521,7 @@
       '<div class="level-legend">' + [1, 2, 3, 4].map(l => '<span><strong>Level ' + l + ' · ' + LEVEL_NAMES[l] + '</strong> <span class="muted">' + LEVELS[l].band + ' · ' + LEVELS[l].short + '</span></span>').join('') + '</div>' +
       (window.Records && !onlyId ? Records.legacyBannerHtml(studentsInScope()) : '') +
       (pending.length ? '<div class="plan-banner"><strong>Level suggestions waiting:</strong> ' + pending.map(s => esc(s.name)).join(', ') + ' — based on recent test results. Open the student to apply or dismiss.</div>' : '') +
-      (words.length && !list.length ? '<p class="muted">No student matches “' + esc(q) + '”' + (Staff.isMaster ? '.' : ' in your sections.') + '</p>' : '') +
+      (words.length && !list.length ? '<p class="muted">No student matches “' + esc(q) + '”' + (Staff.isMaster ? '.' : ' in your classes.') + '</p>' : '') +
       '<div class="student-list">' + list.map(s => {
         const isOpen = open === s.id, isMe = Students.current && Students.current.id === s.id;
         const sugg = Object.entries(s.suggestions || {});
@@ -1494,7 +1548,7 @@
             sw('', 'Chunking', 'Matching shown three pairs at a time; word banks of at most three.', (s.accommodations || {}).chunk, 'data-accom="chunk" data-s="' + esc(s.id) + '"') + '</div>' +
             workHtml(s) + recordingsHtml(s) +
  (cur && !s.demo ? '<div class="plan-section"><button class="btn ghost sm" data-unenrol="' + esc(s.id) + '" data-sec="' + esc(cur.id) + '">Remove from ' + esc(cur.name) + '</button></div>' : '') +
-            (s.demo ? '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button></div>' : '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button><button class="btn ghost sm" data-delete="' + esc(s.id) + '">Remove student</button></div>') +
+            (s.demo ? '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button></div>' : '<div class="plan-section btn-row"><button class="btn ghost sm" data-rename="' + esc(s.id) + '">Rename</button><button class="btn ghost sm" data-reset-student="' + esc(s.id) + '">Reset progress</button>' + (Staff.isMaster ? '<button class="btn ghost sm" data-delete="' + esc(s.id) + '">Delete this student from the school</button>' : '<span class="muted small">Only the ' + esc(LH.headTitle()) + ' can delete a student from the school.</span>') + '</div>') +
           '</div>' : '') + '</div>';
       }).join('') + '</div>' +
       (onlyId ? '' : (Cloud.enabled
@@ -1743,6 +1797,8 @@
     return '<div class="setting-row" style="padding-top:0"><div><label>Editing for</label><div class="help">The Focus Plan and keyword search below apply to this student.</div></div><select class="text-input" id="planStudent" style="max-width:260px">' + list.map(x => '<option value="' + esc(x.id) + '"' + (x.id === me.id ? ' selected' : '') + '>' + esc(x.name) + (Students.current && Students.current.id === x.id ? ' (signed in)' : '') + '</option>').join('') + '</select></div>';
   }
 
+  function toast(msg) { const t = document.getElementById('toasts'); if (!t) return; const d = document.createElement('div'); d.className = 'toast'; d.textContent = msg; t.appendChild(d); setTimeout(() => d.remove(), 2200); }
+  window.AppUI = { crumbs, tile, chalkIcon, deskName, teacherName, findCourseAll, avatarHtml, cloudStatusHtml, courseProgress, lessonStatus, setCourseColor, setNav, sectionsHtml, bindSections, teachersHtml, bindTeachers, studentsPage: pageStudents, toast };
   function notFound() { app.innerHTML = '<div class="empty"><h2>Page not found</h2><a class="btn" href="#/">Back to courses</a></div>'; }
 
   /* ---------- router ---------- */
@@ -1761,6 +1817,7 @@
     if (location.hash !== route.last) tUI.msg = '';
     if (location.hash !== route.last) Object.keys(sessionStorage).filter(k => /^learnhub\.(sg\.|studentOpen|workOpen|recOpen|mediaOpen|planOpen|sectionsOpen|focusOpen|teacherOpen|tSecOpen)/.test(k)).forEach(k => sessionStorage.removeItem(k));
     route.last = location.hash;
+    if (parts[0] !== 'students' && !(parts[0] === 'class' && parts[2] === 'students')) route.cameFrom = '';
     if (!Cloud.enabled && (window.CLOUD_CONFIG || {}).enabled) { app.innerHTML = '<div class="empty"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><p>Summitide Learning could not start its connection to the cloud.</p><p class="muted small">Check the internet connection and reload the page.</p><button class="btn" id="reloadBtn">Reload</button></div>'; app.querySelector('#reloadBtn').addEventListener('click', () => location.reload()); return; }
     // v59: the privacy notice is open to everyone, signed in or not
     if (parts[0] === 'privacy' && window.Privacy && (!Cloud.enabled || Cloud.ready)) { setCourseColor(null); setNav(''); try { return Privacy.page(); } catch (e) { app.innerHTML = '<div class="empty">The privacy notice could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; } }
@@ -1792,11 +1849,16 @@
       case 'case': return pageCase(parts[1]);
       case 'settings': return pageSettings();
       case 'grades': return Grades.page(parts[1]);
-      case 'sections': return pageSections();
+      case 'sections': case 'classes': return pageSections();
+      case 'class': return Classes.page(parts);
+      case 'teacher': return Classes.teacherPage(parts[1]);
+      case 'staff': return Classes.staffPage();
+      case 'curriculum': if (!Students.isStaffSession) return pageHome(); return Curriculum.page(parts);
+      case 'admin': return pageAdmin();
       case 'students': return pageStudents();
       case 'courses': return pageCourses();
       case 'notes': return pageNotes();
-      case 'teachers': return pageTeachers();
+      case 'teachers': return Classes.teachersPage();
       case 'shop': case 'locker': case 'coins': if (!window.Coins || !Coins.on()) { location.replace(location.pathname + '#/'); return; }   // switched off: the address simply goes home
         setCourseColor(null); setNav('home'); try { return Coins.page(parts); } catch (e) { app.innerHTML = '<div class="empty">This page could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
       case 'setup': return pageHome();
@@ -1815,7 +1877,9 @@
   window.addEventListener('resize', () => {}); 
   window.addEventListener('courses:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; route(); });
   // Live data from the cloud: redraw data pages (not while someone is typing in a box)
-  window.addEventListener('cloud:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; const p = location.hash.replace(/^#\/?/, '').split('/')[0]; if ((['', 'course', 'lesson', 'work', 'dashboard', 'grades', 'case', 'teachers', 'courses', 'sections', 'students', 'shop', 'locker', 'coins'].includes(p) || (p === 'settings' && !Students.isStaffSession)) && Students.current) route(); renderWho(); });
+  window.addEventListener('cloud:change', () => { const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    if (Array.from(app.querySelectorAll('[data-keep] input, [data-keep] textarea')).some(el => el.type !== 'checkbox' && el.type !== 'file' && el.value !== el.defaultValue)) return;   // v68: a half-filled form is not redrawn from under the person filling it
+    const p = location.hash.replace(/^#\/?/, '').split('/')[0]; if ((['', 'course', 'lesson', 'work', 'dashboard', 'grades', 'case', 'teachers', 'teacher', 'staff', 'courses', 'sections', 'classes', 'class', 'students', 'shop', 'locker', 'coins'].includes(p) || (p === 'settings' && !Students.isStaffSession)) && Students.current) route(); renderWho(); });
   window.addEventListener('cloud:auth', () => {
     if (Cloud.user && /^#\/(welcome|signin)/.test(location.hash)) { location.hash = '#/'; return; }   // just signed in from the sign-in page
     if (!Cloud.user && Students.current) { Students.setCurrent(null); sessionStorage.removeItem('learnhub.entered'); }

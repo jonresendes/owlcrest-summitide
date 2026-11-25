@@ -7,7 +7,9 @@
    Student (#/grades[/course]): the same row for themselves, read-only.
    ========================================================= */
 (function () {
-  const { esc, lessonsFor, assignmentsFor, lessonQuestions, unitsFor, LEVELS, reviewList } = window.LH;
+  const { esc, lessonsFor, assignmentsFor, lessonQuestions, unitsFor, LEVELS, reviewList, testHidden } = window.LH;
+  const NM_CELL = '<td class="d-cell none nm" title="No Mark: your teacher has left this out, so it does not count" data-export="No Mark"><span class="nm-tag">NM</span></td>';
+  const isNM = g => !!(g && g.nm);
 
   /** The most recent recorded attempt on a quiz-style record: { level, pct, at, items } or null. */
   function lastReview(rec) {
@@ -32,7 +34,8 @@
     return Object.assign({}, rec || {}, { override: { raw: Math.max(0, Math.min(100, +mark.score)), level: +mark.level || null } });
   }
   function cls(g) { return g >= LEVEL_BANDS[4][0] ? 'top' : g >= LEVEL_BANDS[3][0] ? 'pass' : 'low'; }
-  function qCell(q, fallbackLevel) {
+  function qCell(q, fallbackLevel, mark) {
+    if (isNM(mark)) return NM_CELL;
     const g = gradeOf(q, fallbackLevel);
     if (!g) return '<td class="d-cell none" title="not tried" data-export="">–</td>';
     const tries = q.attempts || Object.values(q.levels || {}).reduce((n, r) => n + (r.attempts || 0), 0);
@@ -41,10 +44,11 @@
   }
   /** The unit test as a quiz-style record (per-level attempts when present, legacy best otherwise). */
   function testRec(u) { return u.test && u.test.levels && Object.keys(u.test.levels).length ? Object.assign({ best: u.testBest || 0, attempts: u.testAttempts || 1 }, u.test) : (u.testBest ? { best: u.testBest, attempts: u.testAttempts || 0 } : null); }
-  function tCell(u, fallbackLevel) { return qCell(over(testRec(u), (u.marks || {})['test:t']), fallbackLevel); }
+  function tCell(u, fallbackLevel) { return qCell(over(testRec(u), (u.marks || {})['test:t']), fallbackLevel, (u.marks || {})['test:t']); }
   /** Assignment cell: state + grade (editable for teachers). The teacher's score out of 10 becomes a levelled grade at the level the work was done. */
   function aCell(w, editable, ref, fallbackLevel) {
     const g = w && w.grade;
+    if (isNM(g)) return NM_CELL;
     const state = !w || !w.text ? '<span class="a-state none">–</span>' : w.done ? '<span class="a-state done" title="handed in ' + (w.at ? new Date(w.at).toLocaleDateString() : '') + '">✓</span>' : '<span class="a-state draft" title="draft">✎</span>';
     const lv = (w && (w.level || (g && g.level))) || fallbackLevel || 2;
     const lg = w ? Grading.assignment(Object.assign({}, w, { level: lv })) : null;
@@ -58,9 +62,9 @@
   /** Every levelled grade in a unit for one student (quizzes, assignments, test) → average. */
   function unitAverage(course, unit, lessons, u, fallbackLevel) {
     const gs = []; const quiz = u.quiz || {}, work = u.work || {};
-    lessons.forEach(l => { if (lessonQuestions(unit, l._idx).length) { const g = gradeOf(over(quiz[l._idx], (u.marks || {})[l._idx + ':q']), fallbackLevel); if (g) gs.push(g.grade); }
-      assignmentsFor(l).forEach(a => { const w = (work[l._idx] || {})[a._idx]; if (!w) return; const lg = Grading.assignment(Object.assign({}, w, { level: w.level || (w.grade && w.grade.level) || fallbackLevel })); if (lg) gs.push(lg.grade); }); });
-    const t = gradeOf(over(testRec(u), (u.marks || {})['test:t']), fallbackLevel); if (t) gs.push(t.grade);
+    lessons.forEach(l => { if (lessonQuestions(unit, l._idx).length && !isNM((u.marks || {})[l._idx + ':q'])) { const g = gradeOf(over(quiz[l._idx], (u.marks || {})[l._idx + ':q']), fallbackLevel); if (g) gs.push(g.grade); }
+      assignmentsFor(l).forEach(a => { const w = (work[l._idx] || {})[a._idx]; if (!w || isNM(w.grade)) return; const lg = Grading.assignment(Object.assign({}, w, { level: w.level || (w.grade && w.grade.level) || fallbackLevel })); if (lg) gs.push(lg.grade); }); });
+    const t = testHidden(unit) || isNM((u.marks || {})['test:t']) ? null : gradeOf(over(testRec(u), (u.marks || {})['test:t']), fallbackLevel); if (t) gs.push(t.grade);
     return { avg: Grading.average(gs), n: gs.length };
   }
   /** Column headers for a unit (lessons with their assignments). */
@@ -73,17 +77,17 @@
       top.push('<th class="d-les" colspan="' + n + '" title="' + esc(l.title) + '">L' + (i + 1) + '</th>');
       if (hasQ) bottom.push('<th class="d-sub" title="Lesson quiz">' + mk('quiz/' + l._idx, 'quiz', 'Lesson ' + (i + 1) + ' quiz') + '</th>');
       as.forEach((a, k) => bottom.push('<th class="d-sub" title="' + esc(a.title) + '">' + mk('work/' + l._idx + '/' + a._idx, 'A' + (k + 1), a.title) + '</th>')); });
-    top.push('<th rowspan="2">' + mk('test', 'Unit test', 'Unit test') + '</th><th rowspan="2" title="Average of every levelled grade in the unit: quizzes, graded assignments and the unit test">Unit avg</th><th rowspan="2">Awards</th>');
+    top.push((testHidden(unit) ? '' : '<th rowspan="2">' + mk('test', 'Unit test', 'Unit test') + '</th>') + '<th rowspan="2" title="Average of every levelled grade in the unit: quizzes, graded assignments and the unit test">Unit avg</th><th rowspan="2">Awards</th>');
     return '<tr>' + top.join('') + '</tr><tr>' + bottom.join('') + '</tr>';
   }
   function rowCells(course, unit, lessons, u, editable, sid, fallbackLevel) {
     const quiz = u.quiz || {}, work = u.work || {};
     let cells = '';
     lessons.forEach(l => { const as = assignmentsFor(l); const hasQ = lessonQuestions(unit, l._idx).length > 0;
-      if (hasQ) cells += qCell(over(quiz[l._idx], (u.marks || {})[l._idx + ':q']), fallbackLevel);
+      if (hasQ) cells += qCell(over(quiz[l._idx], (u.marks || {})[l._idx + ':q']), fallbackLevel, (u.marks || {})[l._idx + ':q']);
       as.forEach(a => cells += aCell((work[l._idx] || {})[a._idx], editable, 'data-grade="' + esc(sid) + '" data-c="' + esc(course.id) + '" data-u="' + esc(unit.id) + '" data-l="' + esc(l._idx) + '" data-n="' + esc(a._idx) + '"', fallbackLevel)); });
     const av = unitAverage(course, unit, lessons, u, fallbackLevel);
-    return cells + tCell(u, fallbackLevel) + '<td class="d-cell avg ' + (av.avg === null ? 'none' : cls(av.avg)) + '" title="' + av.n + ' graded item' + (av.n === 1 ? '' : 's') + '">' + (av.avg === null ? '–' : '<strong>' + av.avg + '</strong>') + '</td><td class="d-cell none">' + Object.keys(u.earned || {}).length + '</td>';
+    return cells + (testHidden(unit) ? '' : tCell(u, fallbackLevel)) + '<td class="d-cell avg ' + (av.avg === null ? 'none' : cls(av.avg)) + '" title="' + av.n + ' graded item' + (av.n === 1 ? '' : 's') + '">' + (av.avg === null ? '–' : '<strong>' + av.avg + '</strong>') + '</td><td class="d-cell none">' + Object.keys(u.earned || {}).length + '</td>';
   }
   function bindGrades(courseId) {
     app.querySelectorAll('.grade-in').forEach(inp => {
@@ -116,11 +120,11 @@
     const head = '<div class="page-head"><div><h1>Grades</h1><p class="muted">' + (cur ? esc(cur.name) + (cur.term ? ' · ' + esc(cur.term) : '') + (cur.archived ? ' · archived' : '') : (Staff.isMaster ? 'All students' : 'All my students')) + ' · ' + students.length + ' student' + (students.length === 1 ? '' : 's') + '</p></div>' +
       '<div class="btn-row"><select class="text-input" id="dashSection" style="max-width:260px"><option value="">' + (Staff.isMaster ? 'All students' : 'All my students') + '</option>' + sections.map(sec => '<option value="' + sec.id + '"' + (cur && cur.id === sec.id ? ' selected' : '') + '>' + (sec.archived ? '' : '') + esc(sec.name) + '</option>').join('') + '</select>' +
       (!cur ? '<select class="text-input" id="dashCourse" style="max-width:220px">' + window.LearnHub.courses.map(c => '<option value="' + c.id + '"' + (course && c.id === course.id ? ' selected' : '') + '>' + c.icon + ' ' + esc(c.title) + '</option>').join('') + '</select>' : '') +
-      '<button class="btn secondary" id="dashPrint" title="Every unit, every column: wide units are printed in parts so nothing is cut off">Print</button><button class="btn secondary" id="dashCsv" title="Every unit in one file for Excel, Google Sheets or Numbers">CSV</button><button class="btn secondary" id="dashDocx" title="Every unit in one document for Word, Google Docs or Pages">Word</button><a class="btn ghost" href="#/settings">Settings</a></div></div>';
+      (cur ? '<a class="btn ghost" href="#/class/' + esc(cur.id) + '/grades">← ' + esc(cur.name) + '</a>' : '') + '<button class="btn secondary" id="dashPrint" title="Every unit, every column: wide units are printed in parts so nothing is cut off">Print</button><button class="btn secondary" id="dashCsv" title="Every unit in one file for Excel, Google Sheets or Numbers">CSV</button><button class="btn secondary" id="dashDocx" title="Every unit in one document for Word, Google Docs or Pages">Word</button></div></div>';
     if (!course) { app.innerHTML = head + '<div class="empty">No course.</div>'; return; }
     Settings.activeCourse = course.id;
-    const tables = course.units.map((un, ui) => {
-      const lessons = un.lessons.map((l, i) => Object.assign({ _idx: i }, l));
+    const tables = unitsFor(course).map((un, ui) => {
+      const lessons = lessonsFor(un);   // v68: through the class in force, so hidden lessons and tasks leave the grid
       const rows = students.map(s => {
         const prog = Progress.graded(s.id); const u = (prog[course.id] || {})[un.id] || {};
         const t = Students.trackFor(course.id, s);
@@ -130,7 +134,7 @@
       return '<details class="card unit-grid"' + (ui === 0 ? ' open' : '') + '><summary class="unit-summary"><h2 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (ui + 1) + ' · ') + esc(un.title) + '</h2><span class="fold-hint">' + lessons.length + ' lessons · tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, false, course) + rows + '</table></div></details>';
     }).join('');
     app.innerHTML = head + '<p class="small muted">Every cell is a <strong>levelled grade</strong>: the score earned at the level the work was done, placed inside that level\'s band (' + [1, 2, 3, 4].map(l => 'Level ' + l + ' · ' + LEVELS[l].name + ' ' + LEVELS[l].band.replace('%', '')).join(' · ') + '): 50% is a pass and a grade of 50 at every level, a perfect score is the top of the band, and the grade climbs in a straight line between, so Level 4 is the only level where the grade equals the score. Below 50% the grade is the raw score. The small line shows the level and the raw score; a rewrite one level up counts when it scores higher. <strong>Tap a column heading to mark that item for the whole class.</strong> <span class="d-key top">' + LEVEL_BANDS[4][0] + '+</span> <span class="d-key pass">' + LEVEL_BANDS[3][0] + '–' + LEVEL_BANDS[3][1] + '</span> <span class="d-key low">below ' + LEVEL_BANDS[3][0] + '</span> · assignments: <strong>✓</strong> handed in, <strong>✎</strong> draft, <strong>–</strong> not started · type a score out of ' + DEFAULT_MAX + ' and the grade is worked out at the level the work was done · click a name to open the student in Settings.</p>' + tables +
-      (students.length ? '' : '<div class="empty">No students in this section yet.</div>');
+      (students.length ? '' : '<div class="empty">No students in this class yet.</div>');
     app.querySelector('#dashSection').addEventListener('change', e => { Sections.setCurrent(sid, e.target.value || null); page(); });
     const dc = app.querySelector('#dashCourse'); if (dc) dc.addEventListener('change', e => { sessionStorage.setItem('learnhub.dashCourse', e.target.value); page(); });
     // v63: print and files are made from the data in the tables, not from the scrolling boxes on screen
@@ -171,7 +175,12 @@
           if (marks['test:t'] && marks['test:t'].note) notes.push('<li><strong>Unit test:</strong> ' + esc(marks['test:t'].note) + '</li>');
           const tr = lastReview(u.test); if (tr) reviews.push('<details class="rv-fold"><summary>Unit test — ' + tr.pct + '% at Level ' + tr.level + '</summary>' + reviewList(tr.items, false) + '</details>');
           return '<details class="card unit-grid"><summary class="unit-summary"><h3 style="margin:0">' + (/^unit\s*\d/i.test(un.title) ? '' : 'Unit ' + (c.units.indexOf(un) + 1) + ' · ') + esc(un.title) + '</h3><span class="fold-hint">' + (() => { const t = gradeOf(over(testRec(u), (u.marks || {})['test:t']), Students.levelFor(c.id, me)); return t ? 'test grade ' + t.grade + ' · ' : ''; })() + 'tap to open</span></summary><div class="d-wrap"><table class="dash">' + headers(un, lessons, true) + '<tr><td class="d-name">' + c.icon + ' ' + esc(c.title) + '</td>' + rowCells(c, un, lessons, u, false, me.id, Students.levelFor(c.id, me)) + '</tr></table></div>' + (notes.length ? '<div class="small" style="margin-top:0.5rem"><strong>From your teacher</strong><ul>' + notes.join('') + '</ul></div>' : '') + (reviews.length ? '<div class="small" style="margin-top:0.6rem"><strong>Your latest attempts</strong> <span class="muted">— which questions to look at again</span>' + reviews.join('') + '</div>' : '') + '</details>'; }).join('');
-        return '<section class="class-grades" style="--course:' + esc(c.color || '') + '"><h2>' + c.icon + ' ' + esc(c.title) + '</h2>' + units + '</section>';
+        // v68: the final mark (once the teacher reveals it) and the marks the teacher typed in (CCT, exam, other columns)
+        const sec = window.Marks ? Marks.classFor(c.id, me.id) : null; const typed = [];
+        if (sec) Marks.scheme(sec).tasks.forEach(t => { const mk = Marks.taskMark(graded[c.id], t), g = Marks.taskGrade(graded[c.id], t); if (!mk || !(g.nm || g.grade !== null || mk.note)) return;
+          typed.push('<tr><td class="d-name">' + esc(t.title) + '<div class="muted small">' + esc(Marks.TASK_NAME[t.kind]) + '</div></td>' + (g.nm ? NM_CELL : '<td class="d-cell ' + (g.grade === null ? 'none' : cls(g.grade)) + '">' + (g.grade === null ? '–' : '<span class="g-num">' + g.grade + '</span><span class="g-lvl">' + esc(mk.score) + '/' + esc(mk.max || t.max) + '</span>') + '</td>') + '<td style="text-align:left">' + esc(mk.note || '') + '</td></tr>'); });
+        return '<section class="class-grades" style="--course:' + esc(c.color || '') + '"><h2>' + c.icon + ' ' + esc(sec ? sec.name : c.title) + '</h2>' + (window.Classes ? Classes.finalHtml(c, me) : '') + units +
+          (typed.length ? '<div class="card unit-grid" style="padding:1rem 1.15rem"><h3 style="margin:0 0 0.5rem">CCT, exam and other marks from your teacher</h3><div class="d-wrap"><table class="dash"><tr><th class="d-name">Item</th><th>Mark</th><th>Comment</th></tr>' + typed.join('') + '</table></div></div>' : '') + '</section>';
       }).join('') : '<div class="empty">You are not in any class yet.</div>');
     Settings.activeCourse = null;
   }

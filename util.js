@@ -352,7 +352,11 @@
   }
   /** The category new questions for a lesson should carry. */
   function lessonCat(unit, lessonIdx) { const c = lessonCats(unit, lessonIdx); const les = lessonAt(unit, lessonIdx); return c[0] || (les ? 'L' + (lessonIdx + 1) + ' ' + les.title : ''); }
-  function lessonQuestions(unit, lessonIdx, level, types) {
+  /** v68: a teacher can leave a lesson quiz or a unit test out for one class (kept on the class, like every other customisation). */
+  function quizHidden(unit, lessonIdx) { const ov = unitOverlay(unit); return !!(ov && ov.lessons && ov.lessons[lessonIdx] && ov.lessons[lessonIdx].noQuiz); }
+  function testHidden(unit) { const ov = unitOverlay(unit); return !!(ov && ov.noTest); }
+  function lessonQuestions(unit, lessonIdx, level, types, evenHidden) {
+    if (!evenHidden && quizHidden(unit, lessonIdx)) return [];
     const cats = lessonCats(unit, lessonIdx); if (!cats.length) return [];
     return questionsFor(unit, level, types).filter(q => cats.includes(q.cat));
   }
@@ -458,12 +462,36 @@
   window.LH = { reviewList, AREAS, courseArea, courseCode, areaInfo, groupByArea, LEVELS, LEVEL_NAMES, LEVEL_DESC, BANDS, band, body, def, byLevel, L, shuffle, sample, esc, safeUrl, num, md, speak, stopSpeaking, speakBtn, termsFor, slidesFor, mcOptions,
                 questionsFor, resolveQuestion, termQuestions, choicePool, normalize, findCourse, findUnit, markSeen,
                 focusFor, unitsFor, lessonsFor, catsOf, allTermKeys, accom, assessmentCount, difficulty, assessmentOrder,
-                lessonCats, lessonCat, lessonQuestions, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };
+                lessonCats, lessonCat, lessonQuestions, quizHidden, testHidden, assignmentsFor, overlaySection, unitOverlay, lessonAt, CUSTOM_BASE, qKey };
   /* v67 · NO EMOJI. The app draws no emoji of its own. Three helpers replace what they did:
        LH.plain(text)     takes emoji out of text that came from outside the build (a course loaded from a file, an older saved customisation)
        LH.initial(person) the letter shown in a person's coloured circle, where an emoji avatar used to be
        LH.awardMark(tier) a drawn badge, medal or trophy mark (CSS), where an award's emoji used to be
      Plain symbols (✓ ✕ → ▶︎ ★ and the like) are not emoji and are left alone. */
+  /* v68 · THE HEAD OF THE SCHOOL'S TITLE. The app's own words say "Headmaster"; a school can choose another title
+     (Administration → School). LH.headTitle() is the title, LH.headShort() its letters for the small badge, and
+     LH.say(text) puts the title into a sentence. So that no screen is missed, text the app draws is passed through
+     LH.say as it reaches the page (and so are alert / confirm / prompt). What a person typed is never touched:
+     work, notes, lesson slides and questions are left exactly as written. */
+  (function (LH) {
+    LH.headTitle = function () { var v = window.Settings && Settings.data ? Settings.data.headTitle : ''; v = String(v || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24); return v || 'Headmaster'; };
+    LH.headShort = function () { var t = LH.headTitle(); if (t === 'Headmaster') return 'HM'; var w = t.split(' ').filter(Boolean); return (w.length > 1 ? w.map(function (x) { return x[0]; }).join('') : t.slice(0, 2)).toUpperCase().slice(0, 3); };
+    var layerOn = function () { var t = LH.headTitle(); return t.indexOf('Headmaster') < 0 ? t : ''; };
+    LH.say = function (text) { var t = layerOn(); return !t || typeof text !== 'string' || text.indexOf('Headmaster') < 0 ? text : text.replace(/Headmaster/g, t); };
+    var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1 }, OWN = '.mark-text, .work-preview, .task-prompt, .sticky, .slide, .slide-body, .question, .q-host, .rv-list, .review-list, [contenteditable]', ATTRS = ['title', 'aria-label', 'placeholder'];
+    function fixText(n) { var p = n.parentNode; if (!p || n.nodeValue.indexOf('Headmaster') < 0 || SKIP[p.nodeName] || (p.closest && p.closest(OWN))) return; n.nodeValue = LH.say(n.nodeValue); }
+    function fixEl(el) { for (var i = 0; i < ATTRS.length; i++) { var v = el.getAttribute && el.getAttribute(ATTRS[i]); if (v && v.indexOf('Headmaster') >= 0) el.setAttribute(ATTRS[i], LH.say(v)); } }
+    function fix(node) {
+      if (!layerOn()) return;
+      if (node.nodeType === 3) return fixText(node);
+      if (node.nodeType !== 1 || SKIP[node.nodeName]) return;
+      fixEl(node); var all = node.querySelectorAll ? node.querySelectorAll('[title], [aria-label], [placeholder]') : []; for (var i = 0; i < all.length; i++) fixEl(all[i]);
+      var w = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null), t, list = []; while ((t = w.nextNode())) list.push(t); list.forEach(fixText);
+    }
+    LH.resay = function () { try { fix(document.body); } catch (e) {} };
+    if (window.MutationObserver) new MutationObserver(function (ms) { if (!layerOn()) return; ms.forEach(function (m) { if (m.type === 'characterData') fix(m.target); else for (var i = 0; i < m.addedNodes.length; i++) fix(m.addedNodes[i]); }); }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    ['alert', 'confirm', 'prompt'].forEach(function (k) { var o = window[k]; if (typeof o !== 'function') return; window[k] = function (a, b) { return k === 'prompt' ? o.call(window, LH.say(a), b) : o.call(window, LH.say(a)); }; });
+  })(window.LH);
   (function (LH) {
     var KEEP = /^[\u2190-\u21FF\u2300-\u23FF\u25A0-\u25FF\u2600-\u27BF\u2900-\u297F\u2B00-\u2BFF]$/;      // symbol blocks: an emoji only when it asks for colour (U+FE0F) or is one of the few that are colour by default
     var COLOUR = '\u231A\u231B\u23E9\u23EA\u23EB\u23EC\u23F0\u23F3\u25FD\u25FE\u2614\u2615\u2648\u2649\u264A\u264B\u264C\u264D\u264E\u264F\u2650\u2651\u2652\u2653\u267F\u2693\u26A1\u26AA\u26AB\u26BD\u26BE\u26C4\u26C5\u26CE\u26D4\u26EA\u26F2\u26F3\u26F5\u26FA\u26FD\u2705\u270A\u270B\u2728\u274C\u274E\u2753\u2754\u2755\u2757\u2795\u2796\u2797\u27B0\u27BF\u2B1B\u2B1C\u2B50\u2B55';

@@ -1,5 +1,5 @@
 {
- "version": "67",
- "date": "2026-11-23",
- "notes": "No emoji. Every emoji is removed from the app and the course files. People show as the first letter of their name on their colour; awards, coins and Live Class states are drawn; icon-only buttons have words (Listen, Dictate, Stop). Image files, drawn graphics and plain symbols are unchanged. No rules to publish."
+ "version": "68",
+ "date": "2026-11-24",
+ "notes": "Classes at the centre. New desks; each class has Content, Assignments, Quizzes, Tests, CCTs and Exams, with Students, Grades, Mark scheme and Live Class inside it. Teachers set their own mark categories and weights; the final mark follows and can be hidden from or revealed to students. Hide a task for a class, or give one student No Mark. Curriculum shelf, Administration page, Staff list. Sections are now called classes; the Headmaster title can be changed. New firestore.rules to publish."
 }
