@@ -167,7 +167,8 @@
             let touched = 0;
             for (const sec of (v.list || [])) { const body = clean(Object.assign({}, sec)); delete body.updatedAt; const j = stable(body); if (sentSections[sec.id] === j) continue;
               await db.collection('sections').doc(sec.id).set(Object.assign(body, { updatedAt: now() })); sentSections[sec.id] = j; touched++; }
-            for (const id of removedSections(v.list || [])) { await db.collection('sections').doc(id).delete().catch(() => {}); delete sentSections[id]; touched++; }
+            for (const id of removedSections(v.list || [])) { await db.collection('sections').doc(id).delete().catch(() => {}); delete sentSections[id]; touched++;
+              await db.collection('classBanners').doc(id).delete().catch(() => {}); if (window.Banner) Banner.forget(id); }   // v75: a deleted class takes its banner picture with it
             if (touched) {
               try { await reconcileAccess(v.list || []); } catch (e) { failed = failed || e; console.warn('access lists', e); }
               try { await pushStaffClasses(v.list || [], me); } catch (e) { console.warn('staff class list', e && e.code || e); }   // v68: not fatal (needs the v68 rules)

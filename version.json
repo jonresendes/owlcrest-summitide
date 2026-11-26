@@ -1,5 +1,5 @@
 {
- "version": "74",
- "date": "2026-11-24",
- "notes": "Delete a teacher from the teacher's own page (Teachers, open the teacher, Delete this teacher). Their classes, students, work and marks are kept and pass to the Headmaster. No rules to publish."
+ "version": "75",
+ "date": "2026-11-26",
+ "notes": "A banner across the top of each class. The class's teacher (or the Headmaster) can upload a picture; everyone in the class sees it. With no picture the banner shows the school crest, pale. New firestore.rules to publish."
 }

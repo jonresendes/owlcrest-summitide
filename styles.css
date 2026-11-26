@@ -1734,3 +1734,41 @@ table.coin-table th:first-child, table.coin-table td:first-child { width: 52%; }
 .danger-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; padding: 1rem 1.15rem; border: 1px solid #e6b8a6; border-left: 6px solid var(--danger); }
 .danger-card > div { flex: 1 1 18rem; min-width: 0; }
 .btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); } .btn.danger:hover { filter: brightness(0.92); }
+
+/* =========================================================
+   v75 · the class banner
+   ========================================================= */
+.class-banner { position: relative; overflow: hidden; border-radius: var(--radius-sm); margin: 0 0 1rem; background: linear-gradient(100deg, #eef2f8 0%, #f6f8fb 55%, #e9eef6 100%); border: 1px solid var(--line); isolation: isolate; }
+.class-banner.big { aspect-ratio: 4 / 1; min-height: 150px; max-height: 300px; width: 100%; }
+.class-banner.slim { height: 76px; }
+.class-banner-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+.class-banner.has-pic .class-banner-img { display: block; }
+/* no picture: the school crest, very pale, off to the right */
+.class-banner-crest { position: absolute; right: 4%; top: 50%; height: 150%; transform: translateY(-50%); opacity: 0.10; filter: grayscale(0.35); pointer-events: none; }
+.class-banner.slim .class-banner-crest { height: 190%; opacity: 0.09; }
+.class-banner.has-pic .class-banner-crest { display: none; }
+.class-banner-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,18,40,0) 30%, rgba(10,18,40,0.72) 100%); display: none; }
+.class-banner.has-pic .class-banner-shade { display: block; }
+.class-banner.slim.has-pic .class-banner-shade { background: linear-gradient(90deg, rgba(10,18,40,0.72) 0%, rgba(10,18,40,0.15) 70%); }
+.class-banner-text { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.9rem 1.25rem; z-index: 1; }
+.class-banner.slim .class-banner-text { top: 0; display: flex; align-items: center; padding: 0 1.1rem; }
+.class-banner-title { margin: 0; font-size: clamp(1.5rem, 3.2vw, 2.4rem); line-height: 1.1; font-weight: 800; color: var(--primary); overflow-wrap: anywhere; }
+.class-banner.slim .class-banner-title { font-size: 1.25rem; }
+.class-banner-sub { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.98rem; }
+.class-banner.has-pic .class-banner-title { color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.55); }
+.class-banner.has-pic .class-banner-sub { color: rgba(255,255,255,0.92); text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.class-banner.has-pic .class-banner-sub .tag { background: rgba(255,255,255,0.9); color: #1b2f5e; text-shadow: none; }
+.class-banner-edit { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2; background: rgba(255,255,255,0.92); color: var(--primary); border: 1px solid var(--line); box-shadow: 0 1px 6px rgba(0,0,0,0.18); }
+.class-banner-edit:hover { background: #fff; }
+body[data-page="desk"] .class-banner .class-banner-title { color: var(--primary); } body[data-page="desk"] .class-banner.has-pic .class-banner-title { color: #fff; }
+@media (max-width: 640px) { .class-banner.big { aspect-ratio: 5 / 2; min-height: 130px; } .class-banner-text { padding: 0.7rem 0.85rem; } .class-banner-sub { font-size: 0.85rem; } .class-banner.slim { height: 60px; } .class-banner-edit { font-size: 0.78rem; padding: 0.25rem 0.55rem; } }
+body[data-contrast="high"] .class-banner, body[data-contrast="inverted"] .class-banner { background: var(--surface); border: 2px solid var(--line); }
+body[data-contrast="high"] .class-banner-crest, body[data-contrast="inverted"] .class-banner-crest { display: none; }
+body[data-contrast="inverted"] .class-banner:not(.has-pic) .class-banner-title, body[data-contrast="inverted"] .class-banner:not(.has-pic) .class-banner-sub { color: var(--text); }
+@media print { .class-banner { display: none !important; } }
+/* the upload panel */
+.modal-back { position: fixed; inset: 0; z-index: 400; background: rgba(10,18,40,0.55); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.banner-modal { background: var(--surface); color: var(--text); border-radius: var(--radius); padding: 1.25rem 1.4rem; width: min(760px, 100%); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+.banner-modal h2 { margin: 0 0 0.4rem; }
+.banner-canvas { width: 100%; height: auto; aspect-ratio: 4 / 1; border-radius: var(--radius-sm); border: 1px solid var(--line); background: #eef2f8; display: block; }
+.banner-pos { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600; } .banner-pos select { width: auto; padding: 0.35rem 0.5rem; }

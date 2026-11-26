@@ -44,7 +44,9 @@
     else if (c.staff) p.push({ label: 'My Classes', href: '#/classes' });
     p.push(extra ? { label: c.name, href: '#/class/' + c.id } : { label: c.name });
     (Array.isArray(extra) ? extra : extra ? [extra] : []).forEach((x, i, a) => p.push(typeof x === 'string' ? { label: x } : x));
-    return UI().crumbs(p);
+    // v75: the class banner, slim, on every page of the class (the class page itself draws the tall one)
+    let slim = ''; if (extra && c.sec && window.Banner) { slim = Banner.html(c.sec, { title: c.name }); const id = c.sec.id; setTimeout(() => Banner.load(id), 0); }
+    return slim + UI().crumbs(p);
   }
   const roster = c => (c.sec.students || []).map(id => Students.byId(id)).filter(Boolean).sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const sub = c => esc(c.course.title) + (c.sec && c.sec.term ? ' · ' + esc(c.sec.term) : '') + (c.sec && UI().teacherName(c.sec) ? ' · ' + esc(UI().teacherName(c.sec)) : '') + (c.ro ? ' · <span class="tag">archived · read only</span>' : '');
@@ -110,8 +112,9 @@
         T(base + '/ccts', ico('ccts'), 'CCTs', open('cct').length ? plural(open('cct').length, 'task') : 'nothing yet', ' data-chalk') +
         T(base + '/exams', ico('exams'), 'Exams', open('exam').length ? plural(open('exam').length, 'exam') : 'nothing yet', ' data-chalk');
     }
-    app.innerHTML = trail(c) + '<div class="page-head"><div><h1>' + esc(c.name) + '</h1><p class="muted">' + sub(c) + ' · ' + head + '</p></div></div>' + tools +
+    app.innerHTML = Banner.html(c.sec, { big: true, title: c.name, sub: sub(c) + ' · ' + head, canEdit: c.staff && !c.ro }) + trail(c) + tools +
       '<div class="desk-tiles work-tiles">' + tiles + '</div>' + (c.staff ? '' : finalHtml(c.course, c.me));
+    Banner.bind(app, c.sec, route);
     if (c.staff) {
       const rn = app.querySelector('[data-class-rename]'); if (rn) rn.addEventListener('click', () => { const v = prompt('Name of this class:', c.sec.name); if (v && v.trim()) { const t = prompt('Term (for example Fall 2026):', c.sec.term || ''); Sections.update(c.sec.id, { name: v.trim().slice(0, 60), term: t === null ? c.sec.term || '' : t.trim().slice(0, 40) }); route(); } });
       const ar = app.querySelector('[data-class-archive]'); if (ar) ar.addEventListener('click', () => { const on = ar.dataset.classArchive === '1'; if (on && !confirm('Archive ' + c.sec.name + '? Its work and marks are kept and can be read; nothing in it can be changed until you retrieve it.')) return; Sections.setArchived(c.sec.id, on); route(); });
@@ -452,5 +455,7 @@
     } catch (e) { console.error(e); app.innerHTML = '<div class="empty">This page could not be drawn: ' + esc(e && e.message || e) + '</div>'; }
   }
 
-  window.Classes = { page, ctx, trail, myClasses, teachersPage, teacherPage, staffPage, classCard, finalHtml, nextFor, AREAS };
+  /** v75 · the slim banner for a course page that is being read through a class. */
+  function bannerFor(course) { const me = Students.current; if (!me || !window.Banner) return ''; const sec = LH.overlaySection(course.id); if (!sec) return ''; setTimeout(() => Banner.load(sec.id), 0); return Banner.html(sec, { title: sec.name }); }
+  window.Classes = { bannerFor, page, ctx, trail, myClasses, teachersPage, teacherPage, staffPage, classCard, finalHtml, nextFor, AREAS };
 })();

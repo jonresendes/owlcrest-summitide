@@ -1,5 +1,6 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v68 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v75 (free-plan edition: no Cloud Functions).
+// v75 adds: classBanners (the picture across the top of a class).
 // v68 adds: only the Headmaster can delete a student from the school (a teacher takes a student out of a class instead);
 // the names of each teacher's classes for the Staff page (staffClasses, staff only); the Curriculum shelf (curriculum,
 // curriculumChunks: staff read, the Headmaster writes); and the head of the school's title on settings/global, which only the Headmaster may change.
@@ -141,6 +142,20 @@ service cloud.firestore {
       allow create: if isMaster() || (isStaff() && request.resource.data.teacherId == request.auth.uid);
       allow update: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == request.auth.uid);
       allow delete: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid);
+    }
+
+    // ----- the picture across the top of a class (v75) -----
+    // classBanners/<class id>: one small image as a data: address. Read by the people who can read the class (its teacher,
+    // the Headmaster, its students); written by the class's teacher or the Headmaster. Kept apart from the class record so that
+    // record stays small.
+    match /classBanners/{cid} {
+      function bannerClass() { return get(/databases/$(database)/documents/sections/$(cid)).data; }
+      allow read: if signedIn() && (isMaster() || (isStaff() && bannerClass().teacherId == request.auth.uid) || request.auth.uid in bannerClass().students);
+      allow create, update: if (isMaster() || (isStaff() && bannerClass().teacherId == request.auth.uid))
+                    && request.resource.data.keys().hasOnly(['id', 'data', 'by', 'at']) && request.resource.data.id == cid
+                    && request.resource.data.data is string && request.resource.data.data.size() <= 400000
+                    && request.resource.data.data[0:11] == 'data:image/';
+      allow delete: if isMaster() || (isStaff() && bannerClass().teacherId == request.auth.uid);
     }
 
     // ----- a student's work (slides read, quiz and test results, assignment text, awards) -----

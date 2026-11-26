@@ -690,7 +690,7 @@
     const course = findCourse(courseId); if (!course || !Students.enrolled(course.id)) return notFound();
     setCourseColor(course); setNav('home');
     const q = courseSearch.q.trim().toLowerCase();
-    app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: course.title }]) +
+    app.innerHTML = Classes.bannerFor(course) + crumbs([{ label: deskName(), href: '#/' }, { label: course.title }]) +
       '<div class="page-head"><div><h1>' + course.icon + ' ' + esc(course.title) + '</h1><p class="muted">' + esc(L(course.description) || course.subtitle || '') + '</p></div>' +
       '<div class="btn-row">' + (window.Coins ? Coins.courseChip(course) : '') + (Students.current.isStaff ? '' : '<button class="btn ghost sm" id="archiveCourse" title="Hide this class on your home page (you can bring it back)">Archive class</button>') + '</div></div>' + Overlay.bar(course) + planBanner(course) + (Students.current.isStaff ? '' : levelBanner(course)) +
       '<details class="card class-fold case-fold" style="margin-bottom:1rem"><summary class="class-summary"><span class="card-icon"></span><span class="class-text"><h2>Display Case</h2><span class="muted small">' + esc(Students.current.name) + '\'s badges, medals and trophies in this course</span></span><span class="btn-row class-tags"><span class="tag accent">' + Badges.summary(course).earned + ' / ' + Badges.summary(course).total + '</span></span></summary><div class="class-body">' + caseHtml(course) + '</div></details>' +
