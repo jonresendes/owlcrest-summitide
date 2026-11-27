@@ -1,5 +1,5 @@
 {
- "version": "76",
+ "version": "77",
  "date": "2026-11-27",
- "notes": "One plain background on every screen: warm ivory in place of the squared-paper grid and the near-white. Colour overlays and contrast modes are unchanged. No rules to publish."
+ "notes": "The Headmaster can delete a class: open the class, Delete class, beside Rename and Archive. Students and their work and marks are kept. New firestore.rules to publish (only the Headmaster deletes a class; includes the version 75 banner rules)."
 }

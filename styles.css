@@ -1778,3 +1778,17 @@ body[data-contrast="inverted"] .class-banner:not(.has-pic) .class-banner-title, 
    and class pages are gone. Colour overlays and the contrast modes keep their own backgrounds.
    ========================================================= */
 body[data-page="desk"] { background: var(--bg); }
+
+/* v77 · delete a class (Headmaster) */
+.class-tools .class-delete { color: var(--danger); } .class-tools .class-delete:hover { background: #fdeee9; }
+
+/* v77 · High contrast keeps the look: green chalkboards in their wooden frames, and the crest on a class banner.
+   The colours are flattened and strengthened rather than removed (white on #1c3a2c is about 13 : 1). Inverted mode stays black, by design. */
+body[data-contrast="high"][data-page="desk"] .tile.chalk { background: #1c3a2c; color: #fff; border-color: #5a3410; box-shadow: 0 0 0 2px #000; }
+body[data-contrast="high"][data-page="desk"] .tile.chalk:hover { background: #163024; box-shadow: 0 0 0 3px #000; }
+body[data-contrast="high"][data-page="desk"] .tile.chalk .tile-text p, body[data-contrast="high"][data-page="desk"] .tile.chalk .tile-text h2 { color: #fff; }
+body[data-contrast="high"] .class-banner { background: #fff; border: 2px solid #000; }
+body[data-contrast="high"] .class-banner-crest { display: block; opacity: 0.16; filter: none; }
+body[data-contrast="high"] .class-banner.has-pic .class-banner-crest { display: none; }
+body[data-contrast="high"] .class-banner:not(.has-pic) .class-banner-title { color: #0b2a8a; }
+body[data-contrast="high"] .class-banner:not(.has-pic) .class-banner-sub { color: #000; }

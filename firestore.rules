@@ -1,5 +1,6 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v75 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v77 (free-plan edition: no Cloud Functions).
+// v77: only the Headmaster can delete a class (a teacher archives).
 // v75 adds: classBanners (the picture across the top of a class).
 // v68 adds: only the Headmaster can delete a student from the school (a teacher takes a student out of a class instead);
 // the names of each teacher's classes for the Staff page (staffClasses, staff only); the Curriculum shelf (curriculum,
@@ -141,7 +142,8 @@ service cloud.firestore {
       allow read: if signedIn() && (isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid) || request.auth.uid in resource.data.students);
       allow create: if isMaster() || (isStaff() && request.resource.data.teacherId == request.auth.uid);
       allow update: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == request.auth.uid);
-      allow delete: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid);
+      // v77: only the Headmaster deletes a class. A teacher archives one.
+      allow delete: if isMaster();
     }
 
     // ----- the picture across the top of a class (v75) -----

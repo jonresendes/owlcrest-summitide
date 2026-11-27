@@ -88,7 +88,8 @@
         (c.ro ? '' : '<a class="ctool" href="#/live">' + ico('live') + '<span>Live Class</span></a>') +
         (window.Coins && Coins.on() ? '<a class="ctool" href="#/shop">' + ico('shop') + '<span>My shop</span></a>' : '') +
         '<span class="ctool-gap"></span>' +
-        (c.ro ? '<button class="btn ghost sm" data-class-archive="0">Retrieve from the archive</button>' : '<button class="btn ghost sm" data-class-rename>Rename</button><button class="btn ghost sm" data-class-archive="1">Archive</button>') + '</nav>';
+        (c.ro ? '<button class="btn ghost sm" data-class-archive="0">Retrieve from the archive</button>' : '<button class="btn ghost sm" data-class-rename>Rename</button><button class="btn ghost sm" data-class-archive="1">Archive</button>') +
+        (Staff.isMaster ? '<button class="btn ghost sm class-delete" data-class-delete title="Only the ' + esc(LH.headTitle()) + ' can delete a class">Delete class</button>' : '') + '</nav>';
       tiles = T('#/course/' + c.course.id, ico('content'), 'Content', plural(units.length, 'unit') + ' · ' + plural(nLessons, 'lesson') + (held ? ' · ' + held + ' held back' : ''), ' data-chalk') +
         T(base + '/assignments', ico('assignments'), 'Assignments', k.work.n + (k.work.toMark ? ' · ' + k.work.toMark + ' to mark' : ''), ' data-chalk') +
         T(base + '/quizzes', ico('quizzes'), 'Quizzes', plural(k.quiz.n, 'lesson quiz', 'lesson quizzes'), ' data-chalk') +
@@ -117,6 +118,20 @@
     Banner.bind(app, c.sec, route);
     if (c.staff) {
       const rn = app.querySelector('[data-class-rename]'); if (rn) rn.addEventListener('click', () => { const v = prompt('Name of this class:', c.sec.name); if (v && v.trim()) { const t = prompt('Term (for example Fall 2026):', c.sec.term || ''); Sections.update(c.sec.id, { name: v.trim().slice(0, 60), term: t === null ? c.sec.term || '' : t.trim().slice(0, 40) }); route(); } });
+      // v77: delete a class, the Headmaster only. The class goes (roster, mark scheme, CCT and exam set-up, held-back units, banner);
+      // the students and the work and marks in their own records stay.
+      const dl = app.querySelector('[data-class-delete]'); if (dl) dl.addEventListener('click', async () => {
+        if (!Staff.isMaster) return; const sec = c.sec, kids = (sec.students || []).slice(), owner = sec.teacherId;
+        dl.disabled = true;
+        try { for (const sid of [''].concat(kids)) { const why = window.Records && Records.heldReason ? await Records.heldReason(sid) : ''; if (why) { alert('This class cannot be deleted now. ' + why + '\n\nNothing was deleted.'); dl.disabled = false; return; } } }
+        catch (e) { alert('The holds could not be checked, so nothing was deleted: ' + (e && e.message || e)); dl.disabled = false; return; }
+        const typed = prompt('Delete the class "' + sec.name + '"' + (UI().teacherName(sec) ? ' (' + UI().teacherName(sec) + ')' : '') + '?\n\nThis removes the class for good: its list of ' + plural(kids.length, 'student') + ', its mark scheme, its CCT and exam set-up, its held-back units and its banner.\n\nThe students themselves are NOT deleted, and the work and marks in their own records are kept.\n\nThis cannot be undone. Type DELETE to go ahead.');
+        if (typed === null || typed.trim().toUpperCase() !== 'DELETE') { dl.disabled = false; if (typed !== null) alert('Nothing was deleted (the word typed was not DELETE).'); return; }
+        if (window.Cloud && Cloud.enabled && Cloud.log) Cloud.log('class.delete', sec.id, { name: sec.name, course: sec.courseId, students: kids.length, teacher: owner || '' });
+        if (window.Banner) Banner.forget(sec.id);
+        Sections.setCurrent(c.me.staffId, null); Sections.remove(sec.id); UI().toast('Class deleted');
+        location.hash = owner ? '#/teacher/' + owner : '#/classes';
+      });
       const ar = app.querySelector('[data-class-archive]'); if (ar) ar.addEventListener('click', () => { const on = ar.dataset.classArchive === '1'; if (on && !confirm('Archive ' + c.sec.name + '? Its work and marks are kept and can be read; nothing in it can be changed until you retrieve it.')) return; Sections.setArchived(c.sec.id, on); route(); });
     }
   }
