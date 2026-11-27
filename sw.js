@@ -1,7 +1,7 @@
 /* Summitide Learning (OwlCrest Academy) — service worker (offline cache + update detection).
    BUMP THE VERSION every time you upload changed files; that is what makes
    installed copies show the "Update available" notice. */
-const VERSION = 'summitide-v77';
+const VERSION = 'summitide-v78';
 const FILES = [
   './',
   './index.html',
@@ -32,6 +32,7 @@ const FILES = [
   './dashboard.js',
   './marking.js',
   './banner.js',
+  './feedback.js',
   './marks.js',
   './classes.js',
   './curriculum.js',

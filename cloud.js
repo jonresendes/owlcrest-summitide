@@ -168,7 +168,7 @@
             for (const sec of (v.list || [])) { const body = clean(Object.assign({}, sec)); delete body.updatedAt; const j = stable(body); if (sentSections[sec.id] === j) continue;
               await db.collection('sections').doc(sec.id).set(Object.assign(body, { updatedAt: now() })); sentSections[sec.id] = j; touched++; }
             for (const id of removedSections(v.list || [])) { await db.collection('sections').doc(id).delete().catch(() => {}); delete sentSections[id]; touched++;
-              await db.collection('classBanners').doc(id).delete().catch(() => {}); if (window.Banner) Banner.forget(id); }   // v75: a deleted class takes its banner picture with it
+              await db.collection('classBanners').doc(id).delete().catch(() => {}); await db.collection('classBoards').doc(id).delete().catch(() => {}); if (window.Banner) Banner.forget(id); }   // v75: a deleted class takes its banner picture with it
             if (touched) {
               try { await reconcileAccess(v.list || []); } catch (e) { failed = failed || e; console.warn('access lists', e); }
               try { await pushStaffClasses(v.list || [], me); } catch (e) { console.warn('staff class list', e && e.code || e); }   // v68: not fatal (needs the v68 rules)
@@ -703,6 +703,7 @@
   Cloud.removeStudent = async id => {
     if (Cloud.role !== 'master') throw new Error('Only the Headmaster can delete a student from the school. You can take a student out of your class instead. Nothing was deleted.');   // v68 (the rules agree)
     const was = seenStudents[id] || {};
+    if (window.Feedback) { try { await Feedback.forgetStudent(id, was.courses || []); } catch (e) { console.warn('drafts and notices', e && e.code || e); } }   // v78
     { const why = await Cloud.heldReason(id); if (why) throw new Error(why + ' Nothing was deleted.'); }
     // v66: the sign-in itself can now be deleted too, because the app holds the code (or, for an older record, the birthday)
     let dropPw = ''; try { const d = await db.collection('signin').doc(id).get(); if (d.exists && d.data().code) dropPw = normCode(d.data().code); } catch (e) {}

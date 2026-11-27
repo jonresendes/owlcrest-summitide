@@ -1,5 +1,5 @@
 {
- "version": "77",
+ "version": "78",
  "date": "2026-11-27",
- "notes": "The Headmaster can delete a class: open the class, Delete class, beside Rename and Archive. Students and their work and marks are kept. New firestore.rules to publish (only the Headmaster deletes a class; includes the version 75 banner rules)."
+ "notes": "Mark one student at a time, with Save draft and Publish. Students get a Notices bell when work is marked or a comment is left. Each class has a board where the teacher posts notices to the class. New firestore.rules to publish."
 }

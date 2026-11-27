@@ -116,6 +116,7 @@
     const live = s.isStaff && window.Live && /^running/.test(Live.deskDetail());
     el.innerHTML = (n || s.isStaff ? '<label class="class-switch" title="Go to a class"><span class="sr-only">Go to a class</span><select id="classSwitch"><option value="">My Classes</option>' + opts + '</select></label>' : '') +
       (s.isStaff ? '<form class="top-search" id="topSearch" role="search"><input type="search" id="topSearchQ" placeholder="Find a student" aria-label="Find a student by name or number" autocomplete="off"></form>' : '') +
+      (!s.isStaff && window.Feedback ? Feedback.Notices.bellHtml() : '') +
       (live ? '<a class="live-pill" href="#/live" title="A Live Class session is running"><span class="live-dot"></span> Live</a>' : '');
     const sw = el.querySelector('#classSwitch'); if (sw) sw.addEventListener('change', () => { const v = sw.value; if (!v) return; location.hash = v === '#all' ? '#/classes' : '#/class/' + encodeURIComponent(v); });
     const f = el.querySelector('#topSearch'); if (f) f.addEventListener('submit', e => { e.preventDefault(); const q = f.querySelector('input').value.trim(); if (!q) return; sessionStorage.setItem('learnhub.studentQ', q); Sections.setCurrent(s.staffId, null); route.cameFrom = 'students';
@@ -129,6 +130,7 @@
     document.body.dataset.role = !s ? '' : hm ? 'master' : s.isStaff ? 'teacher' : 'student';   // the Headmaster session is marked in the header
     el.innerHTML = s ? '<button class="who' + (hm ? ' who-master' : '') + '" type="button" id="whoBtn" title="' + (hm ? 'Signed in as the Headmaster (admin)' : 'Account') + '"><span class="who-avatar" style="background:' + esc(s.colour) + '">' + esc(LH.initial(s)) + '</span><span class="who-name">' + esc(s.name) + (s.isStaff && !hm ? ' <span class="muted small">(teacher)</span>' : '') + '</span>' + (hm ? '<span class="role-badge" aria-label="' + esc(LH.headTitle()) + '"><span class="role-badge-short">' + esc(LH.headShort()) + '</span><span class="role-badge-text">' + esc(LH.headTitle()) + '</span></span>' : '') + '<span class="who-switch">▾</span></button>' : '';
     setNavRoles(); try { renderTools(); } catch (e) { console.warn('header tools', e); }
+    if (s && !s.isStaff && window.Feedback) Feedback.Notices.refresh();
     const b = el.querySelector('#whoBtn'); if (b) b.addEventListener('click', accountMenu);
     if (window.fitTopbar) setTimeout(window.fitTopbar, 0);
   }
@@ -454,16 +456,18 @@
         '<span class="class-card-tags"><span class="tag">' + (t ? 'Modified' : 'Level ' + Students.levelFor(c.id)) + '</span>' + (Focus.active(c.id) ? '<span class="tag accent">Focus Plan</span>' : '') + '<span class="tag ok">' + (pct ? pct + '%' : 'Start') + '</span></span></a>'; };
     app.innerHTML = '<div class="page-head"><div><h1>' + esc(possessive(s.name)) + ' Desk</h1><p class="muted">Welcome back, ' + esc(s.name) + '. Pick a class to see what is in it and what to do next.</p>' + (Cloud.enabled ? '<p class="muted small">' + profileStamp(s) + '</p>' : '') + '</div></div>' +
       (Focus.enabled && Object.keys(Focus.data.courses).length ? '<div class="plan-banner"><strong>Focus Plan is on.</strong> Courses with a plan show only the pieces chosen for you.</div>' : '') +
-      (window.Classes ? Classes.nextFor(s) : '') +
+      (window.Feedback ? Feedback.Notices.deskHtml() : '') +
       '<h2 class="sub-head desk-sub">My Classes</h2>' +
       (secs.some(x => !x.archived && !findCourseAll(x.courseId)) ? '<div class="class-cards">' + secs.filter(x => !x.archived && !findCourseAll(x.courseId)).map(x => Classes.classCard(x)).join('') + '</div>' : '') +
       (mine.length ? '<div class="class-cards">' + mine.map(classCard).join('') + '</div>' : secs.some(x => !x.archived) ? '' : '<div class="empty">You are not in a class yet. ' + (Cloud.enabled ? 'Your teacher adds you; it appears here as soon as they do.' : 'Join one under Courses.') + '</div>') +
+      (window.Classes ? Classes.nextFor(s) : '') +   // v78: Next for you sits under My Classes
       '<div class="desk-tiles small-tiles">' +
       tile('#/case', chalkIcon('case'), 'Display Case', awards + ' / ' + total + ' awards', ' data-chalk') +
       tile('#/courses', chalkIcon('courses'), 'Courses', (others.length && !s.coursesLocked ? 'join a class' : mine.length + ' active') + (arch.length ? ' · ' + arch.length + ' archived' : ''), ' data-chalk') +
       (window.Coins ? Coins.deskTiles(tile) : '') +   // v60: Shop and Locker, only where coins are on
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageHome);
+    if (window.Feedback) Feedback.Notices.refresh();   // v78: the Notices strip fills in when the notices arrive
   }
   /* ----- Load a course from a file (Headmaster) ----- */
   let pendingCourseFile = null;   // { courses, envelope, source } from the last parsed file
@@ -801,6 +805,11 @@
       '<div class="page-head"><div><span class="tag">Assignment</span><h1 style="margin-top:0.4rem">' + esc(a.title) + '</h1><p class="muted">' + esc(les.title) + (a.expectations ? ' · <span class="small">' + esc(a.expectations) + '</span>' : '') + '</p></div>' + Print.button('#/print/' + course.id + '/' + unit.id + '/assign/' + lessonIdx + '/' + n, 'Print') + '</div>' +
       '<div class="slide assignment"><div class="slide-read"><div class="btn-row between"><h2>Your task</h2>' + speakBtn(String(L(a.prompt)).replace(/[*#>-]/g, ''), '.slide-read') + '</div><div class="slide-body">' + md(L(a.prompt)) + '</div></div>' +
       '<div class="success-box"><strong>A complete answer…</strong> ' + esc(L(a.success)) + '</div>' +
+      (() => { const gw = ((((Progress.graded(Students.current.id)[course.id] || {})[unit.id] || {}).work || {})[lessonIdx] || {})[n]; const g = gw && gw.grade; if (!g || !(g.nm || g.note || (g.score !== undefined && g.score !== null))) return '';   // v78: the published mark and comment, where the notice sends the student
+        const lg = g.nm || g.score === undefined || g.score === null ? null : Grading.assignment({ grade: g, level: gw.level || g.level || Settings.level });
+        return '<div class="teacher-said" id="teacherSaid"><div class="teacher-said-head"><strong>From your teacher</strong>' + (g.by ? '<span class="muted small">' + esc(g.by) + '</span>' : '') + '</div>' +
+          '<p class="teacher-said-mark">' + (g.nm ? 'No Mark · this does not count toward your grade.' : g.score === undefined || g.score === null ? 'A comment, no mark yet.' : 'Mark: <strong>' + esc(g.score) + ' / ' + esc(g.max || 10) + '</strong>' + (lg ? ' <span class="muted">· ' + lg.grade + ' at Level ' + (gw.level || g.level || Settings.level) + '</span>' : '')) + '</p>' +
+          (g.note ? '<div class="teacher-said-note">' + esc(g.note) + '</div>' : '') + '</div>'; })() +
       (starter ? '<p class="muted small">Sentence starter: <em>' + esc(starter) + '</em> <button class="btn ghost sm" id="useStarter">Use it</button></p>' : '') +
       '<div class="work-tools">' + (w.done ? '' : Media.dictateBtn('#workText')) + '<span class="muted small">' + (Media.canDictate && !w.done && Settings.get('dictation') !== false && (!window.Privacy || Privacy.dictationAllowed()) ? 'Tap Dictate to dictate instead of typing.' : '') + '</span></div>' +
       '<textarea class="text-input work" id="workText" rows="10" placeholder="Write your answer here…"' + (w.done ? ' readonly' : '') + '>' + esc(w.text) + '</textarea>' +
@@ -1858,6 +1867,8 @@
       case 'test': return pageTest(parts[1], parts[2], parts[3]);
       case 'print': return Print.page(parts[1], parts[2], parts[3], parts[4], parts[5]);
       case 'live': if (!Students.isStaffSession) return pageHome(); try { return Live.page(); } catch (e) { app.innerHTML = '<div class="empty">The Live Class Board could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
+      case 'grade': if (!Students.isStaffSession) return pageHome(); try { return Feedback.gradePage(parts.slice(1)); } catch (e) { console.error(e); app.innerHTML = '<div class="empty">The marking screen could not be drawn: ' + esc(e.message || e) + '</div>'; return; }
+      case 'notices': return Feedback.Notices.page();
       case 'mark': if (!Students.isStaffSession) return pageHome(); try { return Marking.page(parts.slice(1)); } catch (e) { app.innerHTML = '<div class="empty">The marking screen could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; }
       case 'dashboard': if (!Students.isStaffSession) return pageHome(); try { return Dashboard.page(); } catch (e) { app.innerHTML = '<div class="empty"><h2>The dashboard could not load</h2><p class="muted small">' + esc(e.message) + '</p><a class="btn" href="#/settings">Settings</a></div>'; return; }
       case 'games': return pageGames(parts[1], parts[2]);

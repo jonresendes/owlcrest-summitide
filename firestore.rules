@@ -1,5 +1,6 @@
 rules_version = '2';
-// Summitide Learning (formerly The Academy · LearnHub) — security rules, v77 (free-plan edition: no Cloud Functions).
+// Summitide Learning (formerly The Academy · LearnHub) — security rules, v78 (free-plan edition: no Cloud Functions).
+// v78 adds: gradeDrafts (teacher-only draft marks), notices (per student), classBoards (posts to a class).
 // v77: only the Headmaster can delete a class (a teacher archives).
 // v75 adds: classBanners (the picture across the top of a class).
 // v68 adds: only the Headmaster can delete a student from the school (a teacher takes a student out of a class instead);
@@ -144,6 +145,40 @@ service cloud.firestore {
       allow update: if isMaster() || (isStaff() && resource.data.teacherId == request.auth.uid && request.resource.data.teacherId == request.auth.uid);
       // v77: only the Headmaster deletes a class. A teacher archives one.
       allow delete: if isMaster();
+    }
+
+    // ----- draft marks, notices and the class board (v78) -----
+    // gradeDrafts/<student>__<course>: a mark a teacher is still working on. The student can NOT read it; publishing
+    // copies it into grades/… . The student's teachers and the Headmaster only.
+    match /gradeDrafts/{gid} {
+      allow get: if isStaff() && resource == null;
+      allow read: if isMaster() || (isStaff() && teaches(resource.data.student));
+      allow create: if isStaff() && gid == request.resource.data.student + '__' + request.resource.data.course && teaches(request.resource.data.student)
+                    && request.resource.data.keys().hasOnly(['student', 'course', 'data', 'updatedAt']);
+      allow update: if isStaff() && request.resource.data.student == resource.data.student && request.resource.data.course == resource.data.course && teaches(resource.data.student)
+                    && request.resource.data.keys().hasOnly(['student', 'course', 'data', 'updatedAt']);
+      allow delete: if isStaff() && teaches(resource.data.student) && !held(resource.data.student);
+    }
+    // notices/<student>: "your teacher marked …". Teachers write the items; the student reads them and may change only `seen`.
+    match /notices/{sid} {
+      allow get: if signedIn() && resource == null && (request.auth.uid == sid || teaches(sid));
+      allow read: if signedIn() && (request.auth.uid == sid || teaches(sid));
+      allow create: if signedIn() && request.resource.data.student == sid
+                    && ((teaches(sid) && request.resource.data.keys().hasOnly(['student', 'items', 'updatedAt']))
+                        || (request.auth.uid == sid && request.resource.data.keys().hasOnly(['student', 'seen'])));
+      allow update: if signedIn() && request.resource.data.student == sid
+                    && ((teaches(sid) && changed().hasOnly(['items', 'updatedAt']) && request.resource.data.items is list && request.resource.data.items.size() <= 40)
+                        || (request.auth.uid == sid && changed().hasOnly(['seen'])));
+      allow delete: if teaches(sid) && !held(sid);
+    }
+    // classBoards/<class id>: short posts from the class's teacher to the whole class. One way: students read, they do not write.
+    match /classBoards/{cid} {
+      function boardClass() { return get(/databases/$(database)/documents/sections/$(cid)).data; }
+      allow read: if signedIn() && (isMaster() || (isStaff() && boardClass().teacherId == request.auth.uid) || request.auth.uid in boardClass().students);
+      allow create, update: if (isMaster() || (isStaff() && boardClass().teacherId == request.auth.uid))
+                    && request.resource.data.keys().hasOnly(['id', 'posts', 'updatedAt']) && request.resource.data.id == cid
+                    && request.resource.data.posts is list && request.resource.data.posts.size() <= 50;
+      allow delete: if isMaster() || (isStaff() && boardClass().teacherId == request.auth.uid);
     }
 
     // ----- the picture across the top of a class (v75) -----

@@ -114,8 +114,9 @@
         T(base + '/exams', ico('exams'), 'Exams', open('exam').length ? plural(open('exam').length, 'exam') : 'nothing yet', ' data-chalk');
     }
     app.innerHTML = Banner.html(c.sec, { big: true, title: c.name, sub: sub(c) + ' · ' + head, canEdit: c.staff && !c.ro }) + trail(c) + tools +
+      (c.sec && window.Feedback ? Feedback.Board.html(c.sec, c.staff && !c.ro) : '') +
       '<div class="desk-tiles work-tiles">' + tiles + '</div>' + (c.staff ? '' : finalHtml(c.course, c.me));
-    Banner.bind(app, c.sec, route);
+    Banner.bind(app, c.sec, route); if (c.sec && window.Feedback) Feedback.Board.bind(app, c.sec, c.staff && !c.ro);
     if (c.staff) {
       const rn = app.querySelector('[data-class-rename]'); if (rn) rn.addEventListener('click', () => { const v = prompt('Name of this class:', c.sec.name); if (v && v.trim()) { const t = prompt('Term (for example Fall 2026):', c.sec.term || ''); Sections.update(c.sec.id, { name: v.trim().slice(0, 60), term: t === null ? c.sec.term || '' : t.trim().slice(0, 40) }); route(); } });
       // v77: delete a class, the Headmaster only. The class goes (roster, mark scheme, CCT and exam set-up, held-back units, banner);
@@ -138,7 +139,7 @@
 
   /* ---------- Assignments / Quizzes / Tests ---------- */
   function hrefOf(c, it) { const b = '/' + c.course.id + '/' + it.unit.id; return it.kind === 'test' ? '#/test' + b : it.kind === 'quiz' ? '#/quiz' + b + '/' + it.l : '#/assign' + b + '/' + it.l + '/' + it.n; }
-  function markHref(c, it) { const b = '#/mark/' + encodeURIComponent(c.course.id) + '/' + encodeURIComponent(it.unit.id) + '/' + it.kind; return it.kind === 'test' ? b : b + '/' + it.l + (it.kind === 'work' ? '/' + it.n : ''); }
+  function markHref(c, it) { const b = '#/grade/' + encodeURIComponent(c.course.id) + '/' + encodeURIComponent(it.unit.id) + '/' + it.kind; return it.kind === 'test' ? b : b + '/' + it.l + (it.kind === 'work' ? '/' + it.n : ''); }
   function catSelect(m, it, ro) {
     const cur = Marks.catOf(m, it);
     if (ro) { const cat = m.cats.find(x => x.id === cur); return '<span class="tag">' + (cat ? esc(cat.name) : 'not counted') + '</span>'; }
@@ -259,6 +260,7 @@
       const keep = () => { const raw = sc.value.trim(); if (raw !== '' && (isNaN(+raw) || +raw < 0 || +raw > t.max)) { said.textContent = 'Type 0 to ' + t.max; said.classList.add('unsaved'); return; }
         Progress.setGrade(sid, c.course.id, Marks.MARKS, t.id, 'm', null);
         if (raw !== '' || nm.checked || note.value.trim()) Progress.setGrade(sid, c.course.id, Marks.MARKS, t.id, 'm', Object.assign({ max: t.max, note: note.value.trim().slice(0, 300), by: by() }, raw !== '' ? { score: +raw } : {}, nm.checked ? { nm: true } : {}));
+        if ((raw !== '' || nm.checked || note.value.trim()) && window.Feedback) Feedback.notify(sid, { id: 't:' + t.id, kind: note.value.trim() ? 'comment' : 'mark', title: t.title, sub: c.name, href: '#/class/' + c.sec.id + '/task/' + t.id });   // v78: typed marks are published as they are saved
         said.classList.remove('unsaved'); said.textContent = '✓ Saved'; };
       [sc, nm, note].forEach(el => el.addEventListener('change', keep)); });
     const sv = app.querySelector('#teSave'); if (sv) sv.addEventListener('click', () => { const mm = Marks.scheme(c.sec); const x = mm.tasks.find(k => k.id === t.id); if (!x) return; const v = app.querySelector('#teTitle').value.trim(); if (!v) { alert('Give it a title.'); return; }

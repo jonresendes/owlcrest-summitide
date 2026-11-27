@@ -126,12 +126,15 @@
     out.sections = ((window.Sections && Sections.list) || []).filter(x => (x.students || []).includes(id)).map(x => ({ id: x.id, name: x.name, course: x.courseId, term: x.term || '', archived: !!x.archived, teacher: (() => { const t = window.Staff && (Staff.teachers.find(k => k.id === x.teacherId) || (Staff.master && (Staff.master.uid === x.teacherId || !x.teacherId) ? Staff.master : null)); return t ? t.name : ''; })() }));
     try { out.corrections = await Records.corrections(id); } catch (e) { out.missing.push('Correction notes: ' + e.message); }
     out.hold = await Records.hold(id);
+    out.drafts = {}; out.notices = null;
+    if (window.Feedback) { try { out.drafts = await Feedback.draftsFor(id); } catch (e) { out.missing.push('Draft marks: ' + (e && e.message || e)); } }
     if (cloudOn()) {
       const db = Cloud.db; const get = async (col, doc) => { const d = await db.collection(col).doc(doc).get(); return d.exists ? d.data() : null; };
       // the cloud copies, so nothing depends on what this device happens to hold
       try { const q = await db.collection('progress').where('student', '==', id).get(); q.docs.forEach(d => { const p = d.data(); if (p.course) out.work[p.course] = p.data || {}; }); } catch (e) { out.missing.push('Work: read from this device\'s copy (' + (e.code || e.message) + ')'); }
       try { const q = await db.collection('grades').where('student', '==', id).get(); q.docs.forEach(d => { const p = d.data(); if (p.course) out.grades[p.course] = p.data || {}; }); } catch (e) { out.missing.push('Grades: read from this device\'s copy (' + (e.code || e.message) + ')'); }
       try { const p = await get('students', id); if (p) out.profile = p; } catch (e) {}
+      try { out.notices = await get('notices', id); } catch (e) { out.missing.push('Notices'); }
       try { const f = await get('focus', id); if (f) out.focusPlan = f.data || f; } catch (e) {}
       try { out.coinsLedger = await get('coins', id); } catch (e) { out.missing.push('Coin ledger'); }
       try { out.liveClassPresence = await get('presence', id); } catch (e) { out.missing.push('Live Class presence'); }
@@ -189,6 +192,9 @@
     const hand = [], typed = []; Object.keys(g.grades || {}).forEach(c => Object.keys(g.grades[c] || {}).forEach(u => Object.keys(g.grades[c][u] || {}).forEach(l => Object.keys(g.grades[c][u][l] || {}).forEach(n => { const x = g.grades[c][u][l][n];
       if (x && u === '_marks') { typed.push([courseTitle(c), taskTitle(l), x.nm ? 'No Mark' : x.score === undefined || x.score === null ? '' : x.score + '/' + (x.max || 100), x.note || '', x.by || '', when(x.at)]); return; }
       if (x && (n === 'q' || n === 't')) hand.push([courseTitle(c), unitTitle(c, u), n === 't' ? 'Unit test' : 'Lesson ' + (+l + 1) + ' quiz', x.nm ? 'No Mark' + (x.score === undefined || x.score === null ? '' : ' (' + x.score + '%)') : x.score === undefined || x.score === null ? '' : x.score + '%', x.level ? 'Level ' + x.level : '', x.note || '', x.by || '', when(x.at)]); }))));
+    const dr = []; Object.keys(g.drafts || {}).forEach(c => Object.keys(g.drafts[c] || {}).forEach(k => { const x = g.drafts[c][k] || {}, p = k.split('|'); dr.push([courseTitle(c), unitTitle(c, p[0]), p[1] === 'test' ? 'Unit test' : 'Lesson ' + (+p[1] + 1) + (p[2] === 'q' ? ' quiz' : ' · assignment ' + (+p[2] + 1)), x.nm ? 'No Mark' : x.score === undefined || x.score === null ? '' : x.score + '/' + (x.max || 10), x.note || '', x.by || '', when(x.at)]); }));
+    add('Draft marks not yet released to the student', ['Course', 'Unit', 'Item', 'Mark', 'Comment', 'By', 'When'], dr);
+    add('Notices left for the student', ['When', 'About', 'Where', 'From'], ((g.notices && g.notices.items) || []).map(x => [when(x.at), x.title || '', x.sub || '', x.by || '']));
     add('Quiz and test scores set by a teacher', ['Course', 'Unit', 'Item', 'Score', 'Level', 'Note', 'By', 'When'], hand);
     add('CCT, exam and other marks typed by a teacher', ['Course', 'Item', 'Mark', 'Comment', 'By', 'When'], typed);
     const fin = []; (g.sections || []).forEach(x => { try { const sec = window.Sections.byId(x.id), course = ((window.LearnHub && LearnHub.courses) || []).find(k => k.id === x.course), st = window.Students.byId(g.student); if (!sec || !course || !st || !window.Marks) return; window.LH.unitsFor(course);

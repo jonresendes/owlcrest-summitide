@@ -163,6 +163,7 @@
           if (raw === '' && !text && !nm()) Progress.setGrade(sid, course.id, unit.id, it.l, it.n, null);
           else Progress.setGrade(sid, course.id, unit.id, it.l, it.n, { score: raw === '' ? null : +raw, max, level: +score.dataset.lv, note: text, nm: nm(), by: by() });
           state = raw !== '' || text || nm() ? 'done' : cardEl.dataset.sub;
+          if (state === 'done' && window.Feedback) Feedback.notifyMarked(sid, course, unit, it, !!text);   // v78: a mark saved here is published at once, and the student gets a notice
         } else {
           const key = it.kind === 'test' ? ['test', 't'] : [it.l, 'q'];
           const raw = score.value.trim();
@@ -170,6 +171,7 @@
           Progress.setGrade(sid, course.id, unit.id, key[0], key[1], null);            // replace the whole mark, so a cleared score really goes
           if (raw !== '' || text || nm()) Progress.setGrade(sid, course.id, unit.id, key[0], key[1], Object.assign({ note: text, by: by() }, nm() ? { nm: true } : {}, raw !== '' ? { score: +raw, level: +score.dataset.lv } : {}));
           state = raw !== '' || text || nm() ? 'done' : cardEl.dataset.sub;
+          if (state === 'done' && window.Feedback) Feedback.notifyMarked(sid, course, unit, it, !!text);   // v78: a mark saved here is published at once, and the student gets a notice
         }
         cardEl.dataset.state = state; cardEl.querySelector('[data-state-tag]').textContent = STATE[state];
         const chip = app.querySelector('[data-jump="' + (window.CSS && CSS.escape ? CSS.escape(sid) : sid) + '"]'); if (chip) chip.dataset.state = state;

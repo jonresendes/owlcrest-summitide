@@ -1792,3 +1792,61 @@ body[data-contrast="high"] .class-banner-crest { display: block; opacity: 0.16; 
 body[data-contrast="high"] .class-banner.has-pic .class-banner-crest { display: none; }
 body[data-contrast="high"] .class-banner:not(.has-pic) .class-banner-title { color: #0b2a8a; }
 body[data-contrast="high"] .class-banner:not(.has-pic) .class-banner-sub { color: #000; }
+
+/* =========================================================
+   v78 · mark one student at a time, notices, the class board
+   ========================================================= */
+/* ---- the bell (students) ---- */
+.bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); text-decoration: none; flex: 0 0 auto; }
+.bell:hover, .bell:focus-visible { border-color: var(--primary); }
+.bell-ico { font-size: 1.1rem; line-height: 1; filter: grayscale(0.2); }
+.bell.has-new { border-color: var(--accent); }
+.bell-n { position: absolute; top: -0.35rem; right: -0.35rem; min-width: 1.15rem; height: 1.15rem; padding: 0 0.25rem; border-radius: 999px; background: #b3261e; color: #fff; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+/* ---- notices ---- */
+.notice-strip { background: var(--surface); border: 1px solid var(--line); border-left: 8px solid var(--primary); border-radius: var(--radius-sm); padding: 0.85rem 1rem 0.9rem; margin-bottom: 1.25rem; }
+.notice-strip h2 { font-size: 1.1rem; margin: 0; }
+.notice-strip[hidden] { display: none; }
+.notice-card { padding: 0.5rem 1rem; }
+.notice-list { display: flex; flex-direction: column; margin-top: 0.4rem; }
+.notice-line { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.7rem; align-items: center; padding: 0.6rem 0.25rem; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+.notice-list > .notice-line:first-child { border-top: 0; }
+.notice-line:hover { background: var(--surface-2); }
+.notice-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: transparent; border: 2px solid var(--line); }
+.notice-line.unread .notice-dot { background: var(--primary); border-color: var(--primary); }
+.notice-line:not(.unread) strong { font-weight: 600; }
+.notice-text { display: flex; flex-direction: column; min-width: 0; } .notice-text strong { overflow-wrap: anywhere; }
+/* ---- the class board ---- */
+.class-board { padding: 0.9rem 1.15rem; margin: 0 0 1.1rem; border-left: 6px solid var(--primary); }
+.board-title { font-size: 1.1rem; margin: 0; }
+.board-new { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; } .board-new textarea { width: 100%; resize: vertical; }
+.board-posts { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.board-post { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.65rem 0.8rem; }
+.board-post-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.board-post-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
+body[data-page="desk"] .class-board h2 { color: var(--text); }
+/* ---- mark one student at a time ---- */
+.g-top { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.6rem 0.8rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.g-top-title { display: flex; flex-direction: column; flex: 1 1 14rem; min-width: 0; } .g-top-title strong { overflow-wrap: anywhere; }
+.g-nav { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; } .g-nav .btn { font-size: 1.2rem; line-height: 1; padding: 0.2rem 0.6rem; }
+.g-body { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); border: 1px solid var(--line); border-top: 0; background: var(--surface); }
+.g-left { padding: 1rem; border-right: 1px solid var(--line); background: var(--bg); min-width: 0; }
+.g-right { padding: 1rem 1.1rem; min-width: 0; } .g-right h3 { margin: 0.9rem 0 0.4rem; font-size: 1rem; } .g-right textarea { width: 100%; resize: vertical; line-height: 1.5; }
+.g-who { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; } .g-jump { margin-left: auto; width: auto; max-width: 12rem; padding: 0.35rem 0.5rem; }
+.g-sub { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.85rem 1rem; }
+.g-sub-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding-bottom: 0.5rem; border-bottom: 1px solid var(--line); margin-bottom: 0.6rem; }
+.g-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; max-height: none; }
+.g-state { min-height: 1.6rem; }
+.g-score { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; } .g-score input { width: 5.5rem; text-align: right; font-size: 1.15rem; font-weight: 700; } .g-max { font-weight: 700; color: var(--muted); }
+.g-foot { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap; padding: 0.7rem 0.8rem; background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius-sm) var(--radius-sm); position: sticky; bottom: 0; }
+.g-foot > span { margin-right: auto; }
+@media (max-width: 800px) { .g-body { grid-template-columns: 1fr; } .g-left { border-right: 0; border-bottom: 1px solid var(--line); } .g-jump { max-width: 9rem; } }
+@media print { .bell, .g-foot, .g-nav, .board-new { display: none !important; } }
+.teacher-said { background: var(--surface); border: 1px solid var(--line); border-left: 8px solid var(--primary); border-radius: var(--radius-sm); padding: 0.8rem 1rem; margin: 0.9rem 0; }
+.teacher-said-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; } .teacher-said-mark { margin: 0.35rem 0 0; }
+.teacher-said-note { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; margin-top: 0.45rem; padding-top: 0.45rem; border-top: 1px solid var(--line); }
+/* v78: the desk Notices strip is folded until opened */
+details.notice-strip { padding: 0; }
+details.notice-strip > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; }
+details.notice-strip > summary::-webkit-details-marker { display: none; }
+details.notice-strip > summary .notice-fold { margin-left: auto; } details.notice-strip > summary .notice-fold::after { content: 'Show \25BE'; } details.notice-strip[open] > summary .notice-fold::after { content: 'Hide \25B4'; }
+details.notice-strip > .notice-list, details.notice-strip > p { padding: 0 1rem; } details.notice-strip[open] { padding-bottom: 0.8rem; }
