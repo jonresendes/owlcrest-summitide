@@ -4,7 +4,7 @@
    Change the palette here and the whole app follows.
    ========================================================= */
 :root {
-  --bg: #f4f6f8;
+  --bg: #f4f1ea;   /* v76: warm ivory on every screen (was a cool near-white) */
   --surface: #ffffff;
   --surface-2: #edf0f5;
   --text: #1f2937;
@@ -1772,3 +1772,9 @@ body[data-contrast="inverted"] .class-banner:not(.has-pic) .class-banner-title, 
 .banner-modal h2 { margin: 0 0 0.4rem; }
 .banner-canvas { width: 100%; height: auto; aspect-ratio: 4 / 1; border-radius: var(--radius-sm); border: 1px solid var(--line); background: #eef2f8; display: block; }
 .banner-pos { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600; } .banner-pos select { width: auto; padding: 0.35rem 0.5rem; }
+
+/* =========================================================
+   v76 · one plain background everywhere: warm ivory (--bg). The squared-paper grid and the blue fade on the desk
+   and class pages are gone. Colour overlays and the contrast modes keep their own backgrounds.
+   ========================================================= */
+body[data-page="desk"] { background: var(--bg); }

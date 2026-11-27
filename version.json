@@ -1,5 +1,5 @@
 {
- "version": "75",
- "date": "2026-11-26",
- "notes": "A banner across the top of each class. The class's teacher (or the Headmaster) can upload a picture; everyone in the class sees it. With no picture the banner shows the school crest, pale. New firestore.rules to publish."
+ "version": "76",
+ "date": "2026-11-27",
+ "notes": "One plain background on every screen: warm ivory in place of the squared-paper grid and the near-white. Colour overlays and contrast modes are unchanged. No rules to publish."
 }
