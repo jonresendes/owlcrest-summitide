@@ -1,5 +1,5 @@
 {
- "version": "80",
+ "version": "81",
  "date": "2026-11-27",
- "notes": "Report comments: each class has a page that writes a report card comment for each student from three choices (results, homework, engagement), with suggested levels from the class's records. No new firestore.rules to publish."
+ "notes": "Report comments now name the course material: each student's strongest unit and lessons, the curriculum expectations their results fall under, and the lessons to revisit. The teacher chooses how much detail and which units a report covers. No new firestore.rules to publish."
 }

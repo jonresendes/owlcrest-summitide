@@ -13,6 +13,26 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 81 — report comments that name the course material (27 November 2026)
+
+Built on version 80. A report comment now draws on the course that is loaded and on each student's own results:
+
+- **Strongest work.** After the results sentence, one sentence names the unit with the student's best results and its one or two best lessons.
+- **Curriculum expectations.** One sentence names the expectation with the best results and, when its level differs, the one with the lowest, each with thorough / considerable / some / limited understanding (80+, 70s, 60s, below 60). Expectations are read from the `expectations` line on each assignment ("E1. Understanding Epistemology; E2. …": a code, then a name). An expectation that has a code and no name is not named in a comment.
+- **Next step.** When the next step is about results, it names the lesson (or two lessons in one unit) with the lowest results, if any is below 80%.
+- **Class settings.** *Course detail in comments*: units, lessons and expectations (the default); units and lessons; expectations; none. *Units in this report*: untick a unit to leave it out. Changing either rewrites the comments that were not edited by hand.
+- Under the results choice the teacher sees the student's average in each unit.
+
+How results are counted: a quiz counts toward its lesson and that lesson's expectations; an assignment toward its lesson and its own expectations; a unit test toward its unit only. Grades are the levelled grades the Grades page shows, so the student's level is already in them. A student needs results in at least two lessons before a "strongest" sentence is written. A student with no results gets the general comment, as in version 80.
+
+**No course file needs changing or reloading, and there is no `firestore.rules` change.** Two fields are added to what is kept in the teacher's notes for each class: `detail` and `off` (the units left out).
+
+**Files.** Changed: `comments.js`, `sw.js` (`summitide-v81`), `pwa.js`, `version.json`, `styles.css` (three lines at the end), `README.md`.
+
+**Tested.** Headless Chrome, device-only mode, the real HZT4U course file (30 lessons, 63 assignments) and four made-up students with made-up results: unit averages, strongest lessons, lowest lessons and expectation averages checked against the seeded numbers; all four detail settings; a unit switched off and kept after a reload; reword, pronouns, next step moved to homework; the version 80 checks run again on a second made-up course whose assignments carry no expectations. 20,000 combinations of choices and detail checked for leftover placeholders and repeated sentence openings. **Not tested:** any other course file, the live site and Firebase, real student results, the store builds, Safari and Firefox, a phone.
+
+**Open items.** The expectation names are whatever the course file says; HZT4U's build notes say its codes were assigned at the overall-expectation level and not checked line by line against the curriculum document. Courses whose assignments carry bare codes (for example `B1.1`) get the unit and lesson sentences and no expectation sentence, until names are added to the course file. Comments with full detail run to about 650 characters. Typed marks (culminating task, exam) are in the class mark and are not named. The version 80 open items stand.
+
 ## Version 80 — report comments (27 November 2026)
 
 Built on version 79 (`9957459`, the Schools and Personal editions). An earlier package of this feature was built on version 78 and was also labelled 79: **do not upload that one**, it would undo the editions work in six files.

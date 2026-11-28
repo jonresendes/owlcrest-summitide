@@ -1887,3 +1887,6 @@ html[data-edition="schools"] .install-btn, html[data-edition="personal"] .instal
 .cm-count { font-size: 0.84rem; color: var(--muted); } .cm-count.over { color: var(--danger); font-weight: 800; }
 .cm-banner { margin: 0.9rem 0 0; display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
 @media print { .cm-head .tag, .cm-row, .cm-chips, .cm-signal, .cm-banner { display: none !important; } }
+/* v81 */
+.cm-note { margin: 0.4rem 0 0; }
+.cm-info .cm-chips .chip { font-size: 0.92rem; }

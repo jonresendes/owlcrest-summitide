@@ -1,5 +1,5 @@
 /* =========================================================
-   comments.js — v80: report card comments for a class.
+   comments.js — v80: report card comments for a class. v81: comments that name the units, lessons and expectations.
    #/class/<id>/comments     the class's teacher (and the Headmaster): one card per student. The teacher picks a level
                              for test and assignment results, homework completion and engagement with the material;
                              the comment is written from those choices and can be reworded, edited by hand and copied.
@@ -13,7 +13,7 @@
    A suggestion is a dot on a choice. Nothing is chosen and nothing is written until the teacher does it.
    WHERE THE COMMENTS ARE KEPT  With the teacher's own notes (Staff.notes → staffNotes/<uid> in the cloud), which only
    that teacher and the Headmaster can read and which students can never read:
-     notes.comments[sectionId] = { course, limit, s: { [studentId]: { lv: { r, h, e }, pro, next, w, text, edited, at } } }
+     notes.comments[sectionId] = { course, limit, detail, off: [unit ids left out], s: { [studentId]: { lv: { r, h, e }, pro, next, w, text, edited, at } } }
    No new collection and no change to firestore.rules. Storage.js keeps notes.comments when the sticky notes are saved.
    NOT DONE YET (see README, version 80): comments are not in the "copy of everything held about one student", and
    removing a student clears their comments from the notes of the person who removes them, not from other teachers' notes.
@@ -108,6 +108,19 @@
     };
     const NEXT_LEAD = ["As a next step, {name} is encouraged to ", "Going forward, {name} should ", "A good next step for {name} is to "];
     const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    /* v81: wording that names the course material. The page hands build() a `detail` worked out from the student's own results:
+         detail.strength = { unit, lessons: [titles] }   the unit with the best results and its one or two best lessons
+         detail.exp      = { best, worst, second }       curriculum expectations: { name, code, lv } each (worst only when its level differs)
+         detail.weak     = { unit, lessons: [titles] }   the lesson (or two, in one unit) with the lowest results, for the next step
+         unit = { num, title }   num is null when the unit's title does not begin "Unit 3 · …"
+       Any part may be missing, and then its sentence is left out. Without `detail` the comment is the general one. */
+    const QUAL = { 4: 'thorough', 3: 'considerable', 2: 'some', 1: 'limited' };
+    const levelOf = g => g >= 80 ? 4 : g >= 70 ? 3 : g >= 60 ? 2 : 1;        // the grade bands
+    const safe = t => String(t === null || t === undefined ? '' : t).replace(/[{}]/g, '').trim();
+    const quote = t => '\u201C' + safe(t) + '\u201D';
+    const andList = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+    const unitMid = u => u.num ? 'Unit ' + u.num + ', ' + safe(u.title) + ',' : 'the unit ' + quote(u.title);
+    const unitEnd = u => u.num ? 'Unit ' + u.num + ', ' + safe(u.title) : 'the unit ' + quote(u.title);
 
     /** Which area the next step is about: the one chosen, or (auto) the lowest-rated, results first on a tie. */
     function nextDim(lv, next) {
@@ -116,8 +129,8 @@
       let d = null; DIMS.forEach(x => { if (lv[x.id] && (d === null || lv[x.id] < lv[d])) d = x.id; });
       return d;
     }
-    /** The comment for one student.  s = { name, pro, lv: { r, h, e }, next, w }  ·  w = which wording (any whole number). */
-    function build(s, courseName) {
+    /** The comment for one student.  s = { name, pro, lv: { r, h, e }, next, w }  ·  w = which wording (any whole number)  ·  detail: see above (optional). */
+    function build(s, courseName, detail) {
       const name = String(s.name || '').trim() || 'The student', poss = POSS[s.pro] || null;
       const his = poss || name + "'s", His = poss ? cap(poss) : name + "'s";
       const course = String(courseName || '').trim() || 'the course';
@@ -137,9 +150,28 @@
           t = 'However, ' + (/^\{name\}/.test(t) ? t : /^\{His\}/.test(t) ? t.replace(/^\{His\}/, '{his}') : t.charAt(0).toLowerCase() + t.slice(1));
         }
         out.push(fill(t)); prev = l;
+        if (d.id === 'r' && detail) {                                          // v81: after the results sentence, what the results were in
+          const st = detail.strength, ex = detail.exp;
+          if (st && st.unit && st.lessons && st.lessons.length) {
+            const ls = andList(st.lessons.map(quote)), own = !prevNamed;
+            out.push(fill(own ? '{His} strongest work was on ' + ls + ' in ' + unitEnd(st.unit) + '.'
+                              : (st.lessons.length > 1 ? 'The lessons ' : 'The lesson ') + ls + ' in ' + unitMid(st.unit) + ' brought {his} strongest results.'));
+            prevNamed = own && !poss;
+          }
+          if (ex && ex.best && ex.best.name) {
+            const nm = x => quote(x.name) + (x.code ? ' (' + safe(x.code) + ')' : '');
+            const open = (w % 2 ? 'Measured against the curriculum expectations, ' : 'In the curriculum expectations, ') + '{name} shows ';
+            out.push(fill(open) + (ex.worst && ex.worst.name && ex.worst.lv !== ex.best.lv
+              ? QUAL[ex.best.lv] + ' understanding of ' + nm(ex.best) + ' and ' + QUAL[ex.worst.lv] + ' understanding of ' + nm(ex.worst)
+              : QUAL[ex.best.lv] + ' understanding of ' + andList([ex.best, ex.second].filter(x => x && x.name).map(nm))) + '.');
+            prevNamed = false;
+          }
+        }
       });
-      const nd = out.length ? nextDim(lv, s.next) : null;
-      if (nd) out.push(fill(NEXT_LEAD[w % NEXT_LEAD.length]) + NEXT[nd][lv[nd]] + '.');
+      const nd = out.length ? nextDim(lv, s.next) : null, wk = detail && detail.weak;
+      if (nd === 'r' && wk && wk.unit && wk.lessons && wk.lessons.length)       // v81: a next step that names the lessons to go back to
+        out.push(fill(NEXT_LEAD[w % NEXT_LEAD.length]) + 'revisit ' + andList(wk.lessons.map(quote)) + ' in ' + unitMid(wk.unit) + ' and rework the questions that went wrong.');
+      else if (nd) out.push(fill(NEXT_LEAD[w % NEXT_LEAD.length]) + NEXT[nd][lv[nd]] + '.');
       return out.join(' ');
     }
 
@@ -159,9 +191,9 @@
       if (d === 'r') return sig.average === null || sig.average === undefined ? 'No marks yet' : 'Class mark so far: ' + sig.average + '%';
       return sig.slidesRead === null || sig.slidesRead === undefined ? 'No lessons opened yet' : sig.slidesRead + '% of lesson slides read in the app. A hint only: choose this from what you see in class.';
     }
-    return { DIMS, LEVEL_NAME, PRONOUNS, BANK, NEXT, build, suggest, signalText, nextDim };
+    return { DIMS, LEVEL_NAME, PRONOUNS, BANK, NEXT, build, suggest, signalText, nextDim, levelOf };
   })();
-  const { esc, unitsFor, lessonsFor, slidesFor, unitHidden } = window.LH;
+  const { esc, unitsFor, lessonsFor, slidesFor, unitHidden, assignmentsFor, L } = window.LH;
   const { DIMS, LEVEL_NAME, PRONOUNS } = Engine;
   const app = document.getElementById('app');
   const UI = () => window.AppUI;
@@ -175,6 +207,7 @@
   function load(secId) {
     const r = everything()[secId]; const rec = r && typeof r === 'object' ? JSON.parse(JSON.stringify(r)) : {};
     rec.s = rec.s && typeof rec.s === 'object' ? rec.s : {}; rec.limit = Math.max(0, Math.min(LIMIT_MAX, Math.round(+rec.limit || 0))); rec.course = String(rec.course || '').slice(0, NAME_MAX);
+    rec.detail = MODES.some(m => m[0] === rec.detail) ? rec.detail : 'both'; rec.off = Array.isArray(rec.off) ? rec.off.filter(x => typeof x === 'string').slice(0, 60) : [];   // v81
     return rec;
   }
   function save(secId, rec) {
@@ -187,7 +220,10 @@
     e.lv = e.lv && typeof e.lv === 'object' ? e.lv : { r: 0, h: 0, e: 0 }; return e;
   }
   const peek = (rec, s) => rec.s[s.id] || { lv: { r: 0, h: 0, e: 0 }, pro: 'name', next: 'auto', w: 0, text: '', edited: false };
-  const write = (rec, s, e) => { e.text = Engine.build({ name: firstName(s), pro: e.pro, lv: e.lv, next: e.next, w: e.w }, rec.course); e.edited = false; e.at = new Date().toISOString(); };
+  const MODES = [['both', 'Units, lessons and expectations'], ['lessons', 'Units and lessons'], ['expect', 'Expectations'], ['none', 'None (general wording)']];
+  /** The part of a student's course detail the class's setting asks for. */
+  const trim = (det, mode) => !det || mode === 'none' ? null : { strength: mode === 'expect' ? null : det.strength, exp: mode === 'lessons' ? null : det.exp, weak: det.weak };
+  const write = (rec, s, e, det) => { e.text = Engine.build({ name: firstName(s), pro: e.pro, lv: e.lv, next: e.next, w: e.w }, rec.course, trim(det, rec.detail)); e.edited = false; e.at = new Date().toISOString(); };
   /** Take one student's comments out of the signed-in teacher's notes (called when a student is removed). */
   function forgetStudent(studentId) {
     const cs = everything(); let hit = false; const out = {};
@@ -214,6 +250,50 @@
     };
   }
 
+  /* ---------- v81: what each student's results were in ----------
+     From the course that is loaded: unit titles, lesson titles, and the expectations written on each assignment
+     ("E1. Understanding Epistemology; E2. …": a code, then a name; an expectation with a code and no name is not named in a comment).
+     A quiz counts toward its lesson and that lesson's expectations; an assignment toward its lesson and its own expectations;
+     a unit test toward its unit only. Units switched off for this report (rec.off) are left out. */
+  const EXP = /^([A-Z][0-9]*(?:\.[0-9]+)*)[.:]?\s+(\S.*)$/;
+  const parseExp = str => String(str || '').split(';').map(x => x.trim()).map(x => { const m = x.match(EXP); return m ? { code: m[1], name: m[2].trim() } : null; }).filter(Boolean);
+  const unitInfo = u => { const t = String(L(u.title, 3) || '').trim(), m = t.match(/^Unit\s+(\d+)\s*[\u00B7:.\-\u2013\u2014]\s*(.+)$/i); return m ? { num: +m[1], title: m[2].trim() } : { num: null, title: t }; };
+  const mean = a => a.length ? a.reduce((n, x) => n + x, 0) / a.length : null;
+  function detailsFor(c, off) {
+    const cid = c.course.id, its = Marks.items(c.course).filter(it => !(off || []).includes(it.unit.id));
+    const meta = {};
+    unitsFor(c.course).filter(u => !unitHidden(u)).forEach(u => lessonsFor(u).forEach(les => {
+      const m = { title: String(L(les.title, 3) || '').trim(), exps: [], aexp: {} }, seen = {};
+      [1, 2, 3, 4].forEach(lv => assignmentsFor(les, lv).forEach(a => { if (m.aexp[a._idx]) return; const ex = parseExp(a.expectations); m.aexp[a._idx] = ex; ex.forEach(x => { if (!seen[x.code]) { seen[x.code] = 1; m.exps.push(x); } }); }));
+      meta[u.id + ':' + les._idx] = m;
+    }));
+    return s => {
+      const prog = Progress.graded(s.id)[cid] || {}, fb = Students.levelFor(cid, s) || 2;
+      const lesG = {}, unitG = {}, expG = {}, expN = {}, order = [];
+      const push = (o, k, g) => { (o[k] || (o[k] = [])).push(g); };
+      its.forEach(it => {
+        const r = Marks.itemGrade(it, prog[it.unit.id], fb); if (!r || r.nm || r.grade === null || r.grade === undefined) return;
+        push(unitG, it.unit.id, r.grade); if (it.kind === 'test') return;
+        const k = it.unit.id + ':' + it.l, m = meta[k]; if (!m) return;
+        if (!lesG[k]) order.push({ k, unit: it.unit, title: m.title }); push(lesG, k, r.grade);
+        (it.kind === 'work' && m.aexp[it.n] && m.aexp[it.n].length ? m.aexp[it.n] : m.exps).forEach(x => { push(expG, x.code, r.grade); expN[x.code] = x.name; });
+      });
+      const lessons = order.map(o => ({ unit: o.unit, title: o.title, avg: mean(lesG[o.k]) })).filter(x => x.title);
+      const units = Object.keys(unitG).map(id => { const u = c.course.units.find(x => x.id === id); return { u, info: unitInfo(u), avg: Math.round(mean(unitG[id])), n: lessons.filter(x => x.unit.id === id).length }; });
+      const det = { units, strength: null, exp: null, weak: null };
+      if (lessons.length >= 2) {                                               // "strongest" needs something to be stronger than
+        const best = units.filter(x => x.n).sort((a, b) => b.avg - a.avg)[0];
+        const top = lessons.filter(x => x.unit.id === best.u.id).sort((a, b) => b.avg - a.avg).slice(0, 2);
+        det.strength = { unit: best.info, lessons: top.map(x => x.title) };
+        const low = lessons.filter(x => x.avg < 80 && !top.includes(x)).sort((a, b) => a.avg - b.avg);
+        if (low.length) { const w0 = low[0], w1 = low.find(x => x !== w0 && x.unit.id === w0.unit.id); det.weak = { unit: unitInfo(w0.unit), lessons: [w0.title].concat(w1 ? [w1.title] : []) }; }
+      }
+      const exps = Object.keys(expG).map(code => ({ code, name: expN[code], avg: mean(expG[code]) })).map(x => Object.assign(x, { lv: Engine.levelOf(x.avg) })).sort((a, b) => b.avg - a.avg);
+      if (exps.length) { const best = exps[0], worst = exps[exps.length - 1]; det.exp = { best, worst: exps.length > 1 && worst.lv !== best.lv ? worst : null, second: exps.length > 1 ? exps[1] : null }; }
+      return det;
+    };
+  }
+
   /* ---------- the page ---------- */
   function page(c) {
     if (!c || !c.staff || !c.sec) { location.replace(location.pathname + '#/'); return; }
@@ -224,6 +304,10 @@
     const sigOf = signalsFor(c, rs); const sig = {}, sug = {};
     rs.forEach(s => { sig[s.id] = sigOf(s); sug[s.id] = Engine.suggest(sig[s.id]); });
     let rec = load(secId);
+    let detOfAll = detailsFor(c, rec.off); const dets = {}; const detOf = s => dets[s.id] || (dets[s.id] = detOfAll(s));   // v81
+    const redoDetail = () => { detOfAll = detailsFor(c, rec.off); Object.keys(dets).forEach(k => delete dets[k]); };
+    const rewriteAll = () => rs.forEach(s => { const e = rec.s[s.id]; if (e && !e.edited && String(e.text || '').trim()) write(rec, s, e, detOf(s)); });
+    const allUnits = unitsFor(c.course).filter(u => !unitHidden(u));
     const AUTO = ['r', 'h'];   // results and homework are in the records; engagement is the teacher's to judge, so it is never filled in for them
     const hasSug = s => AUTO.some(d => sug[s.id][d]);
     const dis = ro ? ' disabled' : ''; let typing = 0;
@@ -240,7 +324,7 @@
         [4, 3, 2, 1].forEach(l => { const on = e.lv[d.id] === l, sg = sug[s.id][d.id] === l;
           h += '<button class="chip' + (on ? ' on' : '') + (sg ? ' cm-sug' : '') + '" data-cm="lv" data-d="' + d.id + '" data-lv="' + l + '" aria-pressed="' + on + '"' + (sg ? ' title="Suggested from this class\'s records"' : '') + dis + '>' + d.words[l - 1] + '<span class="cm-lv">' + LEVEL_NAME[l] + '</span></button>'; });
         h += '<button class="chip' + (!e.lv[d.id] ? ' on' : '') + '" data-cm="lv" data-d="' + d.id + '" data-lv="0"' + dis + '>Leave out</button></div>' +
-          '<div class="cm-signal">' + esc(Engine.signalText(d.id, sig[s.id])) + '</div></div>';
+          '<div class="cm-signal">' + esc(Engine.signalText(d.id, sig[s.id])) + (d.id === 'r' && detOf(s).units.length ? esc(' · By unit: ' + detOf(s).units.map(x => (x.info.num ? 'Unit ' + x.info.num : x.info.title) + ' ' + x.avg + '%').join(', ')) : '') + '</div></div>';
       });
       h += '<div class="btn-row cm-row">' + (hasSug(s) && !ro ? '<button class="btn secondary sm" data-cm="usesug" title="Results and homework only. Engagement is yours to choose.">Use the suggested results and homework</button>' : '') +
         '<label class="cm-fld">Pronoun <select class="text-input" data-cm="pro"' + dis + '>' + PRONOUNS.map(o => '<option value="' + o[0] + '"' + (e.pro === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
@@ -263,7 +347,10 @@
         '<div class="card cm-info"><p class="small">Pick a level in each area and the comment is written for you. A dot marks the level this class\'s records suggest; you decide every one, and engagement is never filled in for you. ' +
         'Comments are kept with your own notes: students cannot see them, and the ' + esc(LH.headTitle ? LH.headTitle() : 'Headmaster') + ' can.</p>' +
         '<div class="btn-row cm-row"><label class="cm-fld">Course name used in comments <input class="text-input" data-cm="course" maxlength="' + NAME_MAX + '" value="' + esc(rec.course) + '" placeholder="the course"' + dis + '></label>' +
-        '<label class="cm-fld">Character limit (0 = none) <input class="text-input cm-num" data-cm="limit" type="number" min="0" max="' + LIMIT_MAX + '" step="50" value="' + rec.limit + '"' + dis + '></label></div></div>' +
+        '<label class="cm-fld">Character limit (0 = none) <input class="text-input cm-num" data-cm="limit" type="number" min="0" max="' + LIMIT_MAX + '" step="50" value="' + rec.limit + '"' + dis + '></label>' +
+        '<label class="cm-fld">Course detail in comments <select class="text-input" data-cm="detail"' + dis + '>' + MODES.map(m => '<option value="' + m[0] + '"' + (rec.detail === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select></label></div>' +
+        (allUnits.length > 1 ? '<div class="cm-dim"><div class="cm-fld">Units in this report</div><div class="cm-chips" role="group" aria-label="Units in this report">' + allUnits.map(u => { const on = !rec.off.includes(u.id); return '<button class="chip' + (on ? ' on' : '') + '" data-cm="unit" data-u="' + esc(u.id) + '" aria-pressed="' + on + '"' + dis + '>' + esc(L(u.title, 3)) + '</button>'; }).join('') + '</div>' +
+          '<p class="muted small cm-note">The lessons and expectations a comment names come from these units. Each student\'s own results decide which ones.</p></div>' : '') + '</div>' +
         (rs.length ? rs.map(card).join('') : '<div class="empty slim">No students in this class yet. <a href="' + base + '/students">Add students</a></div>');
     }
     const sOf = el => { const k = el.closest('[data-cm-s]'); return k ? { s: rs.find(x => x.id === k.dataset.cmS), i: +k.dataset.cmI || 0 } : null; };
@@ -280,25 +367,27 @@
     root.addEventListener('click', ev => {
       const t = ev.target.closest('[data-cm]'); if (!t || t.disabled || t.tagName !== 'BUTTON') return;
       const act = t.dataset.cm;
+      if (act === 'unit') { if (ro) return; const id = t.dataset.u; if (!allUnits.some(u => u.id === id)) return; rec.off = rec.off.includes(id) ? rec.off.filter(x => x !== id) : rec.off.concat(id); redoDetail(); rewriteAll(); return commit(); }   // v81: a unit in or out of this report
       if (act === 'copyall') { const rows = rs.filter(s => String(peek(rec, s).text || '').trim()); if (!rows.length) return; return copy(rows.map(s => s.name + '\n' + peek(rec, s).text.trim()).join('\n\n'), plural(rows.length, 'comment') + ' copied'); }
-      if (act === 'draftall') { if (ro) return; let n = 0; rs.forEach((s, i) => { if (!hasSug(s) || String(peek(rec, s).text || '').trim()) return; const e = entry(rec, s, i); AUTO.forEach(d => { if (!e.lv[d]) e.lv[d] = sug[s.id][d]; }); write(rec, s, e); n++; }); commit(); return UI().toast(n ? plural(n, 'comment') + ' drafted. Read each one before you use it.' : 'Every student with records already has a comment.'); }
+      if (act === 'draftall') { if (ro) return; let n = 0; rs.forEach((s, i) => { if (!hasSug(s) || String(peek(rec, s).text || '').trim()) return; const e = entry(rec, s, i); AUTO.forEach(d => { if (!e.lv[d]) e.lv[d] = sug[s.id][d]; }); write(rec, s, e, detOf(s)); n++; }); commit(); return UI().toast(n ? plural(n, 'comment') + ' drafted. Read each one before you use it.' : 'Every student with records already has a comment.'); }
       const hit = sOf(t); if (!hit || !hit.s) return; const s = hit.s;
       if (act === 'toggle') { openId = openId === s.id ? null : s.id; return draw(); }
       if (act === 'copy') { const txt = String(peek(rec, s).text || '').trim(); if (!txt) return UI().toast('Nothing to copy yet.'); return copy(txt, 'Copied the comment for ' + firstName(s)); }
       if (ro) return;
       const e = entry(rec, s, hit.i);
-      if (act === 'lv') { e.lv[t.dataset.d] = Math.max(0, Math.min(4, +t.dataset.lv || 0)); if (!e.edited) write(rec, s, e); return commit(); }
-      if (act === 'usesug') { AUTO.forEach(d => { e.lv[d] = sug[s.id][d]; }); if (!e.edited) write(rec, s, e); return commit(); }
-      if (act === 'reword') { e.w = (Math.round(+e.w) || 0) + 1; write(rec, s, e); return commit(); }
-      if (act === 'rebuild') { write(rec, s, e); return commit(); }
+      if (act === 'lv') { e.lv[t.dataset.d] = Math.max(0, Math.min(4, +t.dataset.lv || 0)); if (!e.edited) write(rec, s, e, detOf(s)); return commit(); }
+      if (act === 'usesug') { AUTO.forEach(d => { e.lv[d] = sug[s.id][d]; }); if (!e.edited) write(rec, s, e, detOf(s)); return commit(); }
+      if (act === 'reword') { e.w = (Math.round(+e.w) || 0) + 1; write(rec, s, e, detOf(s)); return commit(); }
+      if (act === 'rebuild') { write(rec, s, e, detOf(s)); return commit(); }
     });
     root.addEventListener('change', ev => {
       const t = ev.target, act = t.dataset && t.dataset.cm; if (!act || ro) return;
-      if (act === 'course') { rec.course = String(t.value || '').replace(/[<>]/g, '').trim().slice(0, NAME_MAX); rs.forEach(s => { const e = rec.s[s.id]; if (e && !e.edited && String(e.text || '').trim()) write(rec, s, e); }); return commit(); }
+      if (act === 'course') { rec.course = String(t.value || '').replace(/[<>]/g, '').trim().slice(0, NAME_MAX); rewriteAll(); return commit(); }
+      if (act === 'detail') { rec.detail = MODES.some(m => m[0] === t.value) ? t.value : 'both'; rewriteAll(); return commit(); }   // v81
       if (act === 'limit') { rec.limit = Math.max(0, Math.min(LIMIT_MAX, Math.round(+t.value || 0))); return commit(); }
       const hit = sOf(t); if (!hit || !hit.s) return; const e = entry(rec, hit.s, hit.i);
-      if (act === 'pro') { e.pro = PRONOUNS.some(p => p[0] === t.value) ? t.value : 'name'; if (!e.edited && DIMS.some(d => e.lv[d.id])) write(rec, hit.s, e); return commit(); }
-      if (act === 'next') { e.next = ['auto', 'r', 'h', 'e', 'none'].includes(t.value) ? t.value : 'auto'; if (!e.edited && DIMS.some(d => e.lv[d.id])) write(rec, hit.s, e); return commit(); }
+      if (act === 'pro') { e.pro = PRONOUNS.some(p => p[0] === t.value) ? t.value : 'name'; if (!e.edited && DIMS.some(d => e.lv[d.id])) write(rec, hit.s, e, detOf(hit.s)); return commit(); }
+      if (act === 'next') { e.next = ['auto', 'r', 'h', 'e', 'none'].includes(t.value) ? t.value : 'auto'; if (!e.edited && DIMS.some(d => e.lv[d.id])) write(rec, hit.s, e, detOf(hit.s)); return commit(); }
       if (act === 'text') { clearTimeout(typing); save(secId, rec); rec = load(secId); }   // leaving the box: save what was typed (no redraw: a tap on a button that took the focus away must still land)
     });
     root.addEventListener('input', ev => {
@@ -311,5 +400,5 @@
     });
   }
 
-  window.Comments = { page, forgetStudent, signalsFor, Engine };
+  window.Comments = { page, forgetStudent, signalsFor, detailsFor, Engine };
 })();
