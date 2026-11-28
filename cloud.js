@@ -705,6 +705,7 @@
     const was = seenStudents[id] || {};
     if (window.Feedback) { try { await Feedback.forgetStudent(id, was.courses || []); } catch (e) { console.warn('drafts and notices', e && e.code || e); } }   // v78
     { const why = await Cloud.heldReason(id); if (why) throw new Error(why + ' Nothing was deleted.'); }
+    if (window.Comments) { try { Comments.forgetStudent(id); } catch (e) { console.warn('report comments', e); } }   // v80: out of the notes of whoever removes the student
     // v66: the sign-in itself can now be deleted too, because the app holds the code (or, for an older record, the birthday)
     let dropPw = ''; try { const d = await db.collection('signin').doc(id).get(); if (d.exists && d.data().code) dropPw = normCode(d.data().code); } catch (e) {}
     if (!dropPw && was.dob) dropPw = dobPassword(was.dob);

@@ -287,6 +287,7 @@
     /** Sticky notes for the signed-in teacher (private to that teacher, synced to their devices). */
     get notes() { const rec = this.current ? (this.currentId === 'master' ? this.master : this.teachers.find(t => t.id === this.currentId)) : null; return rec ? (rec.notes || null) : null; },
     setNotes(notes) { const rec = this.currentId === 'master' ? this.master : this.teachers.find(t => t.id === this.currentId); if (!rec) return; if (rec.notes && rec.notes.live && notes.live === undefined) notes.live = rec.notes.live;   // v63: the sticky-note page does not know about Live Class notes; keep them
+      if (rec.notes && rec.notes.comments && notes.comments === undefined) notes.comments = rec.notes.comments;   // v80: nor about report comments (comments.js)
       notes.updatedAt = new Date().toISOString(); rec.notes = notes; this.save(); },
     /** v63 · Notes a teacher writes about a Live Class session: private to that teacher, kept with their sticky notes (staffNotes/<uid>), one per section, replaced by the next session's. */
     liveNote(sectionId, since) { const n = this.notes; const r = n && n.live && n.live[sectionId]; return r && r.since === since ? String(r.text || '') : ''; },

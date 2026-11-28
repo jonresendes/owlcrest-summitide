@@ -424,6 +424,7 @@
     exams: '<path d="M4 18l20-9 20 9-20 9z"/><path d="M13 23v10c3 3.5 7 5 11 5s8-1.5 11-5V23"/><path d="M44 18v12"/>',
     scheme: '<circle cx="24" cy="24" r="18"/><path d="M24 6v18l14 11"/><path d="M24 24L8 32"/>',
     case: '<path d="M14 7h20v10a10 10 0 0 1-20 0z"/><path d="M14 10H7c0 7 3 10 8 10M34 10h7c0 7-3 10-8 10"/><path d="M24 27v8M16 41h16M19 35h10"/>',
+    comments: '<path d="M8 10h32v22H22l-9 8v-8H8z"/><path d="M15 18h18M15 25h12"/>',   // v80
     shop: '<path d="M7 18l3-10h28l3 10"/><path d="M7 18a5.7 5.7 0 0 0 11.3 0 5.7 5.7 0 0 0 11.4 0A5.7 5.7 0 0 0 41 18"/><path d="M10 23v18h28V23"/><path d="M20 41V31h8v10"/>'
   };
   const chalkIcon = k => '<svg class="chalk-ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CHALK[k] + '</svg>';

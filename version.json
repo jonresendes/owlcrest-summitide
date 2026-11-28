@@ -1,5 +1,5 @@
 {
- "version": "79",
+ "version": "80",
  "date": "2026-11-27",
- "notes": "Groundwork for two store apps from one codebase: a Schools edition (school code at first launch, licence shown to the Headmaster, nothing sold in the app) and a Personal edition (device only, courses bought in the app). The school's own site is unchanged. See wrap/README.md."
+ "notes": "Report comments: each class has a page that writes a report card comment for each student from three choices (results, homework, engagement), with suggested levels from the class's records. No new firestore.rules to publish."
 }

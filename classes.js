@@ -5,6 +5,7 @@
    #/class/<id>/assignments     … /quizzes /tests /ccts /exams : what is in each, for the teacher or the student
    #/class/<id>/grades          teacher: every student's mark in each category and the final mark
    #/class/<id>/scheme          teacher: the categories, what each is worth, what feeds each
+   #/class/<id>/comments        teacher: report card comments for each student (v80, drawn by comments.js)
    #/class/<id>/task/<task>     a CCT, an exam or a typed mark column: the teacher's marks, or the student's page
    #/class/<id>/students        the class list (drawn by app.js)
    #/teachers, #/teacher/<id>   Headmaster: every teacher and their classes
@@ -86,6 +87,7 @@
         '<a class="ctool" href="' + base + '/grades">' + ico('grades') + '<span>Grades</span></a>' +
         '<a class="ctool' + (tot !== 100 ? ' warn' : '') + '" href="' + base + '/scheme" title="The categories and what each is worth">' + ico('scheme') + '<span>Mark scheme</span>' + (tot !== 100 ? '<span class="ctool-n">' + tot + '%</span>' : '') + '</a>' +
         (c.ro ? '' : '<a class="ctool" href="#/live">' + ico('live') + '<span>Live Class</span></a>') +
+        (window.Comments ? '<a class="ctool" href="' + base + '/comments" title="Report card comments, written from three choices for each student">' + ico('comments') + '<span>Report comments</span></a>' : '') +   // v80
         (window.Coins && Coins.on() ? '<a class="ctool" href="#/shop">' + ico('shop') + '<span>My shop</span></a>' : '') +
         '<span class="ctool-gap"></span>' +
         (c.ro ? '<button class="btn ghost sm" data-class-archive="0">Retrieve from the archive</button>' : '<button class="btn ghost sm" data-class-rename>Rename</button><button class="btn ghost sm" data-class-archive="1">Archive</button>') +
@@ -467,6 +469,7 @@
       if (area === 'task') return task(c, parts[3]);
       if (area === 'grades') return grades(c);
       if (area === 'scheme') return schemePage(c);
+      if (area === 'comments' && c.staff && window.Comments) return Comments.page(c);   // v80: report card comments (comments.js)
       if (area === 'students' && c.staff) return UI().studentsPage();
       return hub(c);
     } catch (e) { console.error(e); app.innerHTML = '<div class="empty">This page could not be drawn: ' + esc(e && e.message || e) + '</div>'; }

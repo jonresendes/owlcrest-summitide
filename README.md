@@ -13,6 +13,22 @@ A static learning environment for any number of courses. Each unit is a list of 
 
 
 
+## Version 80 — report comments (27 November 2026)
+
+Built on version 79 (`9957459`, the Schools and Personal editions). An earlier package of this feature was built on version 78 and was also labelled 79: **do not upload that one**, it would undo the editions work in six files.
+
+Each class has a new tool, **Report comments** (`#/class/<id>/comments`, teachers and the Headmaster only). For each student the teacher picks a level (Summit, Ridge, Trail, Shore, or leave out) for **test and assignment results**, **homework completion** and **engagement with the course material**. The comment is written from those choices with a next step for the lowest area, and can be reworded, edited by hand and copied, one student or the whole class.
+
+**Suggestions.** A dot marks the level the class's records suggest: results from the class mark so far (`Marks.summary`), homework from assignments handed in out of those set (set = at least one student of the class has handed it in or been marked), engagement from slides read in the lessons the class has opened. *Use the suggested results and homework* and *Draft the unwritten ones* fill in results and homework only. Engagement is never filled in: slides read is a hint, and the page says so.
+
+**Where comments are kept.** In the teacher's own notes (`staffNotes/<uid>`, `notes.comments[sectionId]`), readable by that teacher and the Headmaster, never by students. **No new collection and no `firestore.rules` change: nothing to publish.** A pronoun is chosen per student on this page and kept with the comment; the default is "name only", and nothing is added to the student's record.
+
+**Files.** New: `comments.js` (the page and the comment bank). Changed: `classes.js` (the tool link and the route), `app.js` (one icon), `storage.js` (`Staff.setNotes` keeps `notes.comments` when sticky notes are saved), `cloud.js` (removing a student calls `Comments.forgetStudent`), `index.html`, `sw.js` (`summitide-v80`), `pwa.js`, `version.json`, `styles.css` (the `.cm-` rules at the end), `README.md`.
+
+**Tested.** Headless Chrome, device-only mode (cloud switched off), a made-up course and four made-up students: the class page link, suggestions against hand-worked numbers, choosing levels, pronouns, reword, hand edits kept when a level changes, rebuild, the character limit, draft all, copy buttons drawn, comments kept after the sticky notes page saves and after a reload, `forgetStudent`, a student account cannot open the page, desktop and phone widths. 20,000 combinations of choices checked for leftover placeholders and repeated sentence openings. **Not tested:** the Schools and Personal store builds, the live site and Firebase (sync of the notes record between devices, the Headmaster opening a teacher's class), real courses, Safari and Firefox, an archived class, the copy buttons on a real phone.
+
+**Open items.** Report comments are not yet in the "copy of everything held about one student" or covered by holds. Removing a student clears their comments from the notes of the person who removes them (the Headmaster), not from other teachers' notes. The Headmaster opening a teacher's class sees their own comments for it, not the teacher's. The comment bank is in `comments.js` and cannot yet be edited from the app.
+
 ## Version 67 — no emoji (23 November 2026)
 
 Every emoji is gone from the app and from the course files: 1,907 uses of 542 different emoji. Image files (crest, logo, icons, the MTH1W pictures), drawn graphics (chalkboard tiles, colouring pages) and plain symbols (✓ ✕ → ▶ ★) stay. Nothing about the data, the rules or the grading changes.
