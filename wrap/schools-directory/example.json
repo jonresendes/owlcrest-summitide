@@ -1,0 +1,14 @@
+{
+  "name": "Example School (copy this file, name it <school code in lower case>.json, and fill it in)",
+  "firebase": {
+    "apiKey": "the school's Firebase web apiKey",
+    "authDomain": "project-id.firebaseapp.com",
+    "projectId": "project-id",
+    "storageBucket": "project-id.firebasestorage.app",
+    "messagingSenderId": "0000000000",
+    "appId": "1:0000000000:web:0000000000000000"
+  },
+  "studentDomain": "students.example.app",
+  "staffDomain": "staff.example.app",
+  "licence": { "plan": "School", "seats": 600, "expires": "2027-08-31" }
+}

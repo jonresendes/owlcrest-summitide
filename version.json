@@ -1,5 +1,5 @@
 {
- "version": "78",
+ "version": "79",
  "date": "2026-11-27",
- "notes": "Mark one student at a time, with Save draft and Publish. Students get a Notices bell when work is marked or a comment is left. Each class has a board where the teacher posts notices to the class. New firestore.rules to publish."
+ "notes": "Groundwork for two store apps from one codebase: a Schools edition (school code at first launch, licence shown to the Headmaster, nothing sold in the app) and a Personal edition (device only, courses bought in the app). The school's own site is unchanged. See wrap/README.md."
 }

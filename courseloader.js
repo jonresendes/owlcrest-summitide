@@ -243,6 +243,15 @@
     await CF.cacheCourse(code, course, meta); CF.register(course, meta);
     return meta;
   };
+  /** v79, Personal edition: the store installs a bought course on the device, and takes it off when a subscription ends. No Headmaster needed. */
+  CF.install = async function (code, course, extra) {
+    if (!(window.EDITION && EDITION.id === 'personal') || !localOnly()) throw new Error('Courses are installed from the store only in the Personal edition.');
+    course = CF.scrub(course); const v = CF.validate(course); if (v.errors.length) throw new Error('The course did not pass the checks: ' + v.errors[0]);
+    if (!CF.isCode(code)) throw new Error('Not a course code.');
+    const m = { code, id: course.id, title: course.title, type: 'course', build: (extra && extra.build) || '', size: JSON.stringify(course).length, parts: 0, by: 'store', at: new Date().toISOString(), local: true };
+    await CF.cacheCourse(code, course, m); CF.register(course, m); return m;
+  };
+  CF.uninstall = async function (code) { if (!(window.EDITION && EDITION.id === 'personal')) return; await CF.uncache(code); CF.unregister(code); };
   CF.remove = async function (code) {
     if (localOnly()) { if (!isHead()) throw new Error('Only the Headmaster can remove courses.'); await CF.uncache(code); CF.unregister(code); return; }
     if (!db()) throw new Error('The cloud is not connected.');

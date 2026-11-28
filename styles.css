@@ -1850,3 +1850,15 @@ details.notice-strip > summary { list-style: none; cursor: pointer; display: fle
 details.notice-strip > summary::-webkit-details-marker { display: none; }
 details.notice-strip > summary .notice-fold { margin-left: auto; } details.notice-strip > summary .notice-fold::after { content: 'Show \25BE'; } details.notice-strip[open] > summary .notice-fold::after { content: 'Hide \25B4'; }
 details.notice-strip > .notice-list, details.notice-strip > p { padding: 0 1rem; } details.notice-strip[open] { padding-bottom: 0.8rem; }
+
+/* =========================================================
+   v79 · editions: the store (Personal) and the school picker (Schools)
+   ========================================================= */
+html[data-edition="schools"] .install-btn, html[data-edition="personal"] .install-btn { display: none !important; }
+.store-sub { padding: 1.1rem 1.25rem; border-left: 8px solid var(--primary); margin-bottom: 1.25rem; } .store-sub h2 { margin: 0 0 0.3rem; font-size: 1.25rem; } .store-sub p { margin: 0.4rem 0; }
+.store-list { display: grid; gap: 0.7rem; }
+.store-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 1.1rem; flex-wrap: wrap; }
+.store-item h3 { margin: 0.3rem 0 0.15rem; font-size: 1.1rem; } .store-item p { margin: 0; } .store-item-text { flex: 1 1 16rem; min-width: 0; }
+.store-item-act { display: flex; align-items: center; gap: 0.5rem; }
+.store-foot { margin-top: 1.25rem; max-width: 60rem; }
+.store-link { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 0.9rem 1.1rem; margin-top: 1rem; }

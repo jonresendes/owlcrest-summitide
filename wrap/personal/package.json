@@ -1,0 +1,14 @@
+{
+  "name": "summitide-personal",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@revenuecat/purchases-capacitor": "^15.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  }
+}

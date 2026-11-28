@@ -86,7 +86,7 @@
      APP_VERSION is baked into this file; version.json on the site says what is published.
      Settings → Updates compares the two and offers a one-tap update (new service worker +
      cache clear + reload). The check also runs on load and hourly. */
-  const APP_VERSION = '78';
+  const APP_VERSION = '79';
   let latest = null;   // { version, date, notes } from the site, when newer
   async function checkForUpdate() {
     try {
@@ -120,7 +120,7 @@
     const b = el.querySelector('#updateBtn'); if (b) b.addEventListener('click', () => { onClick(); el.remove(); });
     if (!btnLabel) setTimeout(() => el.remove(), 5000);
   }
-  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
+  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && !(window.EDITION && EDITION.id !== 'web')) {   // v79: a store build carries its files inside the app; no service worker
     window.addEventListener('load', async () => {
       // Remove any service worker that is not ours (e.g. another app previously deployed at this address)
       // and any cache it left behind, so nothing from an old build can be served.

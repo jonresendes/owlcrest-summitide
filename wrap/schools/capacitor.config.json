@@ -1,0 +1,8 @@
+{
+  "appId": "ca.summitide.schools",
+  "appName": "Summitide for Schools",
+  "webDir": "../../dist/schools",
+  "server": {
+    "androidScheme": "https"
+  }
+}

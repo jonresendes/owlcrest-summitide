@@ -1,0 +1,20 @@
+{
+  "_readme": "Fill these in before building the store apps. Nothing here is a secret: app ids, public store keys and public addresses only. See wrap/README.md.",
+  "schools": {
+    "appId": "ca.summitide.schools",
+    "appName": "Summitide for Schools",
+    "directory": "https://jonresendes.github.io/owlcrest-summitide/wrap/schools-directory"
+  },
+  "personal": {
+    "appId": "ca.summitide.personal",
+    "appName": "Summitide Learning",
+    "store": {
+      "adapter": "revenuecat",
+      "appleKey": "",
+      "googleKey": "",
+      "subscription": { "entitlement": "all", "products": ["summitide_all_monthly", "summitide_all_yearly"] },
+      "terms": "",
+      "privacy": ""
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "appId": "ca.summitide.personal",
+  "appName": "Summitide Learning",
+  "webDir": "../../dist/personal",
+  "server": {
+    "androidScheme": "https"
+  }
+}

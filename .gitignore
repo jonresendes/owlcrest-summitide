@@ -1,0 +1,5 @@
+dist/
+node_modules/
+wrap/*/android/
+wrap/*/ios/
+wrap/*/package-lock.json

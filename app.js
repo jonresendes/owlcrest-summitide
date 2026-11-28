@@ -205,6 +205,7 @@
     app.innerHTML = '<div class="signin"><div class="signin-head"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><h1>Welcome to Summitide Learning</h1><p class="brand-by">by OwlCrest Academy</p><p class="muted">' + (cont ? 'Welcome back! Continue, or pick another name.' : students.length || staffTiles.length ? 'Tap your name to sign in.' : 'Create the first profile to get started.') + '</p></div>' +
       (!welcomeState.mode && !welcomeState.pinFor ? ((cont ? '<button class="continue-tile" data-welcome="' + esc(cont.id) + '" style="--tile:' + esc(cont.colour) + '">' + avatarHtml(cont, 'tile-avatar') + '<span><span class="tile-name">Continue as ' + esc(cont.name) + '</span><span class="muted small">Pick up where you left off</span></span><span class="continue-arrow">→</span></button>' : '') +(students.length ? '<div class="student-grid">' + students.map(p => tile(p)).join('') + '</div>' : '') +
         (staffTiles.length ? '<div class="student-grid staff-grid">' + staffTiles.map(p => tile(p, p.role)).join('') + '</div>' : '') +
+        (window.Store ? '<div class="card signin-add"><h3>Courses</h3><p class="muted small">Buy a course or restore what you have bought.</p><div class="btn-row"><a class="btn secondary" href="#/store">Open the Store</a></div></div>' : '') +
         '<div class="card signin-add"><h3>New here?</h3><div class="btn-row">' + (canAdd ? '<button class="btn" data-mode="student">I\'m a student</button>' : '') + '<button class="btn secondary" data-mode="teacher">I\'m a teacher</button></div>' + (canAdd ? '' : '<p class="muted small" style="margin:0.5rem 0 0">Students are added by their teacher on this device.</p>') + '</div>') : form) + (window.Privacy ? '<p class="muted small center" style="margin-top:1rem">' + Privacy.link() + '</p>' : '') + '</div>';
     // bindings
     app.querySelectorAll('[data-welcome]').forEach(b => b.addEventListener('click', () => {
@@ -464,6 +465,7 @@
       '<div class="desk-tiles small-tiles">' +
       tile('#/case', chalkIcon('case'), 'Display Case', awards + ' / ' + total + ' awards', ' data-chalk') +
       tile('#/courses', chalkIcon('courses'), 'Courses', (others.length && !s.coursesLocked ? 'join a class' : mine.length + ' active') + (arch.length ? ' · ' + arch.length + ' archived' : ''), ' data-chalk') +
+      (window.Store ? tile('#/store', chalkIcon('shop'), 'Store', 'get courses', ' data-chalk') : '') +
       (window.Coins ? Coins.deskTiles(tile) : '') +   // v60: Shop and Locker, only where coins are on
       '</div>' + deskNotesHtml();
     bindDeskNotes(pageHome);
@@ -566,7 +568,7 @@
         '<div class="page-head"><div><h1>Courses</h1><p class="muted">' + allCourses().length + ' courses in ' + groups.length + ' area' + (groups.length === 1 ? '' : 's') + ', in teacher preview. Students see a course through a <strong>class</strong>: your own copy for one roster, where every change you make stays until you copy it into another class.</p></div><div class="btn-row"><a class="btn secondary" href="#/classes">My Classes</a></div></div>' +
         (allCourses().length ? '' : '<div class="empty slim"><h2 style="margin:0 0 0.3rem">No courses yet</h2><p class="muted" style="margin:0">Summitide Learning starts empty. ' + (Staff.isMaster ? 'Load your first course file below; it is there for every teacher and can be removed again at any time.' : 'The ' + esc(LH.headTitle()) + ' loads course files here.') + '</p></div>') +
         '<div class="area-list">' + groups.map(g => '<details class="area-fold" data-area="' + g.area.key + '" style="--area:' + g.area.colour + '"' + (openKey === g.area.key ? ' open' : '') + '><summary class="area-bar"><span class="area-block">' + esc(g.area.short) + '</span><span class="area-text"><strong>' + esc(g.area.label) + '</strong><span class="muted small">' + g.courses.length + ' course' + (g.courses.length === 1 ? '' : 's') + ' · ' + g.courses.map(c => esc(LH.courseCode(c) || c.id.toUpperCase())).join(' · ') + '</span></span><span class="fold-caret">→</span></summary><div class="area-body">' + g.courses.map(row).join('') + '</div></details>').join('') + '</div>' +
-        (Staff.isMaster ? courseLoaderHtml() : '');
+        (window.Store ? '<div class="card store-link"><div><strong>Get courses</strong><div class="muted small">Courses are bought in the Store and kept on this device.</div></div><a class="btn" href="#/store">Open the Store</a></div>' : Staff.isMaster ? courseLoaderHtml() : '');
       app.querySelectorAll('details.area-fold').forEach(d => d.addEventListener('toggle', () => { if (d.open) { app.querySelectorAll('details.area-fold').forEach(o => { if (o !== d) o.open = false; }); sessionStorage.setItem('learnhub.areaOpen', d.dataset.area); } else if (sessionStorage.getItem('learnhub.areaOpen') === d.dataset.area) sessionStorage.removeItem('learnhub.areaOpen'); }));
       if (Staff.isMaster) bindCourseLoader();
       return;
@@ -596,6 +598,7 @@
     document.body.dataset.page = 'desk'; document.body.dataset.desk = 'staff';
     const areas = LH.groupByArea(allCourses()).length;
     app.innerHTML = '<div class="page-head"><div><h1>' + esc(deskName()) + '</h1><p class="muted">Welcome, ' + esc(s.name) + ' · ' + (hm ? '<span class="tag hm-tag">' + esc(HT) + '</span>' : 'Teacher') + ' · ' + (hm ? Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's') + ' · ' + secs.length + ' class' + (secs.length === 1 ? '' : 'es') : own.length + ' class' + (own.length === 1 ? '' : 'es')) + ' · ' + all.length + ' student' + (all.length === 1 ? '' : 's') + '</p></div></div>' +
+      (hm && window.Edition ? Edition.licenceNotice() : '') + (window.Store ? '<div class="card store-link" style="margin:0 0 1rem"><div><strong>Store</strong><div class="muted small">Buy courses or restore purchases.</div></div><a class="btn secondary" href="#/store">Open the Store</a></div>' : '') +
       '<div class="desk-tiles">' +
       (hm ? tile('#/teachers', chalkIcon('teachers'), 'Teachers', Staff.teachers.length + ' teacher' + (Staff.teachers.length === 1 ? '' : 's') + ' · ' + secs.length + ' class' + (secs.length === 1 ? '' : 'es'), ' data-chalk')
           : tile('#/classes', chalkIcon('classes'), 'My Classes', own.length + ' active' + (archived.length ? ' · ' + archived.length + ' archived' : ''), ' data-chalk')) +
@@ -1218,7 +1221,7 @@
     const later = '<ul class="plain-list small muted"><li><strong>Schools and boards:</strong> more than one school, each with its own Principal, kept apart from every other board.</li><li><strong>Reporting periods:</strong> midterm and final dates, and a mark frozen at each.</li><li><strong>Report card comments</strong> and learning skills.</li><li><strong>Announcements</strong> to every class.</li><li><strong>Curriculum coverage:</strong> which expectations each lesson and task meets.</li></ul>';
     app.innerHTML = crumbs([{ label: deskName(), href: '#/' }, { label: 'Administration' }]) +
       '<div class="page-head"><div><h1>Administration</h1><p class="muted">Set once for the whole school. Only the ' + esc(HT) + ' opens this page.</p>' + cloudStatusHtml() + '</div><a class="btn secondary" href="#/settings">My settings</a></div>' +
-      group('school', 'School', 'title of the head of the school · sign-up · colouring breaks', school, true) +
+      group('school', 'School', 'title of the head of the school · sign-up · colouring breaks', (window.Edition ? Edition.licenceHtml() : '') + school, true) +
       group('people', 'People and documents', 'teachers · students · curriculum', people) +
       (window.Privacy ? group('privacy', 'Privacy and retention', 'notice · dictation · how long things are kept · holds · end-of-term clean-up', Privacy.settingsHtml()) : '') +
       (Cloud.enabled ? group('security', 'Security and the change log', 'unused sign-ins · change log · data upgrade', securityHtml()) : '') +
@@ -1827,7 +1830,7 @@
   function notFound() { app.innerHTML = '<div class="empty"><h2>Page not found</h2><a class="btn" href="#/">Back to courses</a></div>'; }
 
   /* ---------- router ---------- */
-  function route() { routeInner(); try { cloudNotice(); } catch (e) {} try { studentViewBanner(); } catch (e) { console.warn('banner', e); } try { if (window.Live) Live.banner(); } catch (e) { console.warn('live banner', e); } }
+  function route() { routeInner(); try { if (window.Edition) Edition.after(); } catch (e) {} try { cloudNotice(); } catch (e) {} try { studentViewBanner(); } catch (e) { console.warn('banner', e); } try { if (window.Live) Live.banner(); } catch (e) { console.warn('live banner', e); } }
   function routeInner() {
     const parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').map(decodeURIComponent);   // #/page/a/b?x=y
     window.scrollTo(0, 0);
@@ -1843,6 +1846,8 @@
     if (location.hash !== route.last) Object.keys(sessionStorage).filter(k => /^learnhub\.(sg\.|studentOpen|workOpen|recOpen|mediaOpen|planOpen|sectionsOpen|focusOpen|teacherOpen|tSecOpen)/.test(k)).forEach(k => sessionStorage.removeItem(k));
     route.last = location.hash;
     if (parts[0] !== 'students' && !(parts[0] === 'class' && parts[2] === 'students')) route.cameFrom = '';
+    if (window.EDITION && (EDITION.needSchool || (EDITION.id === 'schools' && parts[0] === 'school' && !(Cloud.enabled && Cloud.user)))) { setCourseColor(null); setNav(''); return Edition.schoolPage(); }   // v79: Schools edition asks which school first
+    if (window.Store && parts[0] === 'store') return Store.page();   // v79: Personal edition; open before anyone signs in
     if (!Cloud.enabled && (window.CLOUD_CONFIG || {}).enabled) { app.innerHTML = '<div class="empty"><div class="signin-logo"><img src="crest.png" alt="OwlCrest Academy crest: Curious First" class="signin-crest"></div><p>Summitide Learning could not start its connection to the cloud.</p><p class="muted small">Check the internet connection and reload the page.</p><button class="btn" id="reloadBtn">Reload</button></div>'; app.querySelector('#reloadBtn').addEventListener('click', () => location.reload()); return; }
     // v59: the privacy notice is open to everyone, signed in or not
     if (parts[0] === 'privacy' && window.Privacy && (!Cloud.enabled || Cloud.ready)) { setCourseColor(null); setNav(''); try { return Privacy.page(); } catch (e) { app.innerHTML = '<div class="empty">The privacy notice could not be drawn: ' + esc(e && e.message || e) + '</div>'; console.error(e); return; } }
@@ -1914,6 +1919,6 @@
   });
   Settings.apply();
   // v69: the courses kept on this device are registered first (a moment), so a reload on a lesson finds its course
-  const coursesReady = Promise.race([window.CourseFiles ? CourseFiles.ready.catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, 2500))]);
+  const coursesReady = Promise.race([(window.Store ? Store.start().catch(() => {}) : window.CourseFiles ? CourseFiles.ready.catch(() => {}) : Promise.resolve()), new Promise(r => setTimeout(r, 2500))]);   // v79: the Personal edition also installs what is owned
   if (Cloud.enabled) Promise.all([Cloud.whenReady(), coursesReady]).then(route); else coursesReady.then(route);
 })();
